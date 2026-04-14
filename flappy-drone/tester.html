@@ -3,288 +3,507 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Drone - Effect Tester</title>
+<title>Flappy Drone — Game Tester</title>
 <link rel="stylesheet" href="css/game.css">
 <link rel="stylesheet" href="css/tester.css">
+<style>
+  /* Tester-specific: narrow the stage-frame in mobile mode so the
+     620×640 buffer fills it without huge letterbox gutters. */
+  body:not(.vp-wide) #stage-frame {
+    max-width: 780px;
+    align-self: center;
+    width: 100%;
+  }
+</style>
 </head>
 <body>
-<div id="panel">
-  <div class="title-bar">
-    <h1>TESTER</h1>
-    <span class="badge">DEV</span>
+
+<!-- Masthead -->
+<div class="mast">
+  <div class="left">
+    <h1>GAME TESTER</h1>
+    <span class="badge">DEV BUILD</span>
+    <span class="badge cyan">FD CORE</span>
   </div>
-
-  <!-- 1. DRONE -->
-  <details open>
-    <summary>Drone</summary>
-    <div class="section-body">
-      <select id="droneSelect" onchange="selectDrone(this.value)">
-        <option value="quad">Pixel Quad</option>
-        <option value="stealth">Stealth</option>
-        <option value="heavy">Heavy Lift</option>
-        <option value="racer">Racer</option>
-        <option value="osprey">Osprey</option>
-        <option value="dragonfly">Dragonfly</option>
-        <option value="disc">Disc UFO</option>
-        <option value="spider">Spider Hex</option>
-        <option value="jetwing">Jetwing</option>
-        <option value="balloon">Balloon</option>
-        <option value="paperplane">Paper Plane</option>
-        <option value="chopper">Chopper</option>
-        <option value="gyro">Whirlybird</option>
-        <option value="blimp">Zephyr</option>
-        <option value="tandem">Warhorse</option>
-        <option disabled>──── Wave 5 ────</option>
-        <option value="pizzabox">Pizza Box</option>
-        <option value="toaster">Toaster</option>
-        <option value="bumblebee">Bumblebee</option>
-        <option value="crane">Origami Crane</option>
-        <option value="broom">Witch Broom</option>
-      </select>
-      <label class="toggle-row">
-        <input type="checkbox" id="wasdToggle" onchange="toggleWASD(this.checked)">
-        <span class="toggle-switch"></span>
-        <span class="toggle-label">WASD / Arrow Control</span>
-      </label>
-      <div class="hint" id="wasdHint">Drone idles automatically</div>
-    </div>
-  </details>
-
-  <!-- 2. EFFECTS -->
-  <details open>
-    <summary>Effects</summary>
-    <div class="section-body">
-      <div class="btn-grid">
-        <button class="btn-fx" onclick="triggerFirework()">Firework</button>
-        <button class="btn-fx" onclick="triggerExplosion()">Explosion</button>
-        <button class="btn-fx" onclick="triggerThrust()">Thrust</button>
-      </div>
-      <div class="sub-label">Countdown</div>
-      <select id="countdownStyle" onchange="setCountdownStyle(this.value)">
-        <option value="random">Random Style</option>
-        <option value="0">Slam</option>
-        <option value="1">Typewriter</option>
-        <option value="2">Shockwave</option>
-        <option value="3">Radar Sweep</option>
-        <option value="4">Particle Assemble</option>
-      </select>
-      <button class="btn-fx" onclick="triggerCountdown()" style="width:100%">Play Full Countdown</button>
-      <div class="btn-row">
-        <button class="btn-fx btn-sm" onclick="triggerCountdownSegment('ready')">Ready?</button>
-        <button class="btn-fx btn-sm" onclick="triggerCountdownSegment('set')">Set.</button>
-        <button class="btn-fx btn-sm" onclick="triggerCountdownSegment('drone')">DRONE!</button>
-      </div>
-    </div>
-  </details>
-
-  <!-- 3. NEON SIGNS -->
-  <details>
-    <summary>Neon Signs</summary>
-    <div class="section-body">
-      <select id="signSelect">
-        <option value="ZENATECH">ZENATECH</option>
-        <option value="IQ NANO">IQ NANO</option>
-        <option value="ZD1000">ZD1000</option>
-        <option value="SKYNET">SKYNET</option>
-        <option value="APEX">APEX</option>
-        <option value="VOLT">VOLT</option>
-        <option value="NIMBUS">NIMBUS</option>
-        <option value="HOVER">HOVER</option>
-        <option value="DRONE CO">DRONE CO</option>
-      </select>
-      <div class="btn-row">
-        <select id="signType">
-          <option value="random">Random Style</option>
-          <option value="roof">Roof Sign</option>
-          <option value="side">Side Sign</option>
-          <option value="stacked">Stacked Sign</option>
-        </select>
-      </div>
-      <div class="btn-row">
-        <button class="btn-fx" onclick="spawnSign()">Spawn</button>
-        <button class="btn-fx btn-clear" onclick="clearTestSigns()">Clear Signs</button>
-      </div>
-    </div>
-  </details>
-
-  <!-- 4. BUILDINGS -->
-  <details>
-    <summary>Buildings</summary>
-    <div class="section-body">
-      <select id="buildingStyle">
-        <option value="random">Random</option>
-        <option value="narrow">Narrow</option>
-        <option value="wide">Wide</option>
-        <option value="ledges">With Ledges</option>
-        <option value="antenna">With Antenna</option>
-        <option value="sign">With Sign</option>
-        <option value="full">Full Random (All)</option>
-      </select>
-      <div class="btn-row">
-        <button class="btn-fx" onclick="spawnTestBuilding()">Spawn</button>
-        <button class="btn-fx btn-clear" onclick="clearTestBuildings()">Clear</button>
-      </div>
-    </div>
-  </details>
-
-  <!-- VIEWPORT -->
-  <details open>
-    <summary>Viewport</summary>
-    <div class="section-body">
-      <div class="btn-row">
-        <button class="btn-mode" id="vpMobile" onclick="setViewport('mobile')">Mobile 620×640</button>
-        <button class="btn-mode" id="vpWide" onclick="setViewport('wide')">Widescreen 1138×640</button>
-      </div>
-      <div class="hint">Reloads on switch; persists across sessions.</div>
-    </div>
-  </details>
-
-  <!-- 5. SPECIAL -->
-  <details open>
-    <summary>Special</summary>
-    <div class="section-body">
-      <button class="btn-nuke" onclick="triggerNuke()">&#9762; NUKE</button>
-      <div class="sub-label">Aurora</div>
-      <div class="slider-row">
-        <label>Intensity: <span id="auroraLabel">12</span>%</label>
-        <input type="range" id="auroraSlider" min="0" max="100" value="12" oninput="setAuroraIntensity(this.value)">
-      </div>
-      <div class="sub-label">Pickups</div>
-      <div class="btn-row">
-        <button class="btn-fx" onclick="spawnPickup('nuke')">Nuke</button>
-        <button class="btn-fx" onclick="spawnPickup('shield')">Shield</button>
-        <button class="btn-fx" onclick="spawnPickup('magnet')">Magnet</button>
-      </div>
-    </div>
-  </details>
-
-  <!-- 6. GAME STATE -->
-  <details>
-    <summary>Game State</summary>
-    <div class="section-body">
-      <div class="sub-label">Death</div>
-      <div class="btn-row">
-        <button class="btn-death" onclick="triggerDeath()">Full</button>
-        <button class="btn-death" onclick="triggerFlash()">Flash</button>
-        <button class="btn-death" onclick="triggerYouDied()">YOU DIED</button>
-      </div>
-      <div class="sub-label">Victory</div>
-      <button class="btn-fx btn-victory" onclick="triggerVictory()">ZENAVLLE IS SAVED</button>
-      <span class="coming-soon">Coming Soon: Full Victory Sequence</span>
-    </div>
-  </details>
-
-  <!-- 7. PIPE AMPLITUDE -->
-  <details>
-    <summary>Pipe Amplitude</summary>
-    <div class="section-body">
-      <div class="btn-row" style="margin-bottom:6px">
-        <button class="btn-mode" id="pipeMode-classic" onclick="setPipeMode('classic')">Classic</button>
-        <button class="btn-mode" id="pipeMode-rush" onclick="setPipeMode('rush')">Rush</button>
-      </div>
-      <div class="slider-row">
-        <label>Score: <span id="pipeScoreLabel">0</span></label>
-        <input type="range" id="pipeScore" min="0" max="50" value="0" oninput="onPipeScoreChange(this.value)">
-      </div>
-      <div class="btn-row">
-        <button class="btn-fx" onclick="generatePipePreview()">Generate</button>
-        <button class="btn-fx" id="scrollBtn" onclick="togglePipeScroll()">Scroll: OFF</button>
-        <button class="btn-fx" onclick="clearPipePreview()">Clear</button>
-      </div>
-      <button class="btn-fx" id="hitboxBtn" onclick="toggleHitboxes()" style="margin-top:4px;width:100%">Hitboxes: OFF</button>
-    </div>
-  </details>
-
-  <!-- 8. PARALLAX -->
-  <details>
-    <summary>Parallax</summary>
-    <div class="section-body">
-      <div class="sub-label">Layer Visibility</div>
-      <div class="btn-grid">
-        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('mountains', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Mountains</span></label>
-        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('backCity', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Back City</span></label>
-        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('frontCity', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Front City</span></label>
-        <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('ground', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Ground</span></label>
-      </div>
-      <div class="sub-label">Layer Speed</div>
-      <div class="slider-row">
-        <label>Mtn: <span id="parMtnLabel">0.2</span>x</label>
-        <input type="range" id="parMtn" min="0" max="200" value="20" oninput="setParallaxSpeed('mountains', this.value)">
-      </div>
-      <div class="slider-row">
-        <label>Back: <span id="parBackLabel">0.6</span>x</label>
-        <input type="range" id="parBack" min="0" max="200" value="60" oninput="setParallaxSpeed('back', this.value)">
-      </div>
-      <div class="slider-row">
-        <label>Front: <span id="parFrontLabel">1.0</span>x</label>
-        <input type="range" id="parFront" min="0" max="200" value="100" oninput="setParallaxSpeed('front', this.value)">
-      </div>
-      <div class="slider-row">
-        <label>Ground: <span id="parGroundLabel">1.0</span>x</label>
-        <input type="range" id="parGround" min="0" max="200" value="100" oninput="setParallaxSpeed('ground', this.value)">
-      </div>
-      <div class="sub-label">Scale</div>
-      <div class="slider-row">
-        <label>City: <span id="parScaleLabel">1.0</span>x</label>
-        <input type="range" id="parScale" min="50" max="200" value="100" oninput="setParallaxScale(this.value)">
-      </div>
-      <div class="btn-row">
-        <button class="btn-fx" id="motionBtn" onclick="toggleMotion()">Motion: ON</button>
-        <button class="btn-fx" onclick="resetScene()">Reset</button>
-      </div>
-    </div>
-  </details>
-
-  <!-- 9. TIME OF DAY -->
-  <details>
-    <summary>Time of Day <span class="coming-soon-inline">Soon</span></summary>
-    <div class="section-body disabled-section">
-      <select disabled>
-        <option>Night (Current)</option>
-        <option>Dawn</option>
-        <option>Day</option>
-        <option>Dusk</option>
-      </select>
-      <div class="hint">Time of day rendering not yet implemented</div>
-    </div>
-  </details>
-
-  <!-- 10. MISCELLANEOUS -->
-  <details>
-    <summary>Miscellaneous</summary>
-    <div class="section-body">
-      <div class="sub-label">Score Milestones</div>
-      <div class="btn-grid">
-        <button class="btn-fx" onclick="triggerMilestone('NICE!','#00d4ff')">NICE!</button>
-        <button class="btn-fx" onclick="triggerMilestone('INSANE!','#ffcc00')">INSANE!</button>
-        <button class="btn-fx" onclick="triggerMilestone('LEGENDARY!','#ff4466')">LEGENDARY!</button>
-        <button class="btn-fx" onclick="triggerMilestone('GODLIKE','#cc44ff')">GODLIKE</button>
-      </div>
-      <div class="sub-label">Near Miss</div>
-      <div class="slider-row">
-        <label>Gap: <span id="nearMissLabel">15</span>px</label>
-        <input type="range" id="nearMissGap" min="5" max="40" value="15" oninput="document.getElementById('nearMissLabel').textContent=this.value">
-      </div>
-      <button class="btn-fx" onclick="triggerNearMiss()" style="width:100%">Trigger Near Miss</button>
-      <div class="sub-label">Speed Indicator</div>
-      <div class="slider-row">
-        <label>Speed: <span id="speedFxLabel">2.8</span></label>
-        <input type="range" id="speedFxSlider" min="10" max="150" value="28" oninput="onSpeedFxChange(this.value)">
-      </div>
-      <button class="btn-fx" id="speedFxBtn" onclick="toggleSpeedFx()" style="width:100%">Speed FX: OFF</button>
-    </div>
-  </details>
+  <div class="meta">
+    Source <b>js/tester.js</b> · Renderer <b>Canvas2D · FD.*</b> · Fleet <b>20 drones</b>
+  </div>
 </div>
 
-<canvas id="game"></canvas>
+<!-- Stage canvas + HUD -->
+<div id="stage-frame">
+  <canvas id="game"></canvas>
+  <div id="stage-hud">
+    <div class="crn tl">
+      <div class="lab">Drone</div>
+      <div class="v" id="hudDrone">PIXEL QUAD</div>
+    </div>
+    <div class="crn tr">
+      <div class="lab">Viewport</div>
+      <div class="v" id="hudVp">WIDESCREEN</div>
+    </div>
+    <div class="crn bl">
+      <div class="lab">Pipe</div>
+      <div class="v" id="hudPipe">CLASSIC · 0</div>
+    </div>
+    <div class="crn br">
+      <div class="lab">Renderer</div>
+      <div class="v">CANVAS2D · FD.*</div>
+    </div>
+  </div>
+</div>
+
+<!-- Controls grid -->
+<div id="controls-grid">
+
+  <!-- LEFT COLUMN: Fleet Picker -->
+  <div class="ctrl-card">
+    <details open>
+      <summary>Fleet · Tap to load onto stage</summary>
+      <div class="section-body">
+        <div class="fleet-list" id="fleetList"></div>
+      </div>
+    </details>
+    <details>
+      <summary>Drone Control</summary>
+      <div class="section-body">
+        <label class="toggle-row">
+          <input type="checkbox" id="wasdToggle" onchange="toggleWASD(this.checked)">
+          <span class="toggle-switch"></span>
+          <span class="toggle-label">WASD / Arrow keys</span>
+        </label>
+        <div class="hint" id="wasdHint">Drone idles automatically</div>
+        <!-- Hidden legacy select; kept so tester.js DOM expectations hold -->
+        <select id="droneSelect" style="display:none" onchange="selectDrone(this.value)">
+          <option value="quad">quad</option>
+          <option value="stealth">stealth</option>
+          <option value="heavy">heavy</option>
+          <option value="racer">racer</option>
+          <option value="osprey">osprey</option>
+          <option value="dragonfly">dragonfly</option>
+          <option value="disc">disc</option>
+          <option value="spider">spider</option>
+          <option value="jetwing">jetwing</option>
+          <option value="balloon">balloon</option>
+          <option value="paperplane">paperplane</option>
+          <option value="chopper">chopper</option>
+          <option value="gyro">gyro</option>
+          <option value="blimp">blimp</option>
+          <option value="tandem">tandem</option>
+          <option value="pizzabox">pizzabox</option>
+          <option value="toaster">toaster</option>
+          <option value="bumblebee">bumblebee</option>
+          <option value="crane">crane</option>
+          <option value="broom">broom</option>
+        </select>
+      </div>
+    </details>
+  </div>
+
+  <!-- MIDDLE COLUMN: Bio + World / Pipes / Parallax / Effects / State -->
+  <div class="ctrl-card">
+    <details open>
+      <summary>Selected</summary>
+      <div class="section-body">
+        <div class="bio-block">
+          <div class="bio-name" id="bioName">PIXEL QUAD</div>
+          <div class="bio-call" id="bioCall">CALLSIGN · DEFAULT · BASELINE</div>
+          <div class="bio-desc" id="bioDesc">Workhorse quadcopter. Cyan cabin, red blinker, pixel-art profile.</div>
+        </div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Pipes · Amplitude · Hitboxes</summary>
+      <div class="section-body">
+        <div class="scene-cluster">
+          <button id="pipeMode-classic" onclick="setPipeMode('classic')">CLASSIC</button>
+          <button id="pipeMode-rush" onclick="setPipeMode('rush')">RUSH</button>
+        </div>
+        <div class="slider-row">
+          <label>Score: <span id="pipeScoreLabel">0</span></label>
+          <input type="range" id="pipeScore" min="0" max="50" value="0" oninput="onPipeScoreChange(this.value)">
+        </div>
+        <div class="btn-row">
+          <button class="btn-fx" onclick="generatePipePreview()">Generate</button>
+          <button class="btn-fx" id="scrollBtn" onclick="togglePipeScroll()">Scroll: OFF</button>
+          <button class="btn-fx" onclick="clearPipePreview()">Clear</button>
+        </div>
+        <button class="btn-fx" id="hitboxBtn" onclick="toggleHitboxes()" style="width:100%">Hitboxes: OFF</button>
+      </div>
+    </details>
+
+    <details open>
+      <summary>World · Signs + Buildings</summary>
+      <div class="section-body">
+        <div class="sub-label">Neon Sign</div>
+        <select id="signSelect">
+          <option value="ZENATECH">ZENATECH</option>
+          <option value="IQ NANO">IQ NANO</option>
+          <option value="ZD1000">ZD1000</option>
+          <option value="SKYNET">SKYNET</option>
+          <option value="APEX">APEX</option>
+          <option value="VOLT">VOLT</option>
+          <option value="NIMBUS">NIMBUS</option>
+          <option value="HOVER">HOVER</option>
+          <option value="DRONE CO">DRONE CO</option>
+        </select>
+        <div class="btn-row">
+          <select id="signType" style="flex:1">
+            <option value="random">Random Style</option>
+            <option value="roof">Roof Sign</option>
+            <option value="side">Side Sign</option>
+            <option value="stacked">Stacked Sign</option>
+          </select>
+          <button class="btn-fx" onclick="spawnSign()" style="min-width:64px">Spawn</button>
+          <button class="btn-fx btn-clear" onclick="clearTestSigns()" style="min-width:54px">Clear</button>
+        </div>
+        <div class="sub-label">Building</div>
+        <div class="btn-row">
+          <select id="buildingStyle" style="flex:1">
+            <option value="random">Random</option>
+            <option value="narrow">Narrow</option>
+            <option value="wide">Wide</option>
+            <option value="ledges">With Ledges</option>
+            <option value="antenna">With Antenna</option>
+            <option value="sign">With Sign</option>
+            <option value="full">Full Random</option>
+          </select>
+          <button class="btn-fx" onclick="spawnTestBuilding()" style="min-width:64px">Spawn</button>
+          <button class="btn-fx btn-clear" onclick="clearTestBuildings()" style="min-width:54px">Clear</button>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Parallax · Layers</summary>
+      <div class="section-body">
+        <div class="btn-grid">
+          <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('mountains', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Mtn</span></label>
+          <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('backCity', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Back</span></label>
+          <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('frontCity', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Front</span></label>
+          <label class="toggle-row"><input type="checkbox" checked onchange="toggleLayer('ground', this.checked)"><span class="toggle-switch"></span><span class="toggle-label">Ground</span></label>
+        </div>
+        <div class="sub-label">Speed</div>
+        <div class="slider-row">
+          <label>Mtn: <span id="parMtnLabel">0.2</span>x</label>
+          <input type="range" id="parMtn" min="0" max="200" value="20" oninput="setParallaxSpeed('mountains', this.value)">
+        </div>
+        <div class="slider-row">
+          <label>Back: <span id="parBackLabel">0.6</span>x</label>
+          <input type="range" id="parBack" min="0" max="200" value="60" oninput="setParallaxSpeed('back', this.value)">
+        </div>
+        <div class="slider-row">
+          <label>Front: <span id="parFrontLabel">1.0</span>x</label>
+          <input type="range" id="parFront" min="0" max="200" value="100" oninput="setParallaxSpeed('front', this.value)">
+        </div>
+        <div class="slider-row">
+          <label>Grnd: <span id="parGroundLabel">1.0</span>x</label>
+          <input type="range" id="parGround" min="0" max="200" value="100" oninput="setParallaxSpeed('ground', this.value)">
+        </div>
+        <div class="slider-row">
+          <label>City: <span id="parScaleLabel">1.0</span>x</label>
+          <input type="range" id="parScale" min="50" max="200" value="100" oninput="setParallaxScale(this.value)">
+        </div>
+        <div class="btn-row">
+          <button class="btn-fx" id="motionBtn" onclick="toggleMotion()">Motion: ON</button>
+          <button class="btn-fx" onclick="resetScene()">Reset</button>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Effects · Countdown · Speed</summary>
+      <div class="section-body">
+        <div class="btn-grid">
+          <button class="btn-fx" onclick="triggerFirework()">Firework</button>
+          <button class="btn-fx" onclick="triggerExplosion()">Explosion</button>
+          <button class="btn-fx" onclick="triggerThrust()">Thrust</button>
+        </div>
+        <div class="sub-label">Countdown</div>
+        <select id="countdownStyle" onchange="setCountdownStyle(this.value)">
+          <option value="random">Random Style</option>
+          <option value="0">Slam</option>
+          <option value="1">Typewriter</option>
+          <option value="2">Shockwave</option>
+          <option value="3">Radar Sweep</option>
+          <option value="4">Particle Assemble</option>
+        </select>
+        <button class="btn-fx" onclick="triggerCountdown()" style="width:100%">Play Full Countdown</button>
+        <div class="btn-row">
+          <button class="btn-fx btn-sm" onclick="triggerCountdownSegment('ready')">Ready?</button>
+          <button class="btn-fx btn-sm" onclick="triggerCountdownSegment('set')">Set.</button>
+          <button class="btn-fx btn-sm" onclick="triggerCountdownSegment('drone')">DRONE!</button>
+        </div>
+        <div class="sub-label">Speed FX</div>
+        <div class="slider-row">
+          <label>Speed: <span id="speedFxLabel">2.8</span></label>
+          <input type="range" id="speedFxSlider" min="10" max="150" value="28" oninput="onSpeedFxChange(this.value)">
+        </div>
+        <button class="btn-fx" id="speedFxBtn" onclick="toggleSpeedFx()" style="width:100%">Speed FX: OFF</button>
+      </div>
+    </details>
+
+    <details>
+      <summary>State · Death · Victory · Milestones</summary>
+      <div class="section-body">
+        <div class="sub-label">Death</div>
+        <div class="btn-row">
+          <button class="btn-death" onclick="triggerDeath()">Full</button>
+          <button class="btn-death" onclick="triggerFlash()">Flash</button>
+          <button class="btn-death" onclick="triggerYouDied()">YOU DIED</button>
+        </div>
+        <div class="sub-label">Victory</div>
+        <button class="btn-fx btn-victory" onclick="triggerVictory()" style="width:100%">ZENAVLLE IS SAVED</button>
+        <div class="sub-label">Milestones</div>
+        <div class="btn-grid">
+          <button class="btn-fx" onclick="triggerMilestone('NICE!','#00d4ff')">NICE!</button>
+          <button class="btn-fx" onclick="triggerMilestone('INSANE!','#ffcc00')">INSANE!</button>
+          <button class="btn-fx" onclick="triggerMilestone('LEGENDARY!','#ff4466')">LEGENDARY!</button>
+          <button class="btn-fx" onclick="triggerMilestone('GODLIKE','#cc44ff')">GODLIKE</button>
+        </div>
+        <div class="sub-label">Near Miss</div>
+        <div class="slider-row">
+          <label>Gap: <span id="nearMissLabel">15</span>px</label>
+          <input type="range" id="nearMissGap" min="5" max="40" value="15" oninput="document.getElementById('nearMissLabel').textContent=this.value">
+        </div>
+        <button class="btn-fx" onclick="triggerNearMiss()" style="width:100%">Trigger Near Miss</button>
+      </div>
+    </details>
+  </div>
+
+  <!-- RIGHT COLUMN: Detonate / Viewport / Telemetry / Legend -->
+  <div class="ctrl-card">
+    <details open>
+      <summary>Detonate</summary>
+      <div class="section-body">
+        <button class="btn-fire" onclick="triggerNuke()">
+          <span class="reticle"></span>FIRE NUKE
+        </button>
+        <div class="sub-label">Aurora</div>
+        <div class="slider-row">
+          <label>Intensity: <span id="auroraLabel">12</span>%</label>
+          <input type="range" id="auroraSlider" min="0" max="100" value="12" oninput="setAuroraIntensity(this.value)">
+        </div>
+        <div class="sub-label">Pickups</div>
+        <div class="btn-row">
+          <button class="btn-fx" onclick="spawnPickup('nuke')">Nuke</button>
+          <button class="btn-fx" onclick="spawnPickup('shield')">Shield</button>
+          <button class="btn-fx" onclick="spawnPickup('magnet')">Magnet</button>
+        </div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Viewport</summary>
+      <div class="section-body">
+        <div class="scene-cluster">
+          <button id="vpMobile" onclick="setViewport('mobile')">MOBILE</button>
+          <button id="vpWide" onclick="setViewport('wide')">WIDESCREEN</button>
+        </div>
+        <div class="hint">Reloads on switch · persists</div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Telemetry</summary>
+      <div class="section-body">
+        <div class="row-info">
+          <span>Drone</span>     <span class="v" id="rDrone">quad</span>
+          <span>Callsign</span>  <span class="v" id="rCall">DEFAULT</span>
+          <span>Viewport</span>  <span class="v" id="rVp">MOBILE</span>
+          <span>Motion</span>    <span class="v" id="rMotion">ON</span>
+          <span>Pipe mode</span> <span class="v" id="rPipe">CLASSIC</span>
+          <span>Pipe score</span><span class="v" id="rPipeScore">0</span>
+          <span>Speed FX</span>  <span class="v" id="rSpeedFx">OFF</span>
+          <span>Hitboxes</span>  <span class="v" id="rHit">OFF</span>
+          <span>Aurora</span>    <span class="v" id="rAurora">12%</span>
+          <span>Tick</span>      <span class="v" id="rTick">0</span>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Legend</summary>
+      <div class="section-body">
+        <div style="font-size:9px;color:#556;line-height:1.55;font-family:'SF Mono',monospace;letter-spacing:0.3px;">
+          <span style="color:#0ee;">CYAN</span> — currently selected drone<br>
+          <span style="color:#f63;">ORANGE</span> — nuke / death / warnings<br>
+          <span style="color:#88a;">Fleet</span> — tap any thumbnail to load it onto the stage<br>
+          <span style="color:#99a;">Pipes</span> — Generate to spawn a preview wave, Scroll to animate<br>
+          <span style="color:#556;">Viewport</span> — widescreen 1138×640 · mobile 620×640
+        </div>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<!-- Default to widescreen on first visit (before tester.js reads localStorage) -->
+<script>
+  if (localStorage.getItem('flappy-vp') === null) {
+    localStorage.setItem('flappy-vp', 'wide');
+  }
+</script>
 
 <script src="js/config.js"></script>
 <script src="js/background.js"></script>
 <script src="js/buildings.js"></script>
 <script src="js/drones.js"></script>
-<script src="js/drone-stats.js"></script>
 <script src="js/effects.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/tester.js"></script>
+
+<!-- Fleet picker + HUD + telemetry (runs AFTER tester.js) -->
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  // Fleet data — each entry mirrors tester.js drone keys, adds a
+  // descriptive blurb for the bio block and callsign for telemetry.
+  const FLEET = [
+    { k:'quad',       n:'Pixel Quad',  c:'DEFAULT',  d:'Workhorse quadcopter. Cyan cabin, red blinker, pixel-art profile.',        fn:'drawDroneQuad' },
+    { k:'stealth',    n:'Stealth',     c:'GHOST',    d:'Low-profile matte black airframe. Minimal signature, clean silhouette.',   fn:'drawDroneStealth' },
+    { k:'heavy',      n:'Heavy Lift',  c:'MULE',     d:'Industrial lifter with coaxial rotors and reinforced underside cargo bay.',fn:'drawDroneHeavy' },
+    { k:'racer',      n:'Racer',       c:'SHRIKE',   d:'FPV-style streamline. Forward camera, narrow chassis, aggressive rake.',   fn:'drawDroneRacer' },
+    { k:'osprey',     n:'Osprey',      c:'TILT',     d:'Twin-nacelle tilt-rotor. Broad wings, forward-tilted props, wide hover.',  fn:'drawDroneOsprey' },
+    { k:'dragonfly',  n:'Dragonfly',   c:'LACE',     d:'Slim insect-body with twin pairs of transparent wings beating in sync.',   fn:'drawDroneDragonfly' },
+    { k:'disc',       n:'Disc UFO',    c:'HALO',     d:'Flat saucer with rotating rim lights. Definitely not surveillance.',       fn:'drawDroneDisc' },
+    { k:'spider',     n:'Spider Hex',  c:'ARACHNE',  d:'Hex-rotor frame with articulated landing legs. Heavy, stable, ominous.',   fn:'drawDroneSpider' },
+    { k:'jetwing',    n:'Jetwing',     c:'LANCE',    d:'Fixed-wing hybrid with tail-mounted jet. Fast forward, slow hover.',       fn:'drawDroneJetwing' },
+    { k:'balloon',    n:'Balloon',     c:'HELIUM',   d:'Tiny bright balloon with dangling basket. Improbable but cheerful.',       fn:'drawDroneBalloon' },
+    { k:'paperplane', n:'Paper Plane', c:'ORIGAMI',  d:'Folded-paper glider. Reacts to every gust. No propulsion visible.',        fn:'drawDronePaperplane' },
+    { k:'chopper',    n:'Chopper',     c:'HUEY',     d:'Traditional helicopter silhouette. Single main rotor + tail rotor.',       fn:'drawDroneChopper' },
+    { k:'gyro',       n:'Whirlybird',  c:'CYCLONE',  d:'Autogyro with overhead rotor disc. Vintage, wobbly, characterful.',        fn:'drawDroneGyro' },
+    { k:'blimp',      n:'Zephyr',      c:'CLOUD',    d:'Small rigid airship. Elongated envelope, lit gondola, gentle bob.',        fn:'drawDroneBlimp' },
+    { k:'tandem',     n:'Warhorse',    c:'CHINOOK',  d:'Tandem-rotor military silhouette. Two big rotors fore and aft, wide body.',fn:'drawDroneTandem' },
+    // ── Wave 5 ────────────────────────────────────────────────
+    { k:'pizzabox',   n:'Pizza Box',   c:'SLICE',    d:'Cardboard quad-copter with a slice peeking out. Sauce stains, chequered trim, delivery-grade.',fn:'drawDronePizzabox' },
+    { k:'toaster',    n:'Toaster',     c:'TWOSLICE', d:'Flying chrome toaster. Slots up top, crumbs below, improbable lift. It pops when excited.',  fn:'drawDroneToaster' },
+    { k:'bumblebee',  n:'Bumblebee',   c:'BZZT',     d:'Striped fuzzy body, blurred wings, compound eyes. Aerodynamically questionable, unstoppable.', fn:'drawDroneBumblebee' },
+    { k:'crane',      n:'Origami Crane', c:'TSURU',  d:'Folded-paper crane on a thermal. Every vertex razor-creased, wings silhouetted by moonlight.',  fn:'drawDroneCrane' },
+    { k:'broom',      n:'Witch Broom', c:'HALLOW',   d:'Bristled broomstick with saddle-rider. Trails a thin magical spark, drifts with intent.',      fn:'drawDroneBroom' }
+  ];
+
+  // ===== Build the fleet list (thumbnails + name + callsign) =====
+  const list = $('fleetList');
+  const thumbSlots = [];
+  FLEET.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'fleet-row fleet-row--solo';
+    row.dataset.k = entry.k;
+
+    const tc = document.createElement('canvas');
+    tc.width = 180; tc.height = 112;  // 2x CSS for crispness
+    row.appendChild(tc);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta-col';
+    meta.innerHTML = `<div class="nm">${entry.n}</div><div class="cs">${entry.c}</div>`;
+    row.appendChild(meta);
+
+    row.addEventListener('click', () => {
+      const sel = $('droneSelect');
+      if (sel) sel.value = entry.k;
+      if (window.selectDrone) window.selectDrone(entry.k);
+    });
+
+    list.appendChild(row);
+    thumbSlots.push({ canvas: tc, entry });
+  });
+
+  // ===== Thumbnail renderer — redirects FD.ctx for each thumb =====
+  // JS is single-threaded so saving/restoring FD.ctx around each draw
+  // is safe even with the main game loop running via rAF.
+  const FD = window.FD;
+  function drawThumbnails() {
+    if (!FD || !FD.ctx) return;
+    const prevCtx = FD.ctx, prevW = FD.W, prevH = FD.H;
+    thumbSlots.forEach(({ canvas, entry }) => {
+      const drawFn = FD[entry.fn];
+      if (typeof drawFn !== 'function') return;
+      const tctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      // Mini sky + ground horizon line
+      const sg = tctx.createLinearGradient(0, 0, 0, H);
+      sg.addColorStop(0, '#040410');
+      sg.addColorStop(1, '#0a1428');
+      tctx.fillStyle = sg; tctx.fillRect(0, 0, W, H);
+      tctx.fillStyle = '#050a18';
+      tctx.fillRect(0, H * 0.78, W, H * 0.22);
+      // A couple of star pixels for warmth
+      tctx.fillStyle = 'rgba(255,255,255,0.25)';
+      tctx.fillRect(W * 0.15, H * 0.20, 1, 1);
+      tctx.fillRect(W * 0.70, H * 0.12, 1, 1);
+      tctx.fillRect(W * 0.45, H * 0.30, 1, 1);
+
+      FD.ctx = tctx; FD.W = W; FD.H = H;
+      tctx.save();
+      tctx.translate(W / 2, H / 2);
+      tctx.scale(2.2, 2.2);
+      try { drawFn((FD.globalTick || 0) * 0.3); } catch (e) { /* swallow */ }
+      tctx.restore();
+    });
+    FD.ctx = prevCtx; FD.W = prevW; FD.H = prevH;
+  }
+  // Throttled thumbnail refresh — ~10fps is plenty, and stays out of the
+  // main rAF frame to avoid double-drawing.
+  setInterval(drawThumbnails, 100);
+
+  // ===== Selection + HUD + telemetry wiring =====
+  function applySelection(k) {
+    const entry = FLEET.find(f => f.k === k) || FLEET[0];
+    document.querySelectorAll('.fleet-row').forEach(r => r.classList.toggle('sel', r.dataset.k === k));
+    $('hudDrone').textContent = entry.n.toUpperCase();
+    $('bioName').textContent  = entry.n.toUpperCase();
+    $('bioCall').textContent  = `CALLSIGN · ${entry.c} · BASELINE`;
+    $('bioDesc').textContent  = entry.d;
+    $('rDrone').textContent   = k;
+    $('rCall').textContent    = entry.c;
+  }
+
+  // Wrap window.* setters so HUD + telemetry track live state.
+  function wrap(name, after) {
+    const orig = window[name];
+    window[name] = function () {
+      if (orig) orig.apply(this, arguments);
+      try { after.apply(this, arguments); } catch (e) { console.warn(name, e); }
+    };
+  }
+
+  wrap('selectDrone', applySelection);
+  wrap('setPipeMode', mode => {
+    const M = String(mode).toUpperCase();
+    $('rPipe').textContent = M;
+    $('hudPipe').textContent = `${M} · ${$('pipeScore').value}`;
+  });
+  wrap('onPipeScoreChange', v => {
+    $('rPipeScore').textContent = v;
+    const m = $('rPipe').textContent;
+    if (m && m !== '—') $('hudPipe').textContent = `${m} · ${v}`;
+  });
+  wrap('setAuroraIntensity', v => { $('rAurora').textContent = v + '%'; });
+
+  const readToggle = (btn, prefix) =>
+    btn && btn.textContent.includes(prefix + ' ON') ? 'ON' : 'OFF';
+  wrap('toggleMotion',    () => { $('rMotion').textContent   = readToggle($('motionBtn'),   'Motion:'); });
+  wrap('toggleSpeedFx',   () => { $('rSpeedFx').textContent  = readToggle($('speedFxBtn'),  'Speed FX:'); });
+  wrap('toggleHitboxes',  () => { $('rHit').textContent      = readToggle($('hitboxBtn'),   'Hitboxes:'); });
+
+  // ===== Initial state sync =====
+  const vpMode = (localStorage.getItem('flappy-vp') || 'wide').toUpperCase();
+  $('hudVp').textContent = vpMode === 'WIDE' ? 'WIDESCREEN' : 'MOBILE';
+  $('rVp').textContent = vpMode === 'WIDE' ? 'WIDESCREEN' : 'MOBILE';
+  applySelection('quad');
+
+  // Live tick counter
+  setInterval(() => {
+    if (window.FD && typeof window.FD.globalTick === 'number') {
+      $('rTick').textContent = window.FD.globalTick;
+    }
+  }, 200);
+})();
+</script>
+
 </body>
 </html>

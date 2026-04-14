@@ -1,66 +1,251 @@
-/* tester.css — Tester panel styles (supplements game.css) */
+/* =========================================================================
+   tester.css — Shared styles for Flappy Drone testers + labs (agency style)
+   =========================================================================
+   The current generation (33-nuke-vfx, 34-drone-lab, 35-fireworks, tester.html)
+   uses an "agency lab" layout: masthead, big stage-frame with corner HUD,
+   3-column controls grid below. This file owns the foundation so each lab
+   doesn't have to re-duplicate 200 lines of CSS inline.
 
-/* --- Layout --- */
+   Individual pages can still override any token with a local <style> block;
+   inline styles win via source order.
+   ========================================================================= */
+
+/* ===== Layout primitives ===== */
 body {
-  display: flex !important; flex-direction: row !important; gap: 12px; padding: 12px;
-  justify-content: center !important; align-items: stretch !important;
-  height: 100vh !important; overflow: hidden; color: #ccc;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px;
+  padding: 14px;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  height: auto !important;
+  min-height: 100vh;
+  overflow: auto;
+  color: #ccc;
+  background: #060610;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-/* --- Panel --- */
-#panel {
-  width: 240px; min-width: 200px; flex-shrink: 0;
-  display: flex; flex-direction: column; gap: 3px;
-  overflow-y: auto; max-height: 100%;
-  padding-right: 5px;
+/* ===== Masthead ===== */
+.mast {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid #181835;
 }
-#panel::-webkit-scrollbar { width: 4px; }
-#panel::-webkit-scrollbar-track { background: transparent; }
-#panel::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
-
-/* --- Title bar --- */
-.title-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-shrink: 0; }
-.title-bar h1 { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 1px; }
-.title-bar .badge {
+.mast .left { display: flex; align-items: baseline; gap: 12px; }
+.mast h1 {
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-weight: 700; font-size: 14px; color: #fff; letter-spacing: 1.5px;
+}
+.mast .badge {
   font-size: 8px; background: #ff440022; color: #ff8844;
   padding: 2px 6px; border-radius: 10px; letter-spacing: 1px;
 }
+.mast .badge.cyan { background: #00d4ff22; color: #6ae; }
+.mast .badge.new  { background: #88ff4422; color: #9e6; }
+.mast .meta {
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-size: 9px; color: #556; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.mast .meta b { color: #cce; font-weight: 500; }
 
-/* --- Collapsible sections --- */
-details {
-  border: 1px solid #14142a; border-radius: 5px;
-  background: #0a0a16; overflow: hidden; flex-shrink: 0;
+/* ===== Stage frame + canvas ===== */
+#stage-frame {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(0,192,232,0.05), transparent 60%),
+    #06060c;
+  border: 1px solid #1e2a4a;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  min-height: 320px;
+  height: 60vh;
+  align-self: stretch;
+  box-shadow:
+    0 0 0 1px #0a0a18 inset,
+    0 0 60px rgba(0,192,232,0.06) inset,
+    0 12px 40px rgba(0,0,0,0.55);
 }
-details[open] { border-color: #1c1c32; }
-summary {
-  font-size: 10px; color: #556; letter-spacing: 1.5px; text-transform: uppercase;
-  padding: 6px 8px; cursor: pointer; user-select: none;
-  list-style: none; display: flex; align-items: center; gap: 5px;
-  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
-  transition: color 0.15s;
+/* Corner crop-marks — subtle agency flourish */
+#stage-frame::before,
+#stage-frame::after {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1px solid #2a4060;
+  pointer-events: none;
 }
-summary:hover { color: #88a; }
-summary::before {
-  content: '\25B8'; font-size: 9px; color: #445; transition: transform 0.15s;
-  display: inline-block; width: 9px; flex-shrink: 0;
+#stage-frame::before { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+#stage-frame::after  { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+
+/* Default canvas treatment — intrinsic dimensions, fit-to-frame. The buffer
+   size is set by JS on each lab. Pages that need a different aspect override
+   max-width/height inline. */
+canvas#game,
+canvas#stage {
+  display: block;
+  background: #04040a;
+  border: 1px solid #24324a;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(0,192,232,0.08) inset,
+    0 0 80px rgba(0,192,232,0.12),
+    0 10px 35px rgba(0,0,0,0.80);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 20px) !important;
+  max-height: calc(100% - 20px) !important;
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: auto !important;
+  object-fit: contain;
 }
-details[open] > summary::before { transform: rotate(90deg); color: #668; }
-summary::-webkit-details-marker { display: none; }
+/* Nuke detonation glow — override defaults with warm halo */
+canvas#game.nuke-glow,
+canvas#stage.nuke-glow {
+  box-shadow:
+    0 0 200px 60px rgba(255,160,40,0.25),
+    0 0 400px 120px rgba(255,120,20,0.12),
+    0 0 600px 200px rgba(255,80,0,0.05),
+    0 8px 40px #00000090 !important;
+  border-color: rgba(255,180,60,0.7) !important;
+  transition: box-shadow 0.15s, border-color 0.15s !important;
+}
+canvas#game.nuke-glow-fade,
+canvas#stage.nuke-glow-fade {
+  box-shadow: 0 0 50px #00d4ff05, 0 6px 25px #00000070 !important;
+  border-color: #181835 !important;
+  transition: box-shadow 3s ease-out, border-color 2s ease-out !important;
+}
+
+/* ===== Stage HUD overlay (corner readouts) ===== */
+#stage-hud {
+  position: absolute; inset: 0; pointer-events: none;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase;
+  color: rgba(160,180,200,0.55);
+}
+#stage-hud .crn { position: absolute; padding: 14px 18px; }
+#stage-hud .tl { top: 0; left: 0; }
+#stage-hud .tr { top: 0; right: 0; text-align: right; }
+#stage-hud .bl { bottom: 0; left: 0; }
+#stage-hud .br { bottom: 0; right: 0; text-align: right; }
+#stage-hud .lab { color: #455; }
+#stage-hud .v   { color: #0ee; font-size: 10px; letter-spacing: 1.4px; display: block; margin-top: 2px; }
+#stage-hud .v.armed { color: #f63; }
+#stage-hud .v.warn  { color: #ff8844; }
+#stage-hud .v.new   { color: #9e6; }
+
+/* ===== Controls grid ===== */
+#controls-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr 260px;
+  gap: 14px;
+  flex: 0 0 auto;
+}
+@media (max-width: 1100px) {
+  #controls-grid { grid-template-columns: 1fr; }
+}
+.ctrl-card { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-card.split-2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start;
+}
+.ctrl-card.split-2 details { margin: 0; }
+@media (max-width: 1100px) {
+  .ctrl-card.split-2 { grid-template-columns: 1fr; }
+}
+
+/* ===== Details / summary (agency style) ===== */
+#controls-grid details,
+details.panel {
+  background: linear-gradient(180deg, #0a0a16 0%, #08080f 100%);
+  border: 1px solid #14142a;
+  border-radius: 5px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+#controls-grid details[open],
+details.panel[open] {
+  border-color: #1f2a46;
+  box-shadow: 0 0 0 1px #0a1828 inset, 0 2px 8px rgba(0,0,0,0.3);
+}
+#controls-grid summary,
+details.panel > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 10px 7px;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #7988b0;
+  background: linear-gradient(180deg, rgba(0,192,232,0) 0%, transparent 100%);
+  border-bottom: 1px solid transparent;
+  display: flex; align-items: center; gap: 8px;
+  position: relative;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+#controls-grid summary::-webkit-details-marker,
+details.panel > summary::-webkit-details-marker { display: none; }
+#controls-grid summary::before,
+details.panel > summary::before {
+  content: '';
+  display: inline-block;
+  width: 5px; height: 5px;
+  background: #2a4060;
+  border-radius: 1px;
+  flex-shrink: 0;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+#controls-grid details[open] > summary,
+details.panel[open] > summary {
+  color: #bcd;
+  background: linear-gradient(180deg, rgba(0,192,232,0.05) 0%, rgba(0,192,232,0) 80%);
+  border-bottom-color: #14223a;
+}
+#controls-grid details[open] > summary::before,
+details.panel[open] > summary::before {
+  background: #0ee;
+  box-shadow: 0 0 6px #0ee, 0 0 12px rgba(0,238,238,0.4);
+  transform: scale(1.1);
+}
+#controls-grid summary:hover,
+details.panel > summary:hover { color: #cdf; background: rgba(0,192,232,0.04); }
+#controls-grid summary:hover::before,
+details.panel > summary:hover::before { background: #6cd; box-shadow: 0 0 4px #6cd; }
+#controls-grid summary::after,
+details.panel > summary::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #14223a, transparent 80%);
+  margin-left: 6px;
+  opacity: 0.5;
+}
+#controls-grid details[open] > summary::after,
+details.panel[open] > summary::after { opacity: 1; }
 
 .section-body {
-  padding: 5px 8px 8px;
-  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px 10px;
+  display: flex; flex-direction: column; gap: 5px;
 }
 
-/* --- Sub-section labels --- */
+/* ===== Sub-section labels ===== */
 .sub-label {
   font-size: 9px; color: #445; letter-spacing: 1.5px; text-transform: uppercase;
-  margin-top: 3px; padding-top: 3px; border-top: 1px solid #121225;
+  margin-top: 4px; padding-top: 4px; border-top: 1px solid #121225;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
 }
 
-/* --- Buttons --- */
+/* ===== Buttons ===== */
 .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-.btn-row { display: flex; gap: 3px; }
+.btn-row  { display: flex; gap: 3px; }
 .btn-row button { flex: 1; min-width: 0; }
 
 button {
@@ -88,14 +273,83 @@ button:active { background: #1e1e3a; }
 }
 .btn-nuke:hover { background: #2a1000; color: #f84; }
 
-/* Mode toggle */
+/* Agency big-red FIRE button (used on detonate panels) */
+.btn-fire {
+  width: 100%;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #2a0a02, #180600);
+  border: 1px solid #cc3300;
+  color: #f63;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  font-size: 11px;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 5px;
+  box-shadow: 0 0 20px rgba(255,80,0,0.18) inset, 0 0 12px rgba(255,80,0,0.12);
+  transition: all 0.15s ease;
+}
+.btn-fire:hover {
+  background: linear-gradient(180deg, #3a1003, #200a01);
+  color: #ff8844;
+  box-shadow: 0 0 32px rgba(255,80,0,0.30) inset, 0 0 24px rgba(255,80,0,0.22);
+}
+.btn-fire .reticle {
+  display: inline-block;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1px solid #f63; margin-right: 8px;
+  vertical-align: middle; position: relative;
+}
+.btn-fire .reticle::before,
+.btn-fire .reticle::after {
+  content: ''; position: absolute; background: #f63;
+}
+.btn-fire .reticle::before { top: 4px; left: -3px; right: -3px; height: 1px; }
+.btn-fire .reticle::after  { left: 4px; top: -3px; bottom: -3px; width: 1px; }
+
+/* Mode toggle (active pill) */
 .btn-mode { flex: 1; border-color: #222238; color: #667; }
 .btn-mode:hover { border-color: #3a4a55; color: #abc; }
 .btn-mode.mode-active {
   border-color: #00c0e8 !important; background: #081418 !important; color: #0ee !important;
 }
 
-/* --- Dropdowns --- */
+/* Scene / mode clusters — agency pill group */
+.scene-cluster,
+.form-cluster,
+.speed-cluster,
+.vp-cluster {
+  display: flex; gap: 1px;
+  background: #181835;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.scene-cluster button,
+.form-cluster button,
+.speed-cluster button,
+.vp-cluster button {
+  background: #0c0c18; color: #667; border: 0;
+  padding: 6px 9px;
+  font-size: 9px; letter-spacing: 1.2px;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  text-transform: uppercase; cursor: pointer;
+  flex: 1;
+}
+.scene-cluster button:hover,
+.form-cluster button:hover,
+.speed-cluster button:hover,
+.vp-cluster button:hover { color: #abc; }
+.scene-cluster button.on,
+.scene-cluster button.mode-active,
+.form-cluster button.on,
+.speed-cluster button.on,
+.vp-cluster button.on,
+.vp-cluster button.mode-active {
+  background: #00c0e0; color: #04040a;
+}
+
+/* ===== Dropdowns ===== */
 select {
   background: #0c0c18; border: 1px solid #1e1e34; color: #99b;
   padding: 5px 22px 5px 6px; border-radius: 4px; width: 100%;
@@ -106,11 +360,11 @@ select {
   background-repeat: no-repeat;
   background-position: right 6px center;
 }
-select:hover { border-color: #3a3a55; color: #cce; }
-select:focus { border-color: #00b8e0; color: #fff; }
+select:hover  { border-color: #3a3a55; color: #cce; }
+select:focus  { border-color: #00b8e0; color: #fff; }
 select:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* --- Toggle switch --- */
+/* ===== Toggle switch ===== */
 .toggle-row {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
   font-size: 10px; color: #667; user-select: none;
@@ -134,7 +388,7 @@ select:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 .toggle-label { flex: 1; }
 
-/* --- Sliders --- */
+/* ===== Sliders ===== */
 .slider-row { display: flex; align-items: center; gap: 6px; }
 .slider-row label {
   font-size: 9px; color: #556; white-space: nowrap; min-width: 48px;
@@ -154,12 +408,10 @@ select:disabled { opacity: 0.35; cursor: not-allowed; }
   border-radius: 50%; cursor: pointer; border: 2px solid #0a1218;
 }
 
-/* --- Hint text --- */
+/* ===== Hint text / misc ===== */
 .hint {
   font-size: 8px; color: #334; letter-spacing: 0.5px; text-align: center;
 }
-
-/* --- Coming soon --- */
 .coming-soon {
   font-size: 8px; color: #445; letter-spacing: 0.5px;
   border: 1px dashed #222235; border-radius: 3px;
@@ -172,54 +424,109 @@ select:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 .disabled-section { opacity: 0.4; pointer-events: none; }
 
-/* --- Canvas nuke glow (mirrors game's #wrap.nuke-glow) --- */
-canvas#game.nuke-glow {
-  box-shadow: 0 0 200px 60px rgba(255,160,40,0.25), 0 0 400px 120px rgba(255,120,20,0.12), 0 0 600px 200px rgba(255,80,0,0.05), 0 8px 40px #00000090 !important;
-  border-color: rgba(255,180,60,0.7) !important;
-  transition: box-shadow 0.15s, border-color 0.15s !important;
+/* ===== Telemetry readout grid ===== */
+.row-info {
+  display: grid; grid-template-columns: 1fr auto; gap: 3px 8px;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-size: 9px; color: #556; letter-spacing: 0.5px;
 }
-canvas#game.nuke-glow-fade {
-  box-shadow: 0 0 50px #00d4ff05, 0 6px 25px #00000070 !important;
-  border-color: #181835 !important;
-  transition: box-shadow 3s ease-out, border-color 2s ease-out !important;
+.row-info span:not(.v) { color: #556; }
+.row-info b  { color: #cce; font-weight: 500; }
+.row-info .v { color: #0ee; font-weight: 500; }
+.row-info .v.warn { color: #ff8844; }
+.row-info .v.new  { color: #9e6; }
+
+/* ===== Fleet picker (visual drone grid) ===== */
+.fleet-list {
+  display: flex; flex-direction: column;
+  gap: 5px;
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.fleet-list::-webkit-scrollbar { width: 4px; }
+.fleet-list::-webkit-scrollbar-track { background: transparent; }
+.fleet-list::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+
+/* Compact single-thumbnail variant used by the game tester. The
+   drone-lab fleet picker has its own structurally different layout
+   (row-head + variants grid) and styles itself inline — do not apply
+   these grid rules to the generic .fleet-row. */
+.fleet-row--solo {
+  background: #06060e;
+  border: 1px solid #14142a;
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: stretch;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.fleet-row--solo:hover { border-color: #2a4a66; background: #08101a; }
+.fleet-row--solo.sel {
+  border-color: #00c0e8;
+  background: linear-gradient(90deg, rgba(0,192,232,0.08), transparent 80%);
+  box-shadow: 0 0 8px rgba(0,192,232,0.15);
+}
+.fleet-row--solo > canvas {
+  display: block;
+  width: 90px; height: 56px;
+  background: linear-gradient(180deg, #040410 0%, #0a1020 70%, #050a15 100%);
+}
+.fleet-row--solo .meta-col {
+  padding: 7px 9px;
+  display: flex; flex-direction: column; justify-content: center;
+  min-width: 0;
+}
+.fleet-row--solo .nm {
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-size: 10px; letter-spacing: 0.9px; text-transform: uppercase;
+  color: #99a; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fleet-row--solo.sel .nm { color: #0ee; }
+.fleet-row--solo .cs {
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+  font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
+  color: #445; margin-top: 2px;
+}
+.fleet-row--solo.sel .cs { color: #568; }
+
+/* ===== Selected bio block ===== */
+.bio-block {
+  background: #06060e;
+  border: 1px solid #14142a;
+  border-radius: 5px;
+  padding: 10px 12px;
+  font-family: 'SF Mono','Menlo','Courier New',monospace;
+}
+.bio-block .bio-name {
+  font-size: 12px; color: #0ee; font-weight: 700;
+  letter-spacing: 1.3px; text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.bio-block .bio-name.new { color: #9e6; }
+.bio-block .bio-call {
+  font-size: 8px; color: #556; letter-spacing: 1.3px;
+  text-transform: uppercase; margin-bottom: 7px;
+}
+.bio-block .bio-desc {
+  font-size: 10px; color: #99a; line-height: 1.45;
 }
 
-/* --- Canvas: responsive scaling --- */
-canvas#game {
-  flex: 1 1 auto;
-  min-width: 300px;
-  max-width: 620px;
-  aspect-ratio: 620 / 640;
-  height: auto;
-  max-height: calc(100vh - 24px);
-  border: 2px solid #181835; border-radius: 10px;
-  box-shadow: 0 0 50px #00d4ff05, 0 6px 25px #00000070;
-  outline: none;
-  object-fit: contain;
+/* ===== Title bar (legacy — still used by older non-lab testers) ===== */
+.title-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-shrink: 0; }
+.title-bar h1 { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+.title-bar .badge {
+  font-size: 8px; background: #ff440022; color: #ff8844;
+  padding: 2px 6px; border-radius: 10px; letter-spacing: 1px;
 }
 
-/* Widescreen viewport variant — toggled by tester.js via body class.
-   Wider canvas, native height. NOVA's tuned pixel values stay valid. */
-body.vp-wide canvas#game {
-  max-width: none;
-  width: auto;
-  aspect-ratio: 1138 / 640;
-  max-height: calc(100vh - 24px);
-}
-
-/* --- Responsive: narrow screens --- */
+/* ===== Responsive ===== */
 @media (max-width: 900px) {
-  body { gap: 8px; padding: 8px; }
-  #panel { width: 200px; min-width: 180px; }
-  summary { font-size: 9px; padding: 5px 6px; }
+  #stage-frame { height: 50vh; min-height: 280px; }
+  .fleet-list { max-height: 320px; }
   button { font-size: 9px; padding: 4px 5px; }
   select { font-size: 9px; padding: 4px 18px 4px 5px; }
-  .title-bar h1 { font-size: 13px; }
-}
-
-@media (max-width: 720px) {
-  body { flex-direction: column !important; align-items: center !important; height: auto !important; overflow: auto; }
-  #panel { width: 100%; max-width: 500px; max-height: none; flex-direction: row; flex-wrap: wrap; gap: 4px; }
-  #panel details { flex: 1 1 calc(50% - 4px); min-width: 180px; }
-  canvas#game { width: 100%; max-width: 500px; }
 }
