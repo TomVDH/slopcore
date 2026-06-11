@@ -219,7 +219,7 @@
   /* Layered phase timeline (multi-row) */
   .phase-rail {
     position: relative;
-    height: 72px;
+    height: 94px;
     background: #06060e;
     border: 1px solid #14142a;
     border-radius: 5px;
@@ -335,6 +335,7 @@
           <button class="btn-fx" id="btnPause" onclick="togglePause()">PAUSE</button>
           <button class="btn-fx" id="btnRestart" onclick="restart()">RESTART</button>
         </div>
+        <label class="toggle-row"><input type="checkbox" data-fx="sound" checked><span class="toggle-switch"></span><span class="toggle-label">Detonation audio</span></label>
       </div>
     </details>
     <details open>
@@ -356,6 +357,8 @@
       <summary>Stage</summary>
       <div class="section-body">
         <label class="toggle-row"><input type="checkbox" data-fx="whiteFlash" checked><span class="toggle-switch"></span><span class="toggle-label">White flash + warm overlay</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="flashDouble" checked><span class="toggle-switch"></span><span class="toggle-label">Double-pulse flash (bhangmeter)</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="chromaFringe" checked><span class="toggle-switch"></span><span class="toggle-label">Shockwave chroma fringe</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="godRays"><span class="toggle-switch"></span><span class="toggle-label">Thermal god rays</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="haze" checked><span class="toggle-switch"></span><span class="toggle-label">Ground haze (taller)</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="trailHaze" checked><span class="toggle-switch"></span><span class="toggle-label">Cap-trailing sky haze</span></label>
@@ -388,6 +391,9 @@
         <label class="toggle-row"><input type="checkbox" data-fx="hotspots" checked><span class="toggle-switch"></span><span class="toggle-label">Rolling hotspots</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="cloudBands" checked><span class="toggle-switch"></span><span class="toggle-label">Cloud bands</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="afterglow" checked><span class="toggle-switch"></span><span class="toggle-label">Lingering cap glow</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="ionRim" checked><span class="toggle-switch"></span><span class="toggle-label">Ionization rim (early)</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="wilsonRings" checked><span class="toggle-switch"></span><span class="toggle-label">Wilson vapor rings</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="cloudLightning" checked><span class="toggle-switch"></span><span class="toggle-label">Cloud lightning (dark phase)</span></label>
         <div class="sub-label">Cap-arc fade-in</div>
         <div class="slider-row">
           <label>ms: <span id="lblFadeArcs">400</span></label>
@@ -403,6 +409,8 @@
         <label class="toggle-row"><input type="checkbox" data-fx="groundFires" checked><span class="toggle-switch"></span><span class="toggle-label">Ground fires (4s+)</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="baseGlow" checked><span class="toggle-switch"></span><span class="toggle-label">Base radial glow</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="baseRing" checked><span class="toggle-switch"></span><span class="toggle-label">Base ring / skirt</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="groundSurge" checked><span class="toggle-switch"></span><span class="toggle-label">Ground dust surge</span></label>
+        <label class="toggle-row"><input type="checkbox" data-fx="emberFlicker" checked><span class="toggle-switch"></span><span class="toggle-label">Ember flicker</span></label>
         <label class="toggle-row"><input type="checkbox" data-fx="fallout"><span class="toggle-switch"></span><span class="toggle-label">Fallout drift (custom)</span></label>
         <div class="sub-label">Fallout fade-in</div>
         <div class="slider-row">
@@ -605,6 +613,7 @@ function detonate() {
   // frame() realigns FD.nukeStart from state.t every tick
   FD.nukeStart = performance.now();
   _prevFrameTs = performance.now(); // fresh dt baseline so no jump
+  FD.nukeBoom(); // procedural audio — gated by FX_LIVE.sound
   cv.classList.add('nuke-glow');
   cv.classList.remove('nuke-glow-fade');
   setTimeout(() => {
@@ -731,6 +740,8 @@ const PHASES = [
   { t0:0.2,  t1:2.8, lab:'SHOCK · DUST', row:1 },
   { t0:1.8,  t1:8.0, lab:'DEBRIS DRIFT', row:1 },
   { t0:1.8,  t1:12.5,lab:'FALLOUT',      row:2 },
+  { t0:0.15, t1:2.4, lab:'ION · RINGS',  row:3 },
+  { t0:5.5,  t1:11.5,lab:'LIGHTNING',    row:3 },
 ];
 const phaseRail = document.getElementById('phaseRail');
 PHASES.forEach((p, i) => {

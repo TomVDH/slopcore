@@ -27,8 +27,26 @@
     capArcs: true, afterglow: true, fallout: true,
     // Per-system fade-in durations (ms)
     fadeInArcsMs:    400,
-    fadeInFalloutMs: 2200
+    fadeInFalloutMs: 2200,
+    // Refinement pass 2026-06-10 — physically-inspired layers.
+    // All stateless (pure functions of elapsed) so the lab scrubber works.
+    flashDouble: true,    // bhangmeter double flash: snap → dip → thermal re-brighten
+    ionRim: true,         // violet ionized-air rim on the early fireball
+    wilsonRings: true,    // toroidal condensation rings around the rising cap
+    cloudLightning: true, // cold intra-cloud flashes during the dark linger
+    groundSurge: true,    // dust wall racing outward along the ground
+    chromaFringe: true,   // RGB split on the refraction snap leading edge
+    emberFlicker: true,   // ground fires breathe instead of static glow
+    sound: true           // FD.nukeBoom() procedural audio (callers opt in by calling it)
   };
+
+  // Deterministic hash for time-sliced effects (lightning slots, surge puffs).
+  // Same input → same output, so the lab's timeline scrubber replays
+  // identically and nothing pops when scrubbing backwards.
+  function nukeHash(n) {
+    const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  }
 
   // --- Paired-particle arrays (used by spawnFallout / spawnCapArcs) ---
   FD.FALLOUT  = [];
@@ -315,6 +333,13 @@
       const radius = t * Math.max(W, H) * 0.95;
       const bandW = 26 + (1 - t) * 24;
       const a = (1 - t) * 0.7;
+      if (FD.NUKE_FX.chromaFringe) {
+        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = `rgba(255,70,50,${a * 0.45})`;
+        ctx.beginPath(); ctx.arc(gx, gy, radius + 4, Math.PI, 0); ctx.stroke();
+        ctx.strokeStyle = `rgba(70,200,255,${a * 0.45})`;
+        ctx.beginPath(); ctx.arc(gx, gy, Math.max(0, radius - 4), Math.PI, 0); ctx.stroke();
+      }
       ctx.strokeStyle = `rgba(255,235,200,${a})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(gx, gy, radius, Math.PI, 0); ctx.stroke();
@@ -332,6 +357,13 @@
         const radius = t1 * Math.max(W, H) * 0.95;
         const bandW = 22 + (1 - t1) * 20;
         const a = (1 - t1 * t1) * 0.50;
+        if (FD.NUKE_FX.chromaFringe) {
+          ctx.lineWidth = 2.2;
+          ctx.strokeStyle = `rgba(255,70,50,${a * 0.55})`;
+          ctx.beginPath(); ctx.arc(gx, gy, radius + 3.5, Math.PI, 0); ctx.stroke();
+          ctx.strokeStyle = `rgba(70,200,255,${a * 0.55})`;
+          ctx.beginPath(); ctx.arc(gx, gy, Math.max(0, radius - 3.5), Math.PI, 0); ctx.stroke();
+        }
         ctx.strokeStyle = `rgba(255,235,200,${a})`;
         ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.arc(gx, gy, radius, Math.PI, 0); ctx.stroke();
@@ -400,6 +432,77 @@
     FD.drawPaired(FD.CAP_ARCS);
     FD.drawPaired(FD.FALLOUT);
     FD.drawShockwave();
+  };
+
+  // --- Procedural detonation audio (zero assets, lazy AudioContext) ---
+  // Layers: crack transient → sub drop (110→22 Hz) → looped lowpassed
+  // rumble with LFO sweep (~7 s tail) → distant echo crack at +0.65 s.
+  // Gated by FD.NUKE_FX.sound. Callers opt in by invoking FD.nukeBoom()
+  // from a user-gesture path (button / click) so autoplay policy is met.
+  FD.nukeBoom = function () {
+    if (!FD.NUKE_FX.sound) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!FD._audio) {
+      const ac = new AC();
+      const len = ac.sampleRate * 2;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      FD._audio = { ac, noise: buf };
+    }
+    const ac = FD._audio.ac, noise = FD._audio.noise;
+    if (ac.state === 'suspended') ac.resume();
+    const t0 = ac.currentTime + 0.02;
+    const master = ac.createGain();
+    master.gain.value = 0.9;
+    master.connect(ac.destination);
+
+    // 1) crack — highpassed noise snap
+    const crack = ac.createBufferSource(); crack.buffer = noise;
+    const cHP = ac.createBiquadFilter(); cHP.type = 'highpass'; cHP.frequency.value = 900;
+    const cG = ac.createGain();
+    cG.gain.setValueAtTime(0.9, t0);
+    cG.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+    crack.connect(cHP).connect(cG).connect(master);
+    crack.start(t0); crack.stop(t0 + 0.25);
+
+    // 2) sub drop — sine 110 → 22 Hz
+    const sub = ac.createOscillator(); sub.type = 'sine';
+    sub.frequency.setValueAtTime(110, t0);
+    sub.frequency.exponentialRampToValueAtTime(22, t0 + 1.3);
+    const sG = ac.createGain();
+    sG.gain.setValueAtTime(0.0001, t0);
+    sG.gain.exponentialRampToValueAtTime(1.0, t0 + 0.04);
+    sG.gain.exponentialRampToValueAtTime(0.001, t0 + 1.6);
+    sub.connect(sG).connect(master);
+    sub.start(t0); sub.stop(t0 + 1.7);
+
+    // 3) rumble — looped noise through swept lowpass, breathing via LFO
+    const rum = ac.createBufferSource(); rum.buffer = noise; rum.loop = true;
+    const rLP = ac.createBiquadFilter(); rLP.type = 'lowpass'; rLP.Q.value = 0.8;
+    rLP.frequency.setValueAtTime(160, t0);
+    rLP.frequency.exponentialRampToValueAtTime(55, t0 + 6.5);
+    const rLFO = ac.createOscillator(); rLFO.frequency.value = 0.9;
+    const rLFOG = ac.createGain(); rLFOG.gain.value = 30;
+    rLFO.connect(rLFOG).connect(rLP.frequency);
+    const rG = ac.createGain();
+    rG.gain.setValueAtTime(0.0001, t0);
+    rG.gain.exponentialRampToValueAtTime(0.55, t0 + 0.35);
+    rG.gain.exponentialRampToValueAtTime(0.0001, t0 + 7.0);
+    rum.connect(rLP).connect(rG).connect(master);
+    rum.start(t0); rum.stop(t0 + 7.1);
+    rLFO.start(t0); rLFO.stop(t0 + 7.1);
+
+    // 4) distant echo crack — bandpassed, quiet, +0.65 s
+    const ek = ac.createBufferSource(); ek.buffer = noise;
+    const eBP = ac.createBiquadFilter(); eBP.type = 'bandpass'; eBP.frequency.value = 320; eBP.Q.value = 1.2;
+    const eG = ac.createGain();
+    eG.gain.setValueAtTime(0.0001, t0 + 0.65);
+    eG.gain.exponentialRampToValueAtTime(0.28, t0 + 0.70);
+    eG.gain.exponentialRampToValueAtTime(0.001, t0 + 1.9);
+    ek.connect(eBP).connect(eG).connect(master);
+    ek.start(t0 + 0.65); ek.stop(t0 + 2.0);
   };
 
   // --- Thrust particles ---
@@ -554,10 +657,14 @@
         // Additive blending for hot glow particles (lum > 70)
         var useAdditive = (p.lum || 55) > 70;
         if (useAdditive) ctx.globalCompositeOperation = 'lighter';
+        // Ember flicker — per-particle phase/speed so fires breathe out of sync
+        const am = (p.flicker && FD.NUKE_FX.emberFlicker)
+          ? 0.70 + 0.30 * Math.sin(now * 0.008 * p.flicker + p.fphase)
+          : 1;
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * t);
-        grad.addColorStop(0, `hsla(${p.hue}, ${p.sat}%, ${p.lum}%, ${t * 0.8})`);
-        grad.addColorStop(0.25, `hsla(${p.hue}, ${p.sat}%, ${p.lum - 10}%, ${t * 0.4})`);
-        grad.addColorStop(0.6, `hsla(${p.hue}, ${p.sat}%, ${p.lum - 25}%, ${t * 0.1})`);
+        grad.addColorStop(0, `hsla(${p.hue}, ${p.sat}%, ${p.lum}%, ${t * 0.8 * am})`);
+        grad.addColorStop(0.25, `hsla(${p.hue}, ${p.sat}%, ${p.lum - 10}%, ${t * 0.4 * am})`);
+        grad.addColorStop(0.6, `hsla(${p.hue}, ${p.sat}%, ${p.lum - 25}%, ${t * 0.1 * am})`);
         grad.addColorStop(1, `hsla(${p.hue}, ${p.sat}%, ${p.lum - 30}%, 0)`);
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r * t, 0, Math.PI * 2); ctx.fill();
@@ -909,6 +1016,36 @@
       ctx.beginPath(); ctx.arc(gx, gy, bgR, 0, Math.PI * 2); ctx.fill();
     }
 
+    // Ground dust surge — two dust walls racing outward along the ground
+    // with trailing wake, distinct from the optical shockwave. Puff
+    // positions/sizes keyed by nukeHash so the lab scrubber replays
+    // identically frame-to-frame.
+    if (elapsed > 250 && elapsed < 2400 && FD.NUKE_FX.groundSurge) {
+      const st = (elapsed - 250) / 2150;
+      const surgeR = Math.pow(st, 0.62) * W * 0.52;
+      const sFade = Math.pow(1 - st, 1.2) * 0.5;
+      if (sFade > 0.012) {
+        ctx.save();
+        for (let k = 0; k < 6; k++) {
+          const lag = k / 6;
+          for (let dir = -1; dir <= 1; dir += 2) {
+            const px = gx + dir * surgeR * (1 - lag * 0.38) + (nukeHash(k * 3.7 + dir) - 0.5) * 16;
+            const puffR = (14 + nukeHash(k * 1.3 + dir * 7.1) * 16) * (0.7 + st * 0.9) * (1 - lag * 0.3);
+            if (px < -puffR || px > W + puffR) continue;
+            const py = gy - 3 - puffR * 0.25;
+            const pa = sFade * (1 - lag * 0.55) * (0.6 + nukeHash(k * 9.1 + dir) * 0.4);
+            const pg = ctx.createRadialGradient(px, py, 0, px, py, puffR);
+            pg.addColorStop(0,   `hsla(26, 45%, 42%, ${pa})`);
+            pg.addColorStop(0.5, `hsla(24, 40%, 32%, ${pa * 0.55})`);
+            pg.addColorStop(1,   `hsla(22, 35%, 24%, 0)`);
+            ctx.fillStyle = pg;
+            ctx.beginPath(); ctx.arc(px, py, puffR, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+    }
+
     // Sub-cloud at stem-cap intersection
     ctx.fillStyle = `hsla(${18 - hShift},85%,${Math.max(8, 35 - lDrop)}%,${alpha})`;
     drawNoisyEllipse(gx, cY + capR * 0.25, capRx * 0.75, capR * 0.4, 10, false);
@@ -952,6 +1089,49 @@
       ctx.beginPath(); ctx.arc(hsX, hsY, hsR, 0, Math.PI * 2); ctx.fill();
     }
 
+    // Ionization rim — violet edge on the early fireball (air ionization),
+    // a brief exotic colour note against the amber before the cap blooms.
+    if (elapsed > 150 && elapsed < 1100 && FD.NUKE_FX.ionRim) {
+      const it = (elapsed - 150) / 950;
+      const iA = Math.sin(it * Math.PI) * 0.30;
+      const iy = cY - capR * 0.05;
+      const ir1 = capRx * 1.6;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const ig2 = ctx.createRadialGradient(gx, iy, capRx * 0.9, gx, iy, ir1);
+      ig2.addColorStop(0,    'hsla(268, 90%, 64%, 0)');
+      ig2.addColorStop(0.35, `hsla(268, 90%, 64%, ${iA})`);
+      ig2.addColorStop(0.7,  `hsla(258, 85%, 58%, ${iA * 0.45})`);
+      ig2.addColorStop(1,    'hsla(250, 80%, 50%, 0)');
+      ctx.fillStyle = ig2;
+      ctx.beginPath(); ctx.arc(gx, iy, ir1, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Wilson condensation rings — stationary vapor sheaths the fireball
+    // punches through as it rises (anchored to altitude, not to the cap).
+    if (FD.NUKE_FX.wilsonRings) {
+      for (let k = 0; k < 2; k++) {
+        const local = (elapsed - (700 + k * 650)) / 800;
+        if (local <= 0 || local >= 1) continue;
+        const wA = Math.sin(local * Math.PI) * (0.34 - k * 0.08) * (1 - fadeT);
+        const ringY = gy - H * (0.16 + k * 0.09);
+        const rrx = capRx * (0.92 + local * 0.62);
+        const rry = rrx * 0.30;
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 1;
+        for (let s = 0; s < 3; s++) {
+          ctx.strokeStyle = `hsla(208, 35%, 88%, ${wA * (s === 1 ? 1 : 0.45)})`;
+          ctx.lineWidth = (7 - local * 3.5) * (1 + s * 0.9);
+          ctx.beginPath();
+          ctx.ellipse(gx, ringY, rrx + s * 2, rry + s * 1.2, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
     // Base ring / skirt — gated
     if (FD.NUKE_FX.baseRing) {
       ctx.fillStyle = `hsla(${15 - hShift},70%,${Math.max(5, 28 - lDrop)}%,${alpha * 0.8})`;
@@ -981,6 +1161,58 @@
       ctx.quadraticCurveTo(gx - widthAtY * 0.35, bandY + sag1, gx, bandY + sag2);
       ctx.quadraticCurveTo(gx + widthAtY * 0.35, bandY - sag1, gx + widthAtY, bandY);
       ctx.stroke();
+    }
+
+    // Intra-cloud lightning — cold sheet flashes + jagged bolts inside the
+    // cap during the dark linger. Slot schedule (~0.9 s) keyed by nukeHash
+    // so the scrubber replays the same storm; seed varies per detonation
+    // via ground-zero x.
+    if (elapsed > 5500 && elapsed < 11500 && FD.NUKE_FX.cloudLightning && darkT > 0.3) {
+      const seed = Math.floor(gx * 0.37);
+      const slot = Math.floor((elapsed - 5500) / 900);
+      const tIn  = (elapsed - 5500) % 900;
+      if (nukeHash(slot * 7.31 + seed) < 0.62) {
+        const fDur = 110 + nukeHash(slot * 3.7 + seed) * 90;
+        if (tIn < fDur) {
+          // storm grows in with the darkness — faint while the core still
+          // glows, full strength once the cloud has gone near-black
+          const dRamp = Math.min(1, (darkT - 0.3) / 0.5);
+          const fA = Math.sin((tIn / fDur) * Math.PI) * (0.35 + 0.65 * dRamp);
+          const lx = gx + (nukeHash(slot * 11.3 + seed) - 0.5) * capRx * 0.85;
+          const ly = cY + (nukeHash(slot * 17.9 + seed) - 0.5) * capR * 0.55;
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+          const lg2 = ctx.createRadialGradient(lx, ly, 0, lx, ly, capR * 0.62);
+          lg2.addColorStop(0,   `hsla(222, 70%, 82%, ${fA * 0.40})`);
+          lg2.addColorStop(0.4, `hsla(225, 60%, 65%, ${fA * 0.18})`);
+          lg2.addColorStop(1,   'hsla(228, 50%, 50%, 0)');
+          ctx.fillStyle = lg2;
+          ctx.beginPath(); ctx.arc(lx, ly, capR * 0.62, 0, Math.PI * 2); ctx.fill();
+          // jagged bolt on ~60% of flashes — wide faint pass then hot core
+          if (nukeHash(slot * 23.7 + seed) < 0.6) {
+            ctx.globalCompositeOperation = 'lighter';
+            const segs = 7;
+            const bl = capR * (0.55 + nukeHash(slot * 5.5) * 0.4);
+            let bx = lx, by = ly - bl * 0.45;
+            const pts = [[bx, by]];
+            for (let sg = 1; sg <= segs; sg++) {
+              bx += (nukeHash(slot * 31.7 + sg * 13.1) - 0.5) * capR * 0.34;
+              by += bl / segs;
+              pts.push([bx, by]);
+            }
+            ctx.lineJoin = 'round';
+            for (const pass of [[3.5, 0.22], [1.4, 0.85]]) {
+              ctx.strokeStyle = `hsla(218, 80%, 88%, ${fA * pass[1]})`;
+              ctx.lineWidth = pass[0];
+              ctx.beginPath();
+              ctx.moveTo(pts[0][0], pts[0][1]);
+              for (let sg = 1; sg < pts.length; sg++) ctx.lineTo(pts[sg][0], pts[sg][1]);
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+        }
+      }
     }
 
     // === DEBRIS PARTICLES ===
@@ -1058,7 +1290,8 @@
         x: gx + (Math.random() - 0.5) * stemBaseW * 1.5, y: gy - Math.random() * 10,
         vx: bdir * (0.05 + Math.random() * 0.15), vy: -0.05 - Math.random() * 0.15,
         life: 150 + Math.random() * 100, maxLife: 250, r: 20 + Math.random() * 30,
-        hue: 20 + Math.random() * 15, sat: 60, lum: 35, damping: 0.9998, gravity: -0.0003, glow: true, fg: true
+        hue: 20 + Math.random() * 15, sat: 60, lum: 35, damping: 0.9998, gravity: -0.0003, glow: true, fg: true,
+        flicker: 0.5 + Math.random() * 0.7, fphase: Math.random() * 6.283
       });
     }
 
@@ -1069,7 +1302,8 @@
         vx: (Math.random() - 0.5) * 0.05, vy: -0.02 - Math.random() * 0.04,
         life: 60 + Math.random() * 80, maxLife: 140, r: 3 + Math.random() * 5,
         hue: 25 + Math.random() * 15, sat: 100, lum: 55 + Math.random() * 20,
-        damping: 0.999, gravity: -0.0002, glow: true, fg: true
+        damping: 0.999, gravity: -0.0002, glow: true, fg: true,
+        flicker: 0.8 + Math.random() * 1.2, fphase: Math.random() * 6.283
       });
     }
 
@@ -1125,13 +1359,27 @@
     const slowDriftOv = Math.min(1, elapsed / 11000) * H * 0.07;
     const cloudCenterY = FD.nukeGy - riseEase * (H * 0.45) - slowDriftOv;
 
-    // Blinding white flash — 0-650ms, peak 1.6, clamped
-    if (elapsed < 650 && FD.NUKE_FX.whiteFlash) {
-      const ft = elapsed / 650;
-      ctx.globalAlpha = Math.min(1, (1 - ft * ft * ft) * 1.6);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
+    // Blinding white flash. flashDouble = bhangmeter double pulse: instant
+    // snap (0-140 ms) → visible dip → slower warm thermal re-brighten
+    // peaking ~500 ms, gone by ~1 s. Otherwise the single 650 ms curve.
+    if (FD.NUKE_FX.whiteFlash) {
+      if (FD.NUKE_FX.flashDouble && elapsed < 1000) {
+        const p1 = elapsed < 140 ? Math.min(1, 1.7 * (1 - Math.pow(elapsed / 140, 1.6))) : 0;
+        const p2 = 0.62 * Math.exp(-Math.pow((elapsed - 500) / 235, 2));
+        const fa = Math.max(p1, p2);
+        if (fa > 0.004) {
+          ctx.globalAlpha = Math.min(1, fa);
+          ctx.fillStyle = p2 > p1 ? '#fff3e2' : '#fff';
+          ctx.fillRect(0, 0, W, H);
+          ctx.globalAlpha = 1;
+        }
+      } else if (elapsed < 650) {
+        const ft = elapsed / 650;
+        ctx.globalAlpha = Math.min(1, (1 - ft * ft * ft) * 1.6);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
     }
 
     // Warm radial glow (0-7s)
