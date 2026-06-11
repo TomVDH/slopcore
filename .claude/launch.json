@@ -26,8 +26,8 @@
     {
       "name": "steel-tempest",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/steel-tempest", "--no-clipboard"],
-      "port": 3849,
+      "runtimeArgs": ["serve", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/.claude/worktrees/tonk/steel-tempest", "--no-clipboard"],
+      "port": 3850,
       "autoPort": true
     }
   ]
