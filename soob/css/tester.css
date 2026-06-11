@@ -1,0 +1,138 @@
+/* SOOB! sea-trials tester — page chrome + control panel.
+   Loaded AFTER soob.css; overrides the fullscreen-game assumptions. */
+
+html, body {
+  height: auto;
+  overflow: auto;
+  background: #010810;
+}
+body.playing { cursor: auto; }            /* the panel keeps a cursor… */
+body.playing #stage { cursor: none; }     /* …the water does not */
+body::after { display: none; }            /* no barrel vignette over the panel */
+
+/* ---------- masthead ---------- */
+#mast {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--phos-dim);
+  background: var(--face-hard);
+}
+#mast .mt { font-family: var(--disp); font-size: 17px; color: var(--phos-hot); letter-spacing: .12em; }
+#mast .ms { font-size: 14px; letter-spacing: .3em; opacity: .8; }
+#mastNote { margin-left: auto; font-size: 13px; letter-spacing: .16em; color: var(--cyan); }
+
+/* ---------- stage (game viewport) ---------- */
+#stage {
+  position: relative;
+  height: 62vh;
+  min-height: 380px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--phos-dim);
+  background: var(--abyss);
+}
+#stage canvas#scene { width: 100%; height: 100%; display: block; }
+
+/* scope the game's fixed-position chrome to the stage box
+   (#xh stays fixed — it tracks the real mouse; tester.js hides it off-stage) */
+#stage #hud,
+#stage #vignette,
+#stage #banner,
+#stage #feed,
+#stage .screen {
+  position: absolute;
+}
+#stage #banner { font-size: 26px; }
+#stage h1 { font-size: clamp(28px, 5vw, 54px); }
+#stage #gaugeWrap { top: 110px; }
+#stage #depthGauge { height: 230px; }
+#stage #scope { width: 190px; height: 190px; }
+
+/* ---------- control panel ---------- */
+#tester-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px 40px;
+}
+#tester-panel details {
+  background: var(--face);
+  border: 1px solid var(--phos-dim);
+  border-radius: 10px;
+}
+#tester-panel summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 12px;
+  font-family: var(--disp);
+  font-size: 9px;
+  letter-spacing: .3em;
+  color: var(--phos-hot);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+#tester-panel summary::before { content: '▸'; font-size: 10px; transition: transform .15s; }
+#tester-panel details[open] summary::before { transform: rotate(90deg); }
+#tester-panel summary .badge {
+  margin-left: auto;
+  font-family: var(--crt);
+  font-size: 12px;
+  letter-spacing: .12em;
+  color: var(--cyan);
+  border: 1px solid rgba(120, 235, 210, .35);
+  border-radius: 4px;
+  padding: 0 6px;
+}
+#tester-panel .grp { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 7px; }
+
+.row { display: flex; align-items: center; gap: 8px; font-size: 14px; letter-spacing: .05em; }
+.row label { flex: 0 0 102px; opacity: .85; white-space: nowrap; overflow: hidden; }
+.row input[type=range] { flex: 1; accent-color: var(--phos); min-width: 60px; }
+.row .val { flex: 0 0 56px; text-align: right; color: var(--phos-hot); font-size: 14px; }
+.row input[type=number] {
+  width: 64px; background: rgba(0,0,0,.5); color: var(--phos-hot);
+  border: 1px solid var(--phos-dim); border-radius: 4px; font: 14px var(--crt); padding: 2px 6px;
+}
+
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+button.tbtn {
+  font: 13px var(--crt);
+  letter-spacing: .1em;
+  color: var(--abyss);
+  background: var(--phos);
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+button.tbtn:hover { background: var(--phos-hot); }
+button.tbtn:active { transform: translateY(1px); }
+button.tbtn.warn { background: var(--alert); color: #fff; }
+button.tbtn.ghost { background: transparent; color: var(--phos); border: 1px solid var(--phos-dim); }
+button.tbtn.on { background: var(--cyan); color: var(--abyss); }
+
+#telemetry {
+  font: 14px/1.55 var(--crt);
+  color: var(--phos);
+  white-space: pre;
+  padding: 2px 0;
+}
+#cfgOut {
+  font: 12px/1.5 var(--crt);
+  color: var(--cyan);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow: auto;
+  background: rgba(0,0,0,.4);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: none;
+}
+#cfgOut.show { display: block; }
+
+.legend { font-size: 13px; line-height: 1.8; letter-spacing: .06em; opacity: .75; }
