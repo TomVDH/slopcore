@@ -1,11 +1,34 @@
 {
   "version": "0.0.1",
+  "autoPort": true,
   "configurations": [
+    {
+      "name": "tomfolio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/tomfolio", "--", "--port", "5184", "--strictPort"],
+      "port": 5184,
+      "autoPort": true
+    },
+    {
+      "name": "tomfolio-verify",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/tomfolio", "--", "--port", "5185", "--strictPort"],
+      "port": 5185,
+      "autoPort": true
+    },
     {
       "name": "flappy-drone",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "/Users/tomlinson/Documents/Tomtoolery/flappy-drone", "-l", "3847", "--no-clipboard"],
-      "port": 3847
+      "runtimeArgs": ["serve", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/flappy-drone", "--no-clipboard"],
+      "port": 3847,
+      "autoPort": true
+    },
+    {
+      "name": "steel-tempest",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/steel-tempest", "--no-clipboard"],
+      "port": 3849,
+      "autoPort": true
     }
   ]
 }

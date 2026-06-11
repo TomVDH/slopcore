@@ -20,7 +20,9 @@
       "WebSearch",
       "WebFetch(domain:flappybird.fandom.com)",
       "WebFetch(domain:flappy-bird.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(wc -l \"/Users/tomlinson/Library/Mobile Documents/com~apple~CloudDocs/Projects/VIBE CODING/tomtoolery/flappy-drone/previews/\"*.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:52527/previews/35-fireworks.html\")"
     ]
   }
 }
