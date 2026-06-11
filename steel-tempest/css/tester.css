@@ -1,0 +1,130 @@
+/* TONK! field tester — page chrome + control panel.
+   Loaded AFTER tonk.css; overrides the fullscreen-game assumptions. */
+
+html, body {
+  height: auto;
+  overflow: auto;
+  background: #131008;
+}
+body.playing { cursor: auto; }            /* the panel keeps a cursor… */
+body.playing #stage { cursor: none; }     /* …the range does not */
+
+/* ---------- masthead ---------- */
+#mast {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--amber-dim);
+  background: var(--ink-hard);
+}
+#mast .mt { font-family: var(--stencil); font-size: 20px; color: var(--amber-hot); letter-spacing: .06em; }
+#mast .ms { font-size: 11px; letter-spacing: .34em; opacity: .8; }
+#mastNote { margin-left: auto; font-size: 10px; letter-spacing: .18em; color: var(--olive); }
+
+/* ---------- stage (game viewport) ---------- */
+#stage {
+  position: relative;
+  height: 62vh;
+  min-height: 380px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--amber-dim);
+  background: #1a160f;
+}
+#stage canvas#scene { width: 100%; height: 100%; display: block; }
+
+/* scope the game's fixed-position chrome to the stage box
+   (#xh stays fixed — it tracks the real mouse; tester.js hides it off-stage) */
+#stage #hud,
+#stage #vignette,
+#stage #banner,
+#stage #feed,
+#stage .screen {
+  position: absolute;
+}
+#stage #banner { font-size: 40px; }
+#stage h1 { font-size: clamp(30px, 6vw, 64px); }
+
+/* ---------- control panel ---------- */
+#tester-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px 40px;
+}
+#tester-panel details {
+  background: var(--ink);
+  border: 1px solid var(--amber-dim);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+#tester-panel summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 12px;
+  font-size: 11px;
+  letter-spacing: .3em;
+  color: var(--amber-hot);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+#tester-panel summary::before { content: '▸'; font-size: 10px; transition: transform .15s; }
+#tester-panel details[open] summary::before { transform: rotate(90deg); }
+#tester-panel summary .badge {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--olive);
+  border: 1px solid rgba(154, 168, 108, .4);
+  padding: 1px 6px;
+}
+#tester-panel .grp { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 7px; }
+
+.row { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .08em; }
+.row label { flex: 0 0 96px; opacity: .85; white-space: nowrap; overflow: hidden; }
+.row input[type=range] { flex: 1; accent-color: var(--amber); min-width: 60px; }
+.row .val { flex: 0 0 52px; text-align: right; color: var(--amber-hot); font-size: 11px; }
+.row input[type=number] {
+  width: 64px; background: rgba(0,0,0,.5); color: var(--amber-hot);
+  border: 1px solid var(--amber-dim); font: 12px var(--mono); padding: 3px 6px;
+}
+
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+button.tbtn {
+  font: 11px var(--mono);
+  letter-spacing: .14em;
+  color: #15130c;
+  background: var(--amber);
+  border: 0;
+  padding: 6px 10px;
+  cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+button.tbtn:hover { background: var(--amber-hot); }
+button.tbtn:active { transform: translateY(1px); }
+button.tbtn.warn { background: #d4513c; color: #fff; }
+button.tbtn.ghost { background: transparent; color: var(--amber); border: 1px solid var(--amber-dim); }
+button.tbtn.on { background: var(--green); }
+
+#telemetry {
+  font: 11px/1.65 var(--mono);
+  color: var(--amber);
+  white-space: pre;
+  padding: 2px 0;
+}
+#cfgOut {
+  font: 10px/1.5 var(--mono);
+  color: var(--olive);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow: auto;
+  background: rgba(0,0,0,.4);
+  padding: 6px 8px;
+  display: none;
+}
+#cfgOut.show { display: block; }
+
+.legend { font-size: 10px; line-height: 1.9; letter-spacing: .1em; opacity: .75; }
