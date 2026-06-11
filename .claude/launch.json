@@ -29,6 +29,13 @@
       "runtimeArgs": ["serve", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/steel-tempest", "--no-clipboard"],
       "port": 3849,
       "autoPort": true
+    },
+    {
+      "name": "soob",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/tomlinson/Projects/VIBE CODING/tomtoolery/soob", "--no-clipboard"],
+      "port": 3851,
+      "autoPort": true
     }
   ]
 }
