@@ -1,0 +1,348 @@
+/* ------------------------------------------------------------------
+   BLEU: drenched modernist.
+
+   The surface IS the color: one International-Klein-Blue field,
+   white type, black used like a signature. One typeface (Switzer)
+   carries everything through weight and scale. Sharp rectangles,
+   flush alignment, hairline rules. The dot lattice behind is the
+   only ornament and it is mathematics.
+------------------------------------------------------------------- */
+
+:root {
+  --kl-blue: #0b27d6;
+  --kl-blue-deep: #081cae;
+  --kl-white: #f6f7fb;
+  --kl-white-60: rgba(246, 247, 251, 0.62);
+  --kl-black: #0a0a14;
+  --kl-rule: rgba(246, 247, 251, 0.22);
+
+  --kl-face: "Switzer", "Helvetica Neue", sans-serif;
+}
+
+.kl {
+  background: var(--kl-blue);
+  color: var(--kl-white);
+  font-family: var(--kl-face);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.kl ::selection {
+  background: var(--kl-white);
+  color: var(--kl-blue);
+}
+
+.kl :focus-visible {
+  outline: 2px solid var(--kl-white);
+  outline-offset: 3px;
+}
+
+.kl .skip-link {
+  background: var(--kl-black);
+  color: var(--kl-white);
+  font-weight: 500;
+}
+
+.kl #gl {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.kl main,
+.kl-nav {
+  position: relative;
+  z-index: 10;
+}
+
+.kl-wrap {
+  width: min(1280px, 92vw);
+  margin-inline: auto;
+}
+
+/* ---- Nav ---- */
+
+.kl-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: clamp(16px, 4vw, 56px);
+  background: linear-gradient(to bottom, rgba(11, 39, 214, 0.9), rgba(11, 39, 214, 0));
+}
+
+.kl-brand {
+  font-weight: 500;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+
+.kl-links {
+  display: flex;
+  gap: clamp(18px, 3vw, 36px);
+}
+.kl-links a {
+  font-weight: 400;
+  font-size: 0.92rem;
+  position: relative;
+  padding-bottom: 3px;
+}
+.kl-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--kl-white);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.kl-links a:hover::after,
+.kl-links a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* ---- Hero ---- */
+
+.kl-hero {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: clamp(56px, 10vh, 120px);
+}
+
+.kl-headline {
+  font-weight: 900;
+  font-size: clamp(2.6rem, 6.4vw, 6rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  max-width: 13ch;
+  text-wrap: balance;
+}
+
+.kl-sub {
+  margin-top: 26px;
+  font-weight: 400;
+  font-size: clamp(1.02rem, 1.3vw, 1.2rem);
+  color: var(--kl-white-60);
+  max-width: 42ch;
+}
+
+.kl-btn {
+  display: inline-block;
+  margin-top: 34px;
+  background: var(--kl-black);
+  color: var(--kl-white);
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 16px 34px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+.kl-btn:hover {
+  background: var(--kl-white);
+  color: var(--kl-blue);
+}
+.kl-btn:active {
+  transform: translateY(1px);
+}
+
+/* ---- Sections ---- */
+
+.kl-section-title {
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4vw, 3.4rem);
+  letter-spacing: -0.025em;
+  line-height: 1;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--kl-rule);
+}
+
+/* ---- Work: strict modular grid ---- */
+
+.kl-work {
+  background: var(--kl-blue);
+  padding-block: clamp(70px, 11vh, 130px);
+}
+
+.kl-grid {
+  margin-top: clamp(30px, 4vh, 56px);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(20px, 3vw, 48px);
+}
+
+.kl-piece figure {
+  position: relative;
+  background: var(--kl-blue-deep);
+  overflow: hidden;
+}
+.kl-piece img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.12);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  transition: opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1), transform 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.kl-piece:hover img {
+  opacity: 1;
+  transform: scale(1.015);
+}
+
+.kl-piece-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 12px;
+}
+.kl-piece-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+.kl-piece-meta {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--kl-white-60);
+  white-space: nowrap;
+}
+.kl-piece-summary {
+  margin-top: 6px;
+  font-size: 0.92rem;
+  color: var(--kl-white-60);
+  max-width: 52ch;
+}
+
+/* ---- Index: pure type rows ---- */
+
+.kl-index {
+  background: var(--kl-blue);
+  padding-block: clamp(40px, 6vh, 80px) clamp(70px, 11vh, 130px);
+}
+
+.kl-index-rows {
+  margin-top: clamp(30px, 4vh, 56px);
+}
+
+.kl-index-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 38%);
+  align-items: baseline;
+  gap: 24px;
+  padding-block: clamp(18px, 2.6vh, 28px);
+  border-bottom: 1px solid var(--kl-rule);
+}
+.kl-index-word {
+  font-weight: 900;
+  font-size: clamp(1.9rem, 4.6vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.kl-index-desc {
+  font-size: 0.95rem;
+  color: var(--kl-white-60);
+}
+
+/* ---- Manifesto ---- */
+
+.kl-manifesto {
+  background: var(--kl-blue);
+  padding-block: clamp(70px, 11vh, 140px);
+  border-top: 1px solid var(--kl-rule);
+}
+
+.kl-manifesto-text {
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  line-height: 1.32;
+  letter-spacing: -0.015em;
+  max-width: 28ch;
+}
+.kl-manifesto-text em {
+  font-style: normal;
+  background: var(--kl-black);
+  padding: 0 0.18em;
+}
+
+/* ---- Footer ---- */
+
+.kl-footer {
+  min-height: 88dvh;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+.kl-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--kl-blue) 0%, rgba(11, 39, 214, 0) 45%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.kl-footer-title {
+  font-weight: 900;
+  font-size: clamp(2.4rem, 5.8vw, 5.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+.kl-btn-big {
+  font-size: 1.1rem;
+  padding: 19px 42px;
+}
+
+.kl-footer-row {
+  margin-top: 52px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.kl-footer-row a {
+  font-size: 0.92rem;
+  border-bottom: 1px solid var(--kl-rule);
+  padding-bottom: 3px;
+}
+.kl-footer-row a:hover {
+  border-bottom-color: var(--kl-white);
+}
+
+.kl-fineprint {
+  margin-top: 56px;
+  padding-bottom: 32px;
+  font-size: 0.84rem;
+  color: var(--kl-white-60);
+}
+
+.kl-pill {
+  background: var(--kl-white);
+  color: var(--kl-blue);
+  font-weight: 500;
+}
+
+/* ---- Mobile ---- */
+
+@media (max-width: 767px) {
+  .kl-grid {
+    grid-template-columns: 1fr;
+  }
+  .kl-index-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

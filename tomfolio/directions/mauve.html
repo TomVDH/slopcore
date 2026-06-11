@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mauve, a Tomtoolery design direction</title>
+    <meta name="description" content="Two-ink zine direction" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content=" mauve and tan on cream.:#F4EEE2" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="dx mauve">
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <header class="dx-nav">
+      <a class="dx-brand" href="#top">tomtoolery</a>
+      <nav aria-label="Main">
+        <a href="#work">Work</a>
+        <a href="#note">Note</a>
+        <a href="#hello">Say hello</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="dx-hero" aria-label="Introduction">
+        <div class="dx-hero-media" aria-hidden="true"><canvas id="gl"></canvas></div>
+        <div class="dx-hero-copy">
+          <h1>Half marketer, half artist, all nerd.</h1>
+          <p>I plan campaigns by day and melt pixels after hours. This is the toolbox.</p>
+          <a class="dx-cta" href="#work">See the work</a>
+        </div>
+      </section>
+
+      <section class="dx-work" id="work" aria-labelledby="work-title">
+        <div class="dx-wrap">
+          <h2 class="rv" id="work-title">Selected work</h2>
+          <div class="dx-gallery"></div>
+        </div>
+      </section>
+
+      <section class="dx-note" id="note" aria-label="Manifesto">
+        <div class="dx-wrap">
+          <p class="dx-note-text rv"></p>
+        </div>
+      </section>
+
+      <footer class="dx-end" id="hello" aria-labelledby="end-title">
+        <div class="dx-wrap">
+          <h2 class="rv" id="end-title">Got something weird to build?</h2>
+          <a class="dx-cta rv" href="mailto:hello@tomtoolery.studio">Say hello</a>
+          <div class="dx-links rv"></div>
+          <p class="dx-fine"></p>
+        </div>
+      </footer>
+    </main>
+
+    <a class="dir-pill" href="/directions/">Directions</a>
+
+    <script type="module" src="/src/directions/mauve/page.ts"></script>
+  </body>
+</html>

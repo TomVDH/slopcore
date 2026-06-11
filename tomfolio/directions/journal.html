@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tomtoolery Journal, a design direction</title>
+    <meta
+      name="description"
+      content="Editorial print direction for the Tomtoolery portfolio. Serif masthead, standfirsts, vermilion ink."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#F8F8F7" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="jnl">
+    <a class="skip-link" href="#stories">Skip to the stories</a>
+
+    <header class="jnl-masthead">
+      <p class="jnl-issue">Self-published, sporadically</p>
+      <a class="jnl-brand" href="#top">The Tomtoolery <em>Journal</em></a>
+      <nav class="jnl-links" aria-label="Main">
+        <a href="#stories">Stories</a>
+        <a href="#letter">Letter</a>
+        <a href="#colophon">Colophon</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="jnl-lead" aria-label="Introduction">
+        <div class="jnl-lead-grid">
+          <div class="jnl-lead-copy">
+            <h1 class="jnl-headline">Half marketer, half artist, <em>all nerd</em>.</h1>
+            <p class="jnl-standfirst">
+              I plan campaigns by day and melt pixels after hours. This is the toolbox.
+            </p>
+            <a class="jnl-cta" href="#stories">Read the stories</a>
+          </div>
+          <figure class="jnl-lead-art">
+            <canvas id="gl" aria-hidden="true"></canvas>
+            <figcaption>Ink study, drawn live by the page.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="jnl-stories" id="stories" aria-labelledby="stories-title">
+        <h2 class="jnl-section-title" id="stories-title">Stories from the workshop</h2>
+        <div class="jnl-spreads"></div>
+      </section>
+
+      <section class="jnl-letter" id="letter" aria-label="A letter from the editor">
+        <p class="jnl-letter-text"></p>
+        <p class="jnl-letter-sig">Tom V., editor and only employee</p>
+      </section>
+
+      <section class="jnl-margins" aria-labelledby="margins-title">
+        <h2 class="jnl-section-title" id="margins-title">Meanwhile, in the margins</h2>
+        <div class="jnl-margin-grid"></div>
+      </section>
+
+      <footer class="jnl-colophon" id="colophon" aria-labelledby="colophon-title">
+        <h2 class="jnl-colophon-title" id="colophon-title">Got something weird to build?</h2>
+        <a class="jnl-cta jnl-cta-big" href="mailto:hello@tomtoolery.studio">Say hello</a>
+        <div class="jnl-colophon-row"></div>
+        <p class="jnl-fineprint"></p>
+      </footer>
+    </main>
+
+    <a class="dir-pill jnl-pill" href="/directions/">Directions</a>
+
+    <script type="module" src="/src/directions/journal/page.ts"></script>
+  </body>
+</html>

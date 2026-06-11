@@ -1,0 +1,547 @@
+/* ------------------------------------------------------------------
+   TT2000: Y2K chrome revival.
+
+   Substrate: near-black. Material: liquid-chrome grayscale. Accent:
+   hot magenta, the only color. Panchang carries display; Satoshi
+   carries body; Poiret One plays the space-age labels; Permanent
+   Marker is the sticker hand. Centered chaos, orbit rings, springy
+   everything. The chrome wordmark is layered type, not gradient text.
+------------------------------------------------------------------- */
+
+:root {
+  --yk-void: #08080b;
+  --yk-deep: #101016;
+  --yk-silver: #d6d9de;
+  --yk-steel: #8a8e98;
+  --yk-white: #f2f4f8;
+  --yk-magenta: #ff3dae;
+  --yk-line: rgba(214, 217, 222, 0.16);
+
+  --yk-display: "Panchang", sans-serif;
+  --yk-body: "Satoshi", "Helvetica Neue", sans-serif;
+  --yk-space: "Poiret One", sans-serif;
+  --yk-marker: "Permanent Marker", cursive;
+}
+
+.yk {
+  background: var(--yk-void);
+  color: var(--yk-white);
+  font-family: var(--yk-body);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.yk ::selection {
+  background: var(--yk-magenta);
+  color: var(--yk-void);
+}
+
+.yk :focus-visible {
+  outline: 2px solid var(--yk-magenta);
+  outline-offset: 3px;
+}
+
+.yk .skip-link {
+  background: var(--yk-magenta);
+  color: var(--yk-void);
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.yk #gl {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.yk main,
+.yk-nav {
+  position: relative;
+  z-index: 10;
+}
+
+/* Chrome type: layered duplicates, no gradient-clip. */
+.chrome-type {
+  position: relative;
+  display: inline-block;
+  color: var(--yk-steel);
+  text-shadow:
+    0 1px 0 var(--yk-white),
+    0 -1px 0 #43464e,
+    0 0 18px rgba(214, 217, 222, 0.25);
+}
+.chrome-type::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: var(--yk-white);
+  clip-path: inset(0 0 52% 0);
+  text-shadow: none;
+}
+
+/* ---- Nav ---- */
+
+.yk-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: clamp(16px, 4vw, 48px);
+}
+
+.yk-brand {
+  font-family: var(--yk-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+}
+
+.yk-links {
+  display: flex;
+  gap: 10px;
+}
+.yk-links a {
+  font-family: var(--yk-space);
+  font-size: 0.86rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border: 1px solid var(--yk-line);
+  border-radius: 999px;
+  background: rgba(8, 8, 11, 0.45);
+  transition: border-color 0.25s ease, color 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.yk-links a:hover {
+  border-color: var(--yk-magenta);
+  color: var(--yk-magenta);
+  transform: translateY(-2px);
+}
+
+/* ---- Hero ---- */
+
+.yk-hero {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 90px 16px 60px;
+}
+
+.yk-orbit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.yk-orbit svg {
+  width: min(78vmin, 680px);
+  height: min(78vmin, 680px);
+  animation: yk-spin 60s linear infinite;
+  opacity: 0.5;
+}
+.yk-orbit text {
+  font-family: var(--yk-space);
+  font-size: 17px;
+  letter-spacing: 0.34em;
+  fill: var(--yk-silver);
+}
+@keyframes yk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.yk-headline {
+  font-family: var(--yk-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 5.4vw, 4.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  max-width: 16ch;
+  text-shadow:
+    0 0 14px rgba(8, 8, 11, 0.9),
+    0 2px 30px rgba(8, 8, 11, 0.85),
+    0 0 60px rgba(8, 8, 11, 0.7);
+}
+.yk-headline-line {
+  display: block;
+}
+.yk-headline em {
+  font-style: normal;
+  color: var(--yk-magenta);
+}
+
+.yk-sub {
+  margin-top: 20px;
+  max-width: 44ch;
+  color: var(--yk-silver);
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  text-shadow:
+    0 0 10px rgba(8, 8, 11, 0.95),
+    0 2px 22px rgba(8, 8, 11, 0.85);
+}
+
+.yk-btn {
+  display: inline-block;
+  margin-top: 30px;
+  font-family: var(--yk-body);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--yk-void);
+  background: linear-gradient(180deg, var(--yk-white) 0%, var(--yk-silver) 48%, var(--yk-steel) 52%, var(--yk-silver) 100%);
+  padding: 15px 34px;
+  border-radius: 999px;
+  border: 1px solid var(--yk-white);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.yk-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 0 0 2px var(--yk-magenta);
+}
+.yk-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.yk-sticker {
+  position: absolute;
+  font-family: var(--yk-marker);
+  font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+  color: var(--yk-void);
+  background: var(--yk-magenta);
+  padding: 10px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.yk-sticker-a {
+  top: 22%;
+  left: clamp(4%, 12vw, 16%);
+  transform: rotate(-9deg);
+}
+.yk-sticker-b {
+  bottom: 20%;
+  right: clamp(4%, 12vw, 16%);
+  transform: rotate(6deg);
+  background: var(--yk-silver);
+}
+
+/* ---- Marquee ---- */
+
+.yk-marquee {
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  border-block: 1px solid var(--yk-line);
+  padding-block: 14px;
+  background: var(--yk-void);
+}
+.yk-marquee .marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.yk-marquee .marquee-unit {
+  font-family: var(--yk-space);
+  font-size: 1.2rem;
+  letter-spacing: 0.3em;
+  white-space: nowrap;
+  padding-right: 1.4rem;
+  color: var(--yk-silver);
+}
+.yk-marquee .marquee-unit i {
+  font-style: normal;
+  color: var(--yk-magenta);
+  padding-inline: 1rem;
+}
+
+/* ---- Work: horizontal showroom ---- */
+
+.yk-work {
+  position: relative;
+  z-index: 10;
+  background: var(--yk-void);
+  padding-top: clamp(60px, 9vh, 110px);
+}
+
+.yk-section-title {
+  font-family: var(--yk-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4.4vw, 3.6rem);
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+.yk-section-sub {
+  margin-top: 10px;
+  text-align: center;
+  color: var(--yk-steel);
+  font-size: 1rem;
+  padding-inline: 16px;
+}
+
+.yk-pan {
+  position: relative;
+  overflow: hidden;
+  margin-top: clamp(28px, 4vh, 52px);
+}
+
+.yk-track {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 3vw, 48px);
+  padding: 6vh clamp(20px, 6vw, 90px);
+  width: max-content;
+  min-height: 78dvh;
+}
+
+.yk-card {
+  position: relative;
+  width: clamp(300px, 34vw, 460px);
+  flex: none;
+  border-radius: 14px;
+  padding: 10px;
+  background: linear-gradient(160deg, var(--yk-white) 0%, var(--yk-steel) 30%, #3c4048 55%, var(--yk-silver) 100%);
+}
+.yk-card-inner {
+  background: var(--yk-deep);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.yk-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.1) brightness(0.95);
+}
+.yk-card-body {
+  padding: 18px 18px 20px;
+}
+.yk-card-title {
+  font-family: var(--yk-display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+.yk-card-meta {
+  margin-top: 4px;
+  font-family: var(--yk-space);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--yk-steel);
+}
+.yk-card-summary {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--yk-silver);
+}
+.yk-card:hover {
+  box-shadow: 0 0 0 2px var(--yk-magenta);
+}
+
+/* ---- Manifesto ---- */
+
+.yk-manifesto {
+  position: relative;
+  z-index: 10;
+  background: var(--yk-void);
+  border-block: 1px solid var(--yk-line);
+  padding: clamp(60px, 10vh, 120px) 16px;
+  text-align: center;
+}
+
+.yk-manifesto-text {
+  font-family: var(--yk-display);
+  font-weight: 600;
+  font-size: clamp(1.4rem, 3vw, 2.6rem);
+  line-height: 1.22;
+  max-width: 28ch;
+  margin-inline: auto;
+}
+.yk-manifesto-text em {
+  font-style: normal;
+  color: var(--yk-magenta);
+}
+
+/* ---- Sticker wall ---- */
+
+.yk-stickerwall {
+  position: relative;
+  z-index: 10;
+  background: var(--yk-void);
+  padding-block: clamp(60px, 9vh, 110px);
+}
+
+.yk-wall {
+  margin: clamp(28px, 4vh, 52px) auto 0;
+  width: min(1240px, 92vw);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 3vw, 44px);
+  align-items: start;
+}
+
+.yk-polaroid {
+  background: linear-gradient(170deg, var(--yk-white), var(--yk-silver));
+  border-radius: 12px;
+  padding: 10px 10px 16px;
+  color: var(--yk-void);
+}
+.yk-polaroid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+  filter: grayscale(1) contrast(1.08);
+}
+.yk-polaroid figcaption {
+  margin-top: 12px;
+  font-family: var(--yk-marker);
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+.yk-polaroid figcaption span {
+  display: block;
+  font-family: var(--yk-space);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a4e57;
+  margin-top: 2px;
+}
+.yk-polaroid:nth-child(1) {
+  transform: rotate(-2.5deg);
+}
+.yk-polaroid:nth-child(2) {
+  transform: rotate(1.6deg) translateY(18px);
+}
+.yk-polaroid:nth-child(3) {
+  transform: rotate(-1.2deg);
+}
+
+.yk-motto {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 10px;
+  font-family: var(--yk-marker);
+  font-size: clamp(1.2rem, 2.4vw, 1.9rem);
+  color: var(--yk-magenta);
+  transform: rotate(-2deg);
+}
+
+/* ---- Footer ---- */
+
+.yk-footer {
+  position: relative;
+  z-index: 10;
+  min-height: 86dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 16px 40px;
+}
+.yk-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--yk-void) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.yk-footer-title {
+  font-family: var(--yk-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 5.4vw, 4.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  max-width: 15ch;
+  text-wrap: balance;
+}
+
+.yk-btn-big {
+  font-size: 1.15rem;
+  padding: 19px 44px;
+}
+
+.yk-footer-row {
+  margin-top: 48px;
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.yk-footer-row a {
+  font-family: var(--yk-space);
+  font-size: 0.86rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--yk-silver);
+  border-bottom: 1px solid var(--yk-line);
+  padding-bottom: 3px;
+}
+.yk-footer-row a:hover {
+  color: var(--yk-magenta);
+  border-bottom-color: var(--yk-magenta);
+}
+
+.yk-fineprint {
+  margin-top: 56px;
+  color: var(--yk-steel);
+  font-size: 0.84rem;
+}
+
+.yk-pill {
+  background: var(--yk-magenta);
+  color: var(--yk-void);
+  font-family: var(--yk-body);
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+/* ---- Mobile ---- */
+
+@media (max-width: 767px) {
+  .yk-links a {
+    padding: 7px 12px;
+    font-size: 0.74rem;
+  }
+  .yk-sticker-a {
+    top: 14%;
+    left: 4%;
+  }
+  .yk-sticker-b {
+    bottom: 12%;
+    right: 4%;
+  }
+  /* The showroom stacks vertically; no pinning on touch. */
+  .yk-track {
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    padding: 10px 16px 30px;
+    gap: 24px;
+  }
+  .yk-card {
+    width: 100%;
+  }
+  .yk-wall {
+    grid-template-columns: 1fr;
+  }
+  .yk-polaroid:nth-child(2) {
+    transform: rotate(1.6deg);
+  }
+}

@@ -1,0 +1,4 @@
+# Adjudant breadcrumb (project-local)
+.claude/adjudant
+node_modules/
+dist/

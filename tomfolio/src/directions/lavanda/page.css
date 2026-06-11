@@ -1,0 +1,189 @@
+/* ------------------------------------------------------------------
+   LAVANDA: soft lilac minimal.
+
+   Substrate: pale lilac-grey. Ink: deep aubergine. Accent: dusty
+   violet. The aurora shader plays the hero, hue-rotated into violet
+   and washed soft. Type is light and airy; the gallery is one calm
+   column of oversized images in lilac duotone. Nothing shouts.
+------------------------------------------------------------------- */
+
+:root {
+  --lv-milk: #ece7f2;
+  --lv-ink: #2b2336;
+  --lv-violet: #8d77b3;
+  --lv-soft: #6e6580;
+  --lv-line: rgba(43, 35, 54, 0.16);
+}
+
+.lavanda {
+  background: var(--lv-milk);
+  color: var(--lv-ink);
+  font-family: "General Sans", sans-serif;
+  line-height: 1.65;
+}
+
+.lavanda ::selection {
+  background: var(--lv-violet);
+  color: var(--lv-milk);
+}
+.lavanda :focus-visible {
+  outline: 2px solid var(--lv-violet);
+  outline-offset: 3px;
+}
+.lavanda .skip-link {
+  background: var(--lv-ink);
+  color: var(--lv-milk);
+}
+
+.lavanda .dx-nav {
+  background: linear-gradient(to bottom, rgba(236, 231, 242, 0.92), rgba(236, 231, 242, 0));
+}
+.lavanda .dx-brand {
+  font-weight: 600;
+  font-size: 1.08rem;
+  letter-spacing: -0.01em;
+}
+.lavanda .dx-nav nav a {
+  font-size: 0.9rem;
+  color: var(--lv-soft);
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.lavanda .dx-nav nav a:hover {
+  color: var(--lv-ink);
+  border-bottom-color: var(--lv-violet);
+}
+
+/* Hero: the violet aurora, washed into the milk. */
+.lavanda .dx-hero {
+  align-items: center;
+  text-align: center;
+}
+.lavanda .dx-hero-media canvas {
+  filter: hue-rotate(225deg) saturate(0.55) brightness(1.55) contrast(0.82);
+  opacity: 0.85;
+}
+.lavanda .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(236, 231, 242, 0.35), rgba(236, 231, 242, 0.92));
+}
+.lavanda .dx-hero-copy {
+  padding-bottom: 0;
+}
+.lavanda .dx-hero-copy h1 {
+  margin-inline: auto;
+  font-weight: 600;
+  font-size: clamp(2.3rem, 5.4vw, 4.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+.lavanda .dx-hero-copy > p {
+  margin-inline: auto;
+  color: var(--lv-soft);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+}
+.lavanda .dx-cta {
+  background: var(--lv-ink);
+  color: var(--lv-milk);
+  font-weight: 500;
+  padding: 15px 34px;
+  border-radius: 999px;
+  transition: background-color 0.25s ease, transform 0.2s ease;
+}
+.lavanda .dx-cta:hover {
+  background: var(--lv-violet);
+  transform: translateY(-2px);
+}
+
+/* Work: one calm column. */
+.lavanda h2 {
+  font-weight: 600;
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.lavanda .lv-piece {
+  margin-top: clamp(44px, 7vh, 84px);
+  text-align: center;
+}
+.lavanda .lv-piece img {
+  width: min(880px, 100%);
+  margin-inline: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 14px;
+  filter: grayscale(1) contrast(0.95) brightness(1.06);
+  mix-blend-mode: multiply;
+}
+.lavanda .lv-piece figure {
+  background: var(--lv-violet);
+  border-radius: 14px;
+  width: min(880px, 100%);
+  margin-inline: auto;
+}
+.lavanda .lv-title {
+  margin-top: 18px;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+.lavanda .lv-meta {
+  margin-top: 2px;
+  font-size: 0.88rem;
+  color: var(--lv-soft);
+}
+.lavanda .lv-sum {
+  margin-top: 10px;
+  max-width: 52ch;
+  margin-inline: auto;
+  color: var(--lv-soft);
+  font-size: 0.95rem;
+}
+
+/* Note: a held breath between rules. */
+.lavanda .dx-note {
+  border-block: 1px solid var(--lv-line);
+}
+.lavanda .dx-note-text {
+  text-align: center;
+  font-weight: 400;
+  font-size: clamp(1.4rem, 2.7vw, 2.3rem);
+  line-height: 1.45;
+  max-width: 30ch;
+  margin-inline: auto;
+}
+.lavanda .dx-note-text em {
+  font-style: normal;
+  color: var(--lv-violet);
+}
+
+/* End. */
+.lavanda .dx-end {
+  text-align: center;
+}
+.lavanda .dx-end h2 {
+  margin-inline: auto;
+  font-size: clamp(2rem, 4.6vw, 3.8rem);
+}
+.lavanda .dx-links {
+  justify-content: center;
+}
+.lavanda .dx-links a {
+  font-size: 0.9rem;
+  color: var(--lv-soft);
+  border-bottom: 1px solid var(--lv-line);
+  padding-bottom: 2px;
+}
+.lavanda .dx-links a:hover {
+  color: var(--lv-violet);
+  border-bottom-color: var(--lv-violet);
+}
+.lavanda .dir-pill {
+  background: var(--lv-ink);
+  color: var(--lv-milk);
+  border-radius: 999px;
+}

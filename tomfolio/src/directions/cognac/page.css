@@ -1,0 +1,248 @@
+/* ------------------------------------------------------------------
+   COGNAC: the leather library.
+
+   Espresso walls, tan leather, cream paper. The twill shader is
+   sepia-filtered into tweed behind the hero. The gallery is a shelf:
+   each project is a book spine that opens on hover. Gambetta serif
+   speaks; everything smells faintly of pipe smoke.
+------------------------------------------------------------------- */
+
+:root {
+  --cg-espresso: #2a1f19;
+  --cg-deep: #1c1410;
+  --cg-tan: #c8a87e;
+  --cg-cream: #efe4d3;
+  --cg-cognac: #b26e3f;
+  --cg-line: rgba(200, 168, 126, 0.28);
+}
+
+.cognac {
+  background: var(--cg-espresso);
+  color: var(--cg-cream);
+  font-family: "Satoshi", sans-serif;
+  line-height: 1.65;
+}
+
+.cognac ::selection {
+  background: var(--cg-tan);
+  color: var(--cg-deep);
+}
+.cognac :focus-visible {
+  outline: 2px solid var(--cg-tan);
+  outline-offset: 3px;
+}
+.cognac .skip-link {
+  background: var(--cg-tan);
+  color: var(--cg-deep);
+}
+
+.cognac .dx-brand,
+.cognac h1,
+.cognac h2,
+.cognac .cg-spine-title {
+  font-family: "Gambetta", serif;
+}
+
+.cognac .dx-nav {
+  background: linear-gradient(to bottom, rgba(28, 20, 16, 0.9), rgba(28, 20, 16, 0));
+}
+.cognac .dx-brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--cg-tan);
+}
+.cognac .dx-nav nav a {
+  font-size: 0.9rem;
+  color: var(--cg-cream);
+  opacity: 0.8;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.cognac .dx-nav nav a:hover {
+  opacity: 1;
+  border-bottom-color: var(--cg-cognac);
+}
+
+/* Hero: tweed by lamplight. */
+.cognac .dx-hero-media canvas {
+  filter: sepia(0.85) saturate(1.25) brightness(0.82) contrast(1.05);
+}
+.cognac .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(90% 70% at 30% 80%, rgba(28, 20, 16, 0.2), rgba(28, 20, 16, 0.85));
+}
+.cognac .dx-hero-copy h1 {
+  font-weight: 700;
+  font-size: clamp(2.4rem, 5.4vw, 4.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.cognac .dx-hero-copy h1 em,
+.cognac .dx-note-text em {
+  font-style: italic;
+  color: var(--cg-tan);
+}
+.cognac .dx-hero-copy > p {
+  color: var(--cg-cream);
+  opacity: 0.82;
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+}
+.cognac .dx-cta {
+  font-family: "Gambetta", serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--cg-tan);
+  border-bottom: 2px solid var(--cg-cognac);
+  padding-bottom: 3px;
+}
+.cognac .dx-cta:hover {
+  color: var(--cg-cream);
+}
+
+/* Work: the shelf. */
+.cognac h2 {
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.8vw, 3rem);
+  color: var(--cg-cream);
+}
+
+.cognac .dx-gallery {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  min-height: 460px;
+  border-bottom: 6px solid var(--cg-deep);
+  padding-bottom: 0;
+}
+.cognac .cg-spine {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--cg-deep);
+  border: 1px solid var(--cg-line);
+  border-bottom: none;
+  transition: flex 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+  cursor: pointer;
+}
+.cognac .cg-spine:hover,
+.cognac .cg-spine:focus-within {
+  flex: 3.2;
+}
+.cognac .cg-spine img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: sepia(0.6) saturate(0.9) brightness(0.85);
+  opacity: 0;
+  transition: opacity 0.5s ease 0.12s;
+}
+.cognac .cg-spine:hover img,
+.cognac .cg-spine:focus-within img {
+  opacity: 0.85;
+}
+.cognac .cg-spine-title {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  writing-mode: vertical-rl;
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  color: var(--cg-tan);
+  white-space: nowrap;
+  z-index: 1;
+  transition: opacity 0.3s ease;
+}
+.cognac .cg-spine:hover .cg-spine-title {
+  opacity: 0;
+}
+.cognac .cg-plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 18px;
+  background: linear-gradient(to top, rgba(28, 20, 16, 0.95), rgba(28, 20, 16, 0));
+  opacity: 0;
+  transition: opacity 0.4s ease 0.18s;
+}
+.cognac .cg-spine:hover .cg-plate,
+.cognac .cg-spine:focus-within .cg-plate {
+  opacity: 1;
+}
+.cognac .cg-plate h3 {
+  font-family: "Gambetta", serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--cg-cream);
+}
+.cognac .cg-plate p {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--cg-tan);
+}
+
+/* Note: a tipped-in card. */
+.cognac .dx-note-text {
+  background: var(--cg-cream);
+  color: var(--cg-deep);
+  font-family: "Gambetta", serif;
+  font-size: clamp(1.35rem, 2.6vw, 2.2rem);
+  line-height: 1.45;
+  max-width: 30ch;
+  margin-inline: auto;
+  padding: clamp(28px, 4vw, 52px);
+  transform: rotate(-0.6deg);
+  box-shadow: 0 4px 0 var(--cg-deep);
+}
+.cognac .dx-note-text em {
+  color: var(--cg-cognac);
+}
+
+/* End. */
+.cognac .dx-end h2 {
+  font-size: clamp(2.1rem, 4.6vw, 3.8rem);
+}
+.cognac .dx-links a {
+  font-size: 0.9rem;
+  color: var(--cg-tan);
+  border-bottom: 1px solid var(--cg-line);
+  padding-bottom: 2px;
+}
+.cognac .dx-links a:hover {
+  color: var(--cg-cream);
+}
+.cognac .dir-pill {
+  background: var(--cg-tan);
+  color: var(--cg-deep);
+}
+
+@media (max-width: 860px) {
+  .cognac .dx-gallery {
+    flex-direction: column;
+    min-height: 0;
+    border-bottom: none;
+    border-left: 6px solid var(--cg-deep);
+  }
+  .cognac .cg-spine {
+    min-height: 86px;
+  }
+  .cognac .cg-spine:hover,
+  .cognac .cg-spine:focus-within {
+    min-height: 280px;
+  }
+  .cognac .cg-spine-title {
+    writing-mode: horizontal-tb;
+    top: 50%;
+    left: 22px;
+    transform: translateY(-50%);
+  }
+}

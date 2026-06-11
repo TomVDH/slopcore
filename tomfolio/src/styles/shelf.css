@@ -1,0 +1,132 @@
+/* ------------------------------------------------------------------
+   Iteration shelf: internal curation surface for hero shader
+   candidates. Same tokens and type system as the site.
+------------------------------------------------------------------- */
+
+.shelf-body {
+  min-height: 100dvh;
+  padding: clamp(20px, 4vw, 56px);
+}
+
+.shelf-head {
+  max-width: 1500px;
+  margin-inline: auto;
+}
+
+.shelf-title {
+  margin-top: 38px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+.shelf-sub {
+  margin-top: 12px;
+  color: var(--mist);
+  max-width: 52ch;
+}
+
+.shelf-grid {
+  max-width: 1500px;
+  margin: clamp(32px, 5vh, 56px) auto 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  gap: 14px;
+}
+
+.shelf-group-title {
+  grid-column: 1 / -1;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  color: var(--mist);
+  margin-top: 26px;
+}
+.shelf-group-title:first-child {
+  margin-top: 0;
+}
+
+.shelf-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  padding: 10px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: border-color 0.3s ease, transform 0.15s ease;
+}
+.shelf-card:hover {
+  border-color: var(--lime);
+}
+.shelf-card:active {
+  transform: translateY(1px);
+}
+
+.shelf-card canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--ink);
+}
+
+.shelf-card-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 6px 8px;
+}
+
+.shelf-card-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.shelf-card-current {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  background: var(--lime);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.shelf-card-id {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--mist);
+}
+
+.shelf-card-blurb {
+  padding: 0 6px 8px;
+  color: var(--mist);
+  font-size: 0.95rem;
+  max-width: 56ch;
+}
+
+.shelf-foot {
+  max-width: 1500px;
+  margin: clamp(40px, 7vh, 72px) auto 0;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+.shelf-foot p {
+  color: var(--mist);
+  font-size: 0.88rem;
+  max-width: 72ch;
+}
+.shelf-foot code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  color: var(--paper);
+}

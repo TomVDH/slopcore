@@ -1,0 +1,400 @@
+/* ------------------------------------------------------------------
+   THE TOMTOOLERY JOURNAL: editorial print.
+
+   Substrate: chroma-zero off-white. Ink: near-black. One ink accent:
+   vermilion. Zodiak serif carries display and pulls; Satoshi carries
+   prose. Hairline column rules, hanging captions, a drop cap in the
+   letter. Calm throughout; the page never raises its voice.
+------------------------------------------------------------------- */
+
+:root {
+  --jn-paper: #f8f8f7;
+  --jn-ink: #16161a;
+  --jn-soft: #5c5c60;
+  --jn-verm: #c73e1d;
+  --jn-rule: rgba(22, 22, 26, 0.18);
+
+  --jn-serif: "Zodiak", "Georgia", serif;
+  --jn-sans: "Satoshi", "Helvetica Neue", sans-serif;
+}
+
+.jnl {
+  background: var(--jn-paper);
+  color: var(--jn-ink);
+  font-family: var(--jn-sans);
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.jnl ::selection {
+  background: var(--jn-verm);
+  color: var(--jn-paper);
+}
+
+.jnl :focus-visible {
+  outline: 2px solid var(--jn-verm);
+  outline-offset: 3px;
+}
+
+.jnl .skip-link {
+  background: var(--jn-ink);
+  color: var(--jn-paper);
+  font-size: 0.85rem;
+}
+
+.jnl-wrap,
+.jnl-masthead,
+.jnl-lead,
+.jnl-stories,
+.jnl-letter,
+.jnl-margins,
+.jnl-colophon {
+  width: min(1240px, 92vw);
+  margin-inline: auto;
+}
+
+/* ---- Masthead ---- */
+
+.jnl-masthead {
+  padding-top: 26px;
+  text-align: center;
+  border-bottom: 3px double var(--jn-ink);
+}
+
+.jnl-issue {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--jn-soft);
+}
+
+.jnl-brand {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--jn-serif);
+  font-weight: 700;
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.jnl-brand em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--jn-verm);
+}
+
+.jnl-links {
+  display: flex;
+  justify-content: center;
+  gap: 34px;
+  padding: 14px 0 12px;
+  margin-top: 14px;
+  border-top: 1px solid var(--jn-rule);
+}
+.jnl-links a {
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.jnl-links a:hover {
+  border-bottom-color: var(--jn-verm);
+  color: var(--jn-verm);
+}
+
+/* ---- Lead ---- */
+
+.jnl-lead {
+  padding-block: clamp(40px, 6vw, 84px);
+}
+
+.jnl-lead-grid {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+
+.jnl-headline {
+  font-family: var(--jn-serif);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 5.2vw, 4.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.jnl-headline em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--jn-verm);
+}
+
+.jnl-standfirst {
+  margin-top: 22px;
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--jn-soft);
+  max-width: 46ch;
+}
+
+.jnl-cta {
+  display: inline-block;
+  margin-top: 30px;
+  font-family: var(--jn-serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--jn-ink);
+  border-bottom: 2px solid var(--jn-verm);
+  padding-bottom: 3px;
+}
+.jnl-cta:hover {
+  color: var(--jn-verm);
+}
+
+.jnl-lead-art {
+  position: relative;
+}
+.jnl-lead-art canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--jn-rule);
+}
+.jnl-lead-art figcaption {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--jn-soft);
+}
+
+/* ---- Section titles ---- */
+
+.jnl-section-title {
+  font-family: var(--jn-serif);
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  letter-spacing: -0.01em;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--jn-ink);
+}
+
+/* ---- Stories: magazine spreads ---- */
+
+.jnl-stories {
+  padding-block: clamp(36px, 5vw, 70px) clamp(48px, 7vw, 100px);
+}
+
+.jnl-spread {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: clamp(18px, 2.4vw, 40px);
+  padding-block: clamp(34px, 5vw, 64px);
+  border-bottom: 1px solid var(--jn-rule);
+  align-items: start;
+}
+.jnl-spread:last-child {
+  border-bottom: none;
+}
+
+.jnl-spread-figure {
+  position: relative;
+}
+.jnl-spread-figure img {
+  width: 100%;
+  height: auto;
+  filter: grayscale(1) contrast(1.05);
+  mix-blend-mode: multiply;
+}
+.jnl-spread-figure figcaption {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--jn-soft);
+  max-width: 38ch;
+}
+
+.jnl-spread-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.jnl-kicker-num {
+  font-family: var(--jn-serif);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--jn-verm);
+}
+
+.jnl-spread-title {
+  margin-top: 8px;
+  font-family: var(--jn-serif);
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.2vw, 2.8rem);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+}
+
+.jnl-spread-meta {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--jn-soft);
+}
+
+.jnl-spread-summary {
+  margin-top: 18px;
+  max-width: 52ch;
+  border-top: 1px solid var(--jn-rule);
+  padding-top: 16px;
+}
+
+/* Alternating composition: even spreads flip image and copy. */
+.jnl-spread:nth-child(odd) .jnl-spread-figure {
+  grid-column: 1 / 8;
+}
+.jnl-spread:nth-child(odd) .jnl-spread-copy {
+  grid-column: 8 / 13;
+}
+.jnl-spread:nth-child(even) .jnl-spread-figure {
+  grid-column: 6 / 13;
+  grid-row: 1;
+}
+.jnl-spread:nth-child(even) .jnl-spread-copy {
+  grid-column: 1 / 6;
+  grid-row: 1;
+}
+
+/* ---- Letter (manifesto) ---- */
+
+.jnl-letter {
+  padding-block: clamp(48px, 7vw, 100px);
+  border-top: 3px double var(--jn-ink);
+  border-bottom: 3px double var(--jn-ink);
+}
+
+.jnl-letter-text {
+  font-family: var(--jn-serif);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 2.8vw, 2.4rem);
+  line-height: 1.4;
+  max-width: 30ch;
+  margin-inline: auto;
+}
+.jnl-letter-text::first-letter {
+  font-weight: 700;
+  font-size: 2.6em;
+  float: left;
+  line-height: 0.82;
+  padding-right: 0.12em;
+  color: var(--jn-verm);
+}
+.jnl-letter-text em {
+  font-style: italic;
+  color: var(--jn-verm);
+}
+
+.jnl-letter-sig {
+  margin-top: 26px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--jn-soft);
+}
+
+/* ---- Margins (playground) ---- */
+
+.jnl-margins {
+  padding-block: clamp(36px, 5vw, 70px) clamp(48px, 7vw, 100px);
+}
+
+.jnl-margin-grid {
+  margin-top: clamp(24px, 3vw, 44px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(18px, 2.4vw, 40px);
+}
+
+.jnl-margin-item img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.05);
+  mix-blend-mode: multiply;
+}
+.jnl-margin-item figcaption {
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+.jnl-margin-item figcaption span {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--jn-soft);
+  margin-top: 2px;
+}
+
+/* ---- Colophon ---- */
+
+.jnl-colophon {
+  padding-block: clamp(48px, 7vw, 100px) clamp(28px, 4vw, 56px);
+  text-align: center;
+}
+
+.jnl-colophon-title {
+  font-family: var(--jn-serif);
+  font-weight: 700;
+  font-size: clamp(2rem, 4.6vw, 3.8rem);
+  line-height: 1.06;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+
+.jnl-cta-big {
+  font-size: 1.3rem;
+}
+
+.jnl-colophon-row {
+  margin-top: 36px;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+.jnl-colophon-row a {
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--jn-rule);
+  padding-bottom: 2px;
+}
+.jnl-colophon-row a:hover {
+  color: var(--jn-verm);
+  border-bottom-color: var(--jn-verm);
+}
+
+.jnl-fineprint {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--jn-rule);
+  font-size: 0.78rem;
+  color: var(--jn-soft);
+}
+
+.jnl-pill {
+  background: var(--jn-ink);
+  color: var(--jn-paper);
+  font-family: var(--jn-sans);
+}
+
+/* ---- Mobile ---- */
+
+@media (max-width: 860px) {
+  .jnl-lead-grid {
+    grid-template-columns: 1fr;
+  }
+  .jnl-spread:nth-child(odd) .jnl-spread-figure,
+  .jnl-spread:nth-child(even) .jnl-spread-figure {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  .jnl-spread:nth-child(odd) .jnl-spread-copy,
+  .jnl-spread:nth-child(even) .jnl-spread-copy {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  .jnl-margin-grid {
+    grid-template-columns: 1fr;
+  }
+}

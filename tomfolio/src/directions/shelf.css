@@ -1,0 +1,276 @@
+/* ------------------------------------------------------------------
+   Direction shelf: each card is a miniature poster of its direction,
+   set in that direction's real face on its real substrate.
+------------------------------------------------------------------- */
+
+@import "./fonts.css";
+
+.dshelf-body {
+  min-height: 100dvh;
+  padding: clamp(20px, 4vw, 56px);
+}
+
+.dshelf-head {
+  max-width: 1500px;
+  margin-inline: auto;
+}
+
+.dshelf-title {
+  margin-top: 38px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+.dshelf-sub {
+  margin-top: 12px;
+  color: var(--mist);
+  max-width: 54ch;
+}
+
+.dshelf-grid {
+  max-width: 1500px;
+  margin: clamp(32px, 5vh, 56px) auto 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
+  gap: 14px;
+}
+
+.dcard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 300px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  transition: transform 0.25s var(--ease-out), border-color 0.3s ease;
+}
+.dcard:hover {
+  transform: translateY(-3px);
+  border-color: var(--lime);
+}
+.dcard:active {
+  transform: translateY(-1px);
+}
+
+.dcard-mark {
+  display: block;
+  font-size: clamp(1.7rem, 2.6vw, 2.3rem);
+  line-height: 1.05;
+}
+
+.dcard-meta {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dcard-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.dcard-note {
+  font-size: 0.92rem;
+  opacity: 0.72;
+  max-width: 40ch;
+}
+
+.dcard-chips {
+  display: flex;
+  gap: 6px;
+}
+.dcard-chips i {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.dcard-id {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+/* Per-direction specimens: substrate, ink, face. */
+
+.dcard-acid {
+  background: #0b0b0d;
+  color: #f2f2ee;
+}
+.dcard-acid .dcard-mark {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+.dcard-acid .dcard-mark i {
+  font-style: normal;
+  color: #c8f542;
+}
+
+.dcard-press {
+  background: #f4f4f0;
+  color: #0a0a0a;
+  border-color: #0a0a0a;
+}
+.dcard-press .dcard-mark {
+  font-family: "Archivo Black", "Archivo", sans-serif;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.dcard-press .dcard-mark i {
+  font-style: normal;
+  color: #e61919;
+}
+.dcard-press:hover {
+  border-color: #e61919;
+}
+
+.dcard-journal {
+  background: #f8f8f7;
+  color: #16161a;
+  border-color: #ddddd9;
+}
+.dcard-journal .dcard-mark {
+  font-family: "Zodiak", serif;
+  font-weight: 700;
+}
+.dcard-journal .dcard-mark em {
+  font-style: italic;
+  font-weight: 400;
+  color: #c73e1d;
+}
+.dcard-journal:hover {
+  border-color: #c73e1d;
+}
+
+.dcard-y2k {
+  background: #08080b;
+  color: #e8eaf0;
+}
+.dcard-y2k .dcard-mark {
+  font-family: "Panchang", sans-serif;
+  font-weight: 700;
+  color: #d6d9de;
+  text-shadow:
+    0 1px 0 #ffffff,
+    0 -1px 0 #5a5e68;
+}
+.dcard-y2k:hover {
+  border-color: #ff3dae;
+}
+
+.dcard-klein {
+  background: #0b27d6;
+  color: #f6f7fb;
+  border-color: #2a44dd;
+}
+.dcard-klein .dcard-mark {
+  font-family: "Switzer", sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.dcard-klein:hover {
+  border-color: #f6f7fb;
+}
+
+.dcard-bauhaus {
+  background: #f5f2ea;
+  color: #14130f;
+  border-color: #ded9cb;
+}
+.dcard-bauhaus .dcard-mark {
+  font-family: "Tanker", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.dcard-bauhaus:hover {
+  border-color: #d2362b;
+}
+
+.dcard-brut {
+  background: #131110;
+  color: #f1e9d7;
+  border-color: rgba(215, 180, 112, 0.35);
+}
+.dcard-brut .dcard-mark {
+  font-family: "Limelight", "Poiret One", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d7b470;
+}
+.dcard-brut .dcard-mark i {
+  font-style: normal;
+  font-family: "Permanent Marker", cursive;
+  color: #e8542e;
+}
+.dcard-brut:hover {
+  border-color: #d7b470;
+}
+
+/* The filtered-shader directions: tans, purples, off-colours. */
+
+.dcard-lavanda { background: #ece7f2; color: #2b2336; border-color: #cfc7de; }
+.dcard-lavanda .dcard-mark { font-family: "General Sans", sans-serif; font-weight: 600; }
+.dcard-lavanda:hover { border-color: #8d77b3; }
+
+.dcard-cognac { background: #2a1f19; color: #efe4d3; border-color: rgba(200, 168, 126, 0.4); }
+.dcard-cognac .dcard-mark { font-family: "Gambetta", serif; font-weight: 700; color: #c8a87e; }
+.dcard-cognac:hover { border-color: #c8a87e; }
+
+.dcard-orchid { background: #150f1e; color: #cfc4de; }
+.dcard-orchid .dcard-mark { font-family: "Khand", sans-serif; font-weight: 700; color: #b98bdb; letter-spacing: 0.04em; }
+.dcard-orchid:hover { border-color: #b98bdb; }
+
+.dcard-greige { background: #d9d4cb; color: #211e19; border-color: #bdb7ab; }
+.dcard-greige .dcard-mark { font-family: "General Sans", sans-serif; font-weight: 600; }
+.dcard-greige:hover { border-color: #a8633c; }
+
+.dcard-mauve { background: #f4eee2; color: #312a33; border-color: #ddd4c2; }
+.dcard-mauve .dcard-mark { font-family: "Chillax", sans-serif; font-weight: 600; color: #96629d; text-shadow: 2px 2px 0 rgba(201, 142, 88, 0.5); }
+.dcard-mauve:hover { border-color: #96629d; }
+
+.dcard-twilight { background: linear-gradient(to bottom, #241b2e, #4d3a52); color: #f2e8dc; }
+.dcard-twilight .dcard-mark { font-family: "Sentient", serif; font-weight: 700; }
+.dcard-twilight:hover { border-color: #c99b72; }
+
+.dcard-port { background: #efe2c8; color: #2b1b20; border-color: #d8c8a4; }
+.dcard-port .dcard-mark { font-family: "Melodrama", serif; font-weight: 700; color: #5c2335; }
+.dcard-port:hover { border-color: #5c2335; }
+
+.dcard-ube { background: #efe9f7; color: #332b44; border-color: #d8cdec; }
+.dcard-ube .dcard-mark { font-family: "Quicksand", sans-serif; font-weight: 700; color: #6c55a3; }
+.dcard-ube:hover { border-color: #9a7fd1; }
+
+.dcard-sepia { background: #262019; color: #f1e9da; border-color: rgba(169, 124, 80, 0.4); }
+.dcard-sepia .dcard-mark { font-family: "Gambetta", serif; font-weight: 700; font-style: italic; color: #a97c50; }
+.dcard-sepia:hover { border-color: #a97c50; }
+
+.dcard-fresco { background: #d9c7a8; color: #3a2f26; border-color: #c2ad88; }
+.dcard-fresco .dcard-mark { font-family: "Boska", serif; font-weight: 700; letter-spacing: 0.05em; text-shadow: 1px 1px 0 rgba(255, 248, 230, 0.6); }
+.dcard-fresco:hover { border-color: #6f5e8e; }
+
+.dshelf-foot {
+  max-width: 1500px;
+  margin: clamp(40px, 7vh, 72px) auto 0;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+.dshelf-foot p {
+  color: var(--mist);
+  font-size: 0.88rem;
+  max-width: 76ch;
+}
+.dshelf-foot a {
+  color: var(--paper);
+  border-bottom: 1px solid var(--lime);
+}
+
+@media (max-width: 767px) {
+  .dcard {
+    min-height: 240px;
+  }
+}

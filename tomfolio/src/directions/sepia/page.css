@@ -1,0 +1,188 @@
+/* ------------------------------------------------------------------
+   SEPIA: the photo album.
+
+   Album-brown board, taupe shadows, prints gone warm with age. The
+   drizzle shader is sepia-filtered into old film for the cover. The
+   gallery is a spread of white-bordered snapshots at lazy angles,
+   each captioned by hand. Gambetta serif does the formal lines;
+   Permanent Marker does the handwriting.
+------------------------------------------------------------------- */
+
+:root {
+  --sp-board: #262019;
+  --sp-deep: #1a1611;
+  --sp-taupe: #8c7f6e;
+  --sp-print: #f1e9da;
+  --sp-accent: #a97c50;
+}
+
+.sepia {
+  background: var(--sp-board);
+  color: var(--sp-print);
+  font-family: "Satoshi", sans-serif;
+  line-height: 1.65;
+}
+
+.sepia ::selection {
+  background: var(--sp-accent);
+  color: var(--sp-deep);
+}
+.sepia :focus-visible {
+  outline: 2px solid var(--sp-accent);
+  outline-offset: 3px;
+}
+.sepia .skip-link {
+  background: var(--sp-accent);
+  color: var(--sp-deep);
+}
+
+.sepia .dx-brand,
+.sepia h1,
+.sepia h2 {
+  font-family: "Gambetta", serif;
+}
+
+.sepia .dx-brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--sp-print);
+}
+.sepia .dx-nav nav a {
+  font-size: 0.9rem;
+  color: var(--sp-taupe);
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.sepia .dx-nav nav a:hover {
+  color: var(--sp-print);
+  border-bottom-color: var(--sp-accent);
+}
+
+/* Hero: the cover, rain on an old window. */
+.sepia .dx-hero-media canvas {
+  filter: sepia(0.95) contrast(1.06) brightness(0.9);
+}
+.sepia .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(38, 32, 25, 0.94), rgba(38, 32, 25, 0.2) 55%);
+}
+.sepia .dx-hero-copy h1 {
+  font-weight: 700;
+  font-size: clamp(2.4rem, 5.4vw, 4.6rem);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+}
+.sepia .dx-hero-copy h1 em,
+.sepia .dx-note-text em {
+  font-style: italic;
+  color: var(--sp-accent);
+}
+.sepia .dx-hero-copy > p {
+  color: var(--sp-taupe);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+}
+.sepia .dx-cta {
+  font-family: "Gambetta", serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--sp-accent);
+  border-bottom: 1px solid var(--sp-accent);
+  padding-bottom: 3px;
+}
+.sepia .dx-cta:hover {
+  color: var(--sp-print);
+  border-bottom-color: var(--sp-print);
+}
+
+/* Work: the spread of snapshots. */
+.sepia h2 {
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.8vw, 3rem);
+}
+
+.sepia .dx-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(36px, 5vw, 72px) clamp(24px, 4vw, 64px);
+}
+.sepia .sp-snap {
+  justify-self: center;
+  background: var(--sp-print);
+  padding: 14px 14px 18px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  max-width: 520px;
+  width: 100%;
+}
+.sepia .sp-snap:nth-child(1) {
+  transform: rotate(-2.2deg);
+}
+.sepia .sp-snap:nth-child(2) {
+  transform: rotate(1.6deg) translateY(26px);
+}
+.sepia .sp-snap:nth-child(3) {
+  transform: rotate(1.1deg);
+}
+.sepia .sp-snap:nth-child(4) {
+  transform: rotate(-1.4deg) translateY(20px);
+}
+.sepia .sp-snap img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  filter: sepia(0.85) contrast(0.96) brightness(0.94);
+}
+.sepia .sp-caption {
+  margin-top: 12px;
+  font-family: "Permanent Marker", cursive;
+  font-size: 1.05rem;
+  color: #4a3c2e;
+  transform: rotate(-0.8deg);
+}
+.sepia .sp-caption span {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+/* Note: written on the back board. */
+.sepia .dx-note {
+  background: var(--sp-deep);
+}
+.sepia .dx-note-text {
+  font-family: "Gambetta", serif;
+  font-size: clamp(1.45rem, 2.8vw, 2.4rem);
+  line-height: 1.48;
+  max-width: 28ch;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* End. */
+.sepia .dx-end h2 {
+  font-size: clamp(2.1rem, 4.6vw, 3.8rem);
+}
+.sepia .dx-links a {
+  font-size: 0.9rem;
+  color: var(--sp-taupe);
+  border-bottom: 1px solid rgba(169, 124, 80, 0.4);
+  padding-bottom: 2px;
+}
+.sepia .dx-links a:hover {
+  color: var(--sp-accent);
+}
+.sepia .dir-pill {
+  background: var(--sp-print);
+  color: var(--sp-deep);
+}
+
+@media (max-width: 767px) {
+  .sepia .dx-gallery {
+    grid-template-columns: 1fr;
+  }
+  .sepia .sp-snap:nth-child(even) {
+    transform: rotate(1.6deg);
+  }
+}

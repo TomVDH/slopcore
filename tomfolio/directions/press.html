@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Presswerk, a Tomtoolery design direction</title>
+    <meta
+      name="description"
+      content="Industrial Swiss print direction for the Tomtoolery portfolio. Paper, carbon, aviation red."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#F4F4F0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="press">
+    <a class="skip-link" href="#index">Skip to the index</a>
+
+    <header class="press-nav">
+      <a class="press-brand" href="#top">TOMTOOLERY<i>&reg;</i></a>
+      <nav class="press-links" aria-label="Main">
+        <a href="#index">Index</a>
+        <a href="#spec">Spec</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <span class="press-unit" aria-hidden="true">PORTFOLIO // REV 2.6</span>
+    </header>
+
+    <main id="top">
+      <section class="press-hero" aria-label="Introduction">
+        <h1 class="press-mark">TOMTOOL<wbr />ERY<i>&reg;</i></h1>
+        <div class="press-hero-grid">
+          <div class="press-hero-copy">
+            <p class="press-headline">Half marketer, half artist, all nerd.</p>
+            <p class="press-intro">
+              I plan campaigns by day and melt pixels after hours. This is the toolbox.
+            </p>
+            <a class="press-btn" href="#index">See the work</a>
+          </div>
+          <figure class="press-hero-panel">
+            <canvas id="gl" aria-hidden="true"></canvas>
+            <figcaption class="press-panel-label">FIG. A <span>DITHER FIELD, LIVE</span></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <div class="press-ticker" aria-hidden="true">
+        <div class="marquee-track">
+          <span class="marquee-unit"
+            >STRATEGY <i>///</i> SHADERS <i>///</i> CAMPAIGNS <i>///</i> PLOTTERS <i>///</i> TYPE
+            <i>///</i>
+          </span>
+          <span class="marquee-unit"
+            >STRATEGY <i>///</i> SHADERS <i>///</i> CAMPAIGNS <i>///</i> PLOTTERS <i>///</i> TYPE
+            <i>///</i>
+          </span>
+        </div>
+      </div>
+
+      <section class="press-index" id="index" aria-labelledby="index-title">
+        <h2 class="press-section-title" id="index-title">Index of work</h2>
+        <ol class="press-rows"></ol>
+      </section>
+
+      <section class="press-spec" id="spec" aria-labelledby="spec-title">
+        <h2 class="press-section-title" id="spec-title">Specification</h2>
+        <div class="press-spec-grid"></div>
+      </section>
+
+      <section class="press-notice" aria-label="Manifesto">
+        <p class="press-notice-text"></p>
+      </section>
+
+      <footer class="press-contact" id="contact" aria-labelledby="contact-title">
+        <h2 class="press-contact-title" id="contact-title">Got something weird to build?</h2>
+        <a class="press-btn press-btn-big" href="mailto:hello@tomtoolery.studio">Say hello</a>
+        <div class="press-contact-row"></div>
+        <p class="press-fineprint"></p>
+      </footer>
+    </main>
+
+    <a class="dir-pill press-pill" href="/directions/">DIRECTIONS</a>
+
+    <script type="module" src="/src/directions/press/page.ts"></script>
+  </body>
+</html>

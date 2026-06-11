@@ -1,0 +1,32 @@
+{
+  "name": "tomfolio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Tomtoolery portfolio. Three.js shader canvas, GSAP scrolltelling, editorial type.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "fonts": "python3 scripts/fetch-fonts.py"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.2.8",
+    "@fontsource/archivo-black": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/jost": "^5.2.8",
+    "@fontsource/limelight": "^5.2.7",
+    "@fontsource/permanent-marker": "^5.2.7",
+    "@fontsource/poiret-one": "^5.2.8",
+    "@fontsource/quicksand": "^5.2.10",
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.23",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "playwright": "^1.60.0",
+    "typescript": "~5.9.0",
+    "vite": "^7.0.0"
+  }
+}

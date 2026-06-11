@@ -1,0 +1,248 @@
+/* ------------------------------------------------------------------
+   PORT: the wine bar menu.
+
+   Parchment, port-wine ink, a thread of old gold. The geode shader
+   is filtered toward amber and hangs as a marbled endpaper beside
+   the hero. Melodrama serif plays the maitre d'; the gallery is a
+   menu: text-led rows, small framed plates, generous hairlines.
+------------------------------------------------------------------- */
+
+:root {
+  --pt-parch: #efe2c8;
+  --pt-wine: #5c2335;
+  --pt-ink: #2b1b20;
+  --pt-gold: #b98a4f;
+  --pt-line: rgba(92, 35, 53, 0.25);
+}
+
+.port {
+  background: var(--pt-parch);
+  color: var(--pt-ink);
+  font-family: "Satoshi", sans-serif;
+  line-height: 1.65;
+}
+
+.port ::selection {
+  background: var(--pt-wine);
+  color: var(--pt-parch);
+}
+.port :focus-visible {
+  outline: 2px solid var(--pt-wine);
+  outline-offset: 3px;
+}
+.port .skip-link {
+  background: var(--pt-wine);
+  color: var(--pt-parch);
+}
+
+.port .dx-brand,
+.port h1,
+.port h2,
+.port .pt-name {
+  font-family: "Melodrama", serif;
+}
+
+.port .dx-nav {
+  background: linear-gradient(to bottom, rgba(239, 226, 200, 0.95), rgba(239, 226, 200, 0));
+}
+.port .dx-brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--pt-wine);
+}
+.port .dx-nav nav a {
+  font-size: 0.9rem;
+  color: var(--pt-ink);
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.port .dx-nav nav a:hover {
+  color: var(--pt-wine);
+  border-bottom-color: var(--pt-gold);
+}
+
+/* Hero: the endpaper. */
+.port .dx-hero {
+  align-items: center;
+}
+.port .dx-hero-media {
+  inset: auto auto auto clamp(16px, 5vw, 80px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(40vw, 540px);
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--pt-gold);
+  padding: 10px;
+  background: var(--pt-parch);
+}
+.port .dx-hero-media canvas {
+  filter: sepia(0.65) hue-rotate(-18deg) saturate(1.5) brightness(1.05);
+}
+.port .dx-hero-copy {
+  margin-inline: 0;
+  width: 100%;
+  padding-inline: clamp(16px, 5vw, 80px);
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.port .dx-hero-copy h1 {
+  font-weight: 700;
+  font-size: clamp(2.3rem, 5vw, 4.2rem);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+  color: var(--pt-wine);
+}
+.port .dx-hero-copy > p {
+  color: var(--pt-ink);
+  opacity: 0.78;
+  font-size: clamp(1rem, 1.25vw, 1.15rem);
+}
+.port .dx-cta {
+  font-family: "Melodrama", serif;
+  font-size: 1.15rem;
+  color: var(--pt-wine);
+  border-bottom: 2px solid var(--pt-gold);
+  padding-bottom: 3px;
+}
+.port .dx-cta:hover {
+  color: var(--pt-gold);
+}
+
+/* Work: the carte. */
+.port h2 {
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.8vw, 3rem);
+  color: var(--pt-wine);
+  text-align: center;
+}
+.port h2::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 2px;
+  background: var(--pt-gold);
+  margin: 16px auto 0;
+}
+
+.port .dx-gallery {
+  max-width: 900px;
+  margin-inline: auto;
+}
+.port .pt-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 28px;
+  align-items: start;
+  padding-block: clamp(24px, 4vh, 36px);
+  border-bottom: 1px solid var(--pt-line);
+}
+.port .pt-row:last-child {
+  border-bottom: none;
+}
+.port .pt-name {
+  font-weight: 700;
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  color: var(--pt-ink);
+}
+.port .pt-name i {
+  font-style: normal;
+  color: var(--pt-gold);
+  padding-inline: 10px;
+}
+.port .pt-year {
+  font-family: "Melodrama", serif;
+  font-size: 1.2rem;
+  color: var(--pt-wine);
+  align-self: center;
+}
+.port .pt-sum {
+  grid-column: 1;
+  color: var(--pt-ink);
+  opacity: 0.75;
+  font-size: 0.95rem;
+  max-width: 56ch;
+}
+.port .pt-thumb {
+  grid-column: 2;
+  grid-row: 2;
+  width: 92px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--pt-gold);
+  filter: sepia(0.5) saturate(1.1) brightness(0.95);
+}
+
+/* Note: the epigraph. */
+.port .dx-note {
+  border-block: 1px solid var(--pt-line);
+}
+.port .dx-note-text {
+  text-align: center;
+  font-family: "Melodrama", serif;
+  font-size: clamp(1.4rem, 2.7vw, 2.3rem);
+  line-height: 1.45;
+  max-width: 28ch;
+  margin-inline: auto;
+  color: var(--pt-ink);
+}
+.port .dx-note-text em {
+  font-style: normal;
+  color: var(--pt-wine);
+}
+
+/* End. */
+.port .dx-end {
+  text-align: center;
+}
+.port .dx-end h2::after {
+  display: none;
+}
+.port .dx-end h2 {
+  margin-inline: auto;
+  font-size: clamp(2rem, 4.4vw, 3.6rem);
+}
+.port .dx-end .dx-cta {
+  background: var(--pt-wine);
+  color: var(--pt-parch);
+  border-bottom: none;
+  padding: 15px 36px;
+}
+.port .dx-end .dx-cta:hover {
+  background: var(--pt-gold);
+  color: var(--pt-ink);
+}
+.port .dx-links {
+  justify-content: center;
+}
+.port .dx-links a {
+  font-size: 0.9rem;
+  color: var(--pt-ink);
+  opacity: 0.8;
+  border-bottom: 1px solid var(--pt-line);
+  padding-bottom: 2px;
+}
+.port .dx-links a:hover {
+  color: var(--pt-wine);
+  opacity: 1;
+}
+.port .dir-pill {
+  background: var(--pt-wine);
+  color: var(--pt-parch);
+}
+
+@media (max-width: 960px) {
+  .port .dx-hero-media {
+    position: absolute;
+    inset: 9vh 16px auto auto;
+    transform: none;
+    width: min(60vw, 380px);
+  }
+  .port .dx-hero-copy {
+    align-items: flex-start;
+    text-align: left;
+    padding-bottom: 8vh;
+  }
+}

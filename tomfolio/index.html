@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tomtoolery, the portfolio of Tom V.</title>
+    <meta
+      name="description"
+      content="Marketing strategy by day, shaders and drawing machines after hours. The portfolio and playground of Tom V."
+    />
+    <meta name="theme-color" content="#0B0B0D" />
+    <meta property="og:title" content="Tomtoolery" />
+    <meta
+      property="og:description"
+      content="Half marketer, half artist, all nerd. Campaigns, shaders, and strange little tools."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="preload"
+      href="/fonts/clash-display-600.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/satoshi-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <div class="loader" aria-hidden="true">
+      <span class="loader-mark">tomtoolery</span>
+    </div>
+
+    <canvas id="gl" aria-hidden="true"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="nav">
+      <a class="nav-brand" href="#top" aria-label="Tomtoolery, back to top">tomtoolery</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#work">Work</a>
+        <a href="#playground">Playground</a>
+        <a href="#hello">Say hello</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-label="Introduction">
+        <div class="wrap hero-inner">
+          <h1 class="hero-title">
+            <span class="line"><span class="line-inner">Half marketer, half artist,</span></span>
+            <span class="line"><span class="line-inner">all <span class="accent">nerd</span>.</span></span>
+          </h1>
+          <p class="hero-sub">
+            I plan campaigns by day and melt pixels after hours. This is the toolbox.
+          </p>
+          <a class="btn" href="#work">See the work</a>
+        </div>
+      </section>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <span class="marquee-unit"
+            >Strategy <i>&#10033;</i> Shaders <i>&#10033;</i> Campaigns <i>&#10033;</i> Plotters
+            <i>&#10033;</i> Type <i>&#10033;</i>
+          </span>
+          <span class="marquee-unit"
+            >Strategy <i>&#10033;</i> Shaders <i>&#10033;</i> Campaigns <i>&#10033;</i> Plotters
+            <i>&#10033;</i> Type <i>&#10033;</i>
+          </span>
+        </div>
+      </div>
+
+      <div id="midband">
+        <section class="manifesto" aria-label="Manifesto">
+          <div class="wrap">
+            <p class="manifesto-text" id="manifesto-text">
+              Good marketing is craft with a deadline. I obsess over the message, then the
+              pixels, then the <span class="accent">weird little details</span> nobody asked
+              for. That last part is where the fun lives.
+            </p>
+          </div>
+        </section>
+
+        <section class="work" id="work" aria-labelledby="work-title">
+          <div class="wrap">
+            <h2 class="section-title reveal" id="work-title">Selected work</h2>
+            <p class="section-sub reveal">Four projects that survived contact with reality.</p>
+
+            <ul class="work-list">
+              <li
+                class="work-row"
+                tabindex="0"
+                data-image="https://picsum.photos/seed/tomfolio-salt-circuit/900/1125?grayscale"
+              >
+                <span class="work-title">Salt &amp; Circuit</span>
+                <span class="work-meta">Brand &amp; launch &middot; 2025</span>
+                <img
+                  class="work-thumb"
+                  src="https://picsum.photos/seed/tomfolio-salt-circuit/900/675?grayscale"
+                  alt="Launch visuals for the Salt and Circuit rebrand"
+                  loading="lazy"
+                  width="900"
+                  height="675"
+                />
+              </li>
+              <li
+                class="work-row"
+                tabindex="0"
+                data-image="https://picsum.photos/seed/tomfolio-feedback-loop/900/1125?grayscale"
+              >
+                <span class="work-title">Feedback Loop</span>
+                <span class="work-meta">Audio-reactive visuals &middot; 2024</span>
+                <img
+                  class="work-thumb"
+                  src="https://picsum.photos/seed/tomfolio-feedback-loop/900/675?grayscale"
+                  alt="Audio-reactive projection visuals for the Feedback Loop club night"
+                  loading="lazy"
+                  width="900"
+                  height="675"
+                />
+              </li>
+              <li
+                class="work-row"
+                tabindex="0"
+                data-image="https://picsum.photos/seed/tomfolio-long-funnel/900/1125?grayscale"
+              >
+                <span class="work-title">The Long Funnel</span>
+                <span class="work-meta">B2B content engine &middot; 2024</span>
+                <img
+                  class="work-thumb"
+                  src="https://picsum.photos/seed/tomfolio-long-funnel/900/675?grayscale"
+                  alt="Editorial spread from The Long Funnel content program"
+                  loading="lazy"
+                  width="900"
+                  height="675"
+                />
+              </li>
+              <li
+                class="work-row"
+                tabindex="0"
+                data-image="https://picsum.photos/seed/tomfolio-plotterbot/900/1125?grayscale"
+              >
+                <span class="work-title">Plotterbot</span>
+                <span class="work-meta">Drawing machine &middot; 2023</span>
+                <img
+                  class="work-thumb"
+                  src="https://picsum.photos/seed/tomfolio-plotterbot/900/675?grayscale"
+                  alt="Plotterbot, a pen plotter drawing generative line art"
+                  loading="lazy"
+                  width="900"
+                  height="675"
+                />
+              </li>
+            </ul>
+          </div>
+          <figure class="work-preview" aria-hidden="true">
+            <img alt="" />
+          </figure>
+        </section>
+
+        <section class="playground" id="playground" aria-labelledby="playground-title">
+          <div class="wrap">
+            <h2 class="section-title reveal" id="playground-title">The playground</h2>
+            <p class="section-sub reveal">Self-initiated experiments, shipped whenever the itch strikes.</p>
+
+            <div class="bento">
+              <figure class="cell cell-a">
+                <img
+                  src="https://picsum.photos/seed/tomfolio-plotter-postcards/800/1040?grayscale"
+                  alt="Stack of generative pen plotter postcards"
+                  loading="lazy"
+                  width="800"
+                  height="1040"
+                />
+                <figcaption>
+                  Plotter postcards
+                  <span class="cell-detail">ink on paper, 2025</span>
+                </figcaption>
+              </figure>
+
+              <figure class="cell cell-b">
+                <img
+                  src="https://picsum.photos/seed/tomfolio-cloud-study/1200/800?grayscale"
+                  alt="Frame from a mushroom cloud particle simulation"
+                  loading="lazy"
+                  width="1200"
+                  height="800"
+                />
+                <figcaption>
+                  Mushroom-cloud particle study
+                  <span class="cell-detail">canvas vfx, 2026</span>
+                </figcaption>
+              </figure>
+
+              <div class="cell cell-c">
+                <p>If it beeps, plots, or glows, I want to build one.</p>
+              </div>
+
+              <div class="cell cell-d">
+                <h3>Currently into</h3>
+                <ul>
+                  <li>WebGPU compute</li>
+                  <li>Riso printing</li>
+                  <li>FM synthesis</li>
+                </ul>
+              </div>
+
+              <figure class="cell cell-e">
+                <img
+                  src="https://picsum.photos/seed/tomfolio-shader-sketchbook/1600/680?grayscale"
+                  alt="Abstract still from a GLSL shader sketch"
+                  loading="lazy"
+                  width="1600"
+                  height="680"
+                />
+                <figcaption>
+                  Shader sketchbook
+                  <span class="cell-detail">GLSL doodles, ongoing</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer" id="hello" aria-labelledby="footer-title">
+        <div class="wrap footer-inner">
+          <h2 class="footer-title reveal" id="footer-title">Got something weird to build?</h2>
+          <a class="btn btn-big" href="mailto:hello@tomtoolery.studio">Say hello</a>
+          <ul class="socials">
+            <li><a href="https://github.com/TomVDH" rel="noopener" target="_blank">GitHub &#8599;</a></li>
+            <li><a href="mailto:hello@tomtoolery.studio">hello@tomtoolery.studio</a></li>
+          </ul>
+          <p class="fineprint">
+            &copy; 2026 Tomtoolery. Built by hand with three.js and GSAP. No cookies, no trackers.
+          </p>
+        </div>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

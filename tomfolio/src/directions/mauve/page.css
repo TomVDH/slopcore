@@ -1,0 +1,210 @@
+/* ------------------------------------------------------------------
+   MAUVE: the two-ink zine.
+
+   Cream stock through the duplicator twice: once in mauve, once in
+   tan. The risograph shader is re-inked by filter into the same two
+   plates. Chillax keeps it friendly; everything sits a couple of
+   degrees off straight, like it was stapled in a hurry with love.
+------------------------------------------------------------------- */
+
+:root {
+  --mv-paper: #f4eee2;
+  --mv-mauve: #96629d;
+  --mv-tan: #c98e58;
+  --mv-ink: #312a33;
+  --mv-soft: #6f6371;
+}
+
+.mauve {
+  background: var(--mv-paper);
+  color: var(--mv-ink);
+  font-family: "Satoshi", sans-serif;
+  line-height: 1.65;
+}
+
+.mauve ::selection {
+  background: var(--mv-mauve);
+  color: var(--mv-paper);
+}
+.mauve :focus-visible {
+  outline: 2px solid var(--mv-mauve);
+  outline-offset: 3px;
+}
+.mauve .skip-link {
+  background: var(--mv-mauve);
+  color: var(--mv-paper);
+}
+
+.mauve .dx-brand,
+.mauve h1,
+.mauve h2,
+.mauve .mv-title {
+  font-family: "Chillax", sans-serif;
+}
+
+.mauve .dx-nav {
+  background: linear-gradient(to bottom, rgba(244, 238, 226, 0.94), rgba(244, 238, 226, 0));
+}
+.mauve .dx-brand {
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--mv-mauve);
+}
+.mauve .dx-nav nav a {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--mv-ink);
+  border-bottom: 2px solid transparent;
+  padding-bottom: 2px;
+}
+.mauve .dx-nav nav a:hover {
+  border-bottom-color: var(--mv-tan);
+}
+
+/* Hero: the riso plate re-inked. */
+.mauve .dx-hero-media canvas {
+  filter: hue-rotate(228deg) saturate(0.75) brightness(1.5) contrast(0.92);
+  opacity: 0.9;
+}
+.mauve .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(244, 238, 226, 0.15), rgba(244, 238, 226, 0.9));
+}
+.mauve .dx-hero-copy h1 {
+  font-weight: 600;
+  font-size: clamp(2.4rem, 5.6vw, 4.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: var(--mv-mauve);
+  text-shadow: 3px 3px 0 rgba(201, 142, 88, 0.55);
+}
+.mauve .dx-hero-copy > p {
+  color: var(--mv-soft);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+}
+.mauve .dx-cta {
+  background: var(--mv-mauve);
+  color: var(--mv-paper);
+  font-family: "Chillax", sans-serif;
+  font-weight: 600;
+  padding: 14px 32px;
+  border-radius: 999px;
+  box-shadow: 4px 4px 0 var(--mv-tan);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mauve .dx-cta:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--mv-tan);
+}
+.mauve .dx-cta:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--mv-tan);
+}
+
+/* Work: the spread. */
+.mauve h2 {
+  font-weight: 600;
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  letter-spacing: -0.015em;
+}
+
+.mauve .dx-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 56px);
+}
+.mauve .mv-cut {
+  position: relative;
+}
+.mauve .mv-cut:nth-child(odd) {
+  transform: rotate(-1.1deg);
+}
+.mauve .mv-cut:nth-child(even) {
+  transform: rotate(1.2deg) translateY(18px);
+}
+.mauve .mv-cut figure {
+  position: relative;
+  border: 3px solid var(--mv-ink);
+  box-shadow: 7px 7px 0 var(--mv-tan);
+}
+.mauve .mv-cut:nth-child(even) figure {
+  box-shadow: 7px 7px 0 var(--mv-mauve);
+}
+.mauve .mv-cut figure {
+  background: var(--mv-mauve);
+}
+.mauve .mv-cut:nth-child(even) figure {
+  background: var(--mv-tan);
+}
+.mauve .mv-cut img {
+  width: 100%;
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(1) contrast(1.2) brightness(1.1);
+  mix-blend-mode: multiply;
+}
+.mauve .mv-title {
+  margin-top: 16px;
+  font-weight: 600;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+}
+.mauve .mv-meta {
+  font-size: 0.84rem;
+  color: var(--mv-soft);
+}
+.mauve .mv-sum {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  max-width: 44ch;
+}
+
+/* Note: the slogan, misregistered. */
+.mauve .dx-note-text {
+  text-align: center;
+  font-family: "Chillax", sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.6rem, 3.2vw, 2.8rem);
+  line-height: 1.25;
+  max-width: 26ch;
+  margin-inline: auto;
+  color: var(--mv-mauve);
+  text-shadow: 3px 3px 0 rgba(201, 142, 88, 0.5);
+}
+.mauve .dx-note-text em {
+  font-style: normal;
+  color: var(--mv-tan);
+  text-shadow: 3px 3px 0 rgba(150, 98, 157, 0.5);
+}
+
+/* End. */
+.mauve .dx-end h2 {
+  font-size: clamp(2.1rem, 4.6vw, 3.8rem);
+  color: var(--mv-mauve);
+}
+.mauve .dx-links a {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--mv-ink);
+  border-bottom: 2px solid var(--mv-tan);
+  padding-bottom: 2px;
+}
+.mauve .dx-links a:hover {
+  color: var(--mv-mauve);
+}
+.mauve .dir-pill {
+  background: var(--mv-mauve);
+  color: var(--mv-paper);
+  border-radius: 999px;
+}
+
+@media (max-width: 767px) {
+  .mauve .dx-gallery {
+    grid-template-columns: 1fr;
+  }
+  .mauve .mv-cut:nth-child(even) {
+    transform: rotate(1.2deg);
+  }
+}

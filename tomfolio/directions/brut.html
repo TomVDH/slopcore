@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tomtoolery, the Brut direction</title>
+    <meta
+      name="description"
+      content="The Brut direction for the Tomtoolery portfolio: art deco geometry signed with an art brut hand. Lacquer, champagne, cinnabar."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#131110" />
+    <meta property="og:title" content="Tomtoolery, Brut" />
+    <meta
+      property="og:description"
+      content="Half marketer, half artist, all nerd. Art deco geometry, art brut hand."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="brut">
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <canvas id="rays" aria-hidden="true"></canvas>
+    <div id="nav-sentinel" aria-hidden="true"></div>
+
+    <header class="nav">
+      <a class="nav-brand" href="#top" aria-label="Tomtoolery, back to top"
+        >Tomtoolery<i aria-hidden="true">.</i></a
+      >
+      <nav class="nav-links" aria-label="Main">
+        <a href="#work">Work</a>
+        <a href="#playground">Playground</a>
+        <a href="#hello">Say hello</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-label="Introduction">
+        <div class="hero-frame" aria-hidden="true">
+          <i class="hf-corner hf-tl"></i><i class="hf-corner hf-tr"></i><i class="hf-corner hf-bl"></i
+          ><i class="hf-corner hf-br"></i>
+        </div>
+
+        <div class="hero-inner">
+          <h1 class="hero-title">
+            <span class="hero-deco hero-line1 reveal">Half marketer,</span>
+            <span class="hero-deco hero-line2 reveal" style="--d: 0.12s">Half artist,</span>
+            <span class="hero-brut reveal" style="--d: 0.26s"
+              >all nerd.
+              <svg class="scrawl scrawl-under" viewBox="0 0 300 26" aria-hidden="true">
+                <path pathLength="1" d="M5 15 C 48 7 96 19 150 12 C 204 5 252 17 295 9" />
+                <path pathLength="1" d="M18 21 C 80 15 160 23 248 15" />
+              </svg>
+            </span>
+          </h1>
+          <p class="hero-sub reveal" style="--d: 0.4s">
+            I plan campaigns by day and melt pixels after hours. This is the toolbox.
+          </p>
+          <div class="hero-ctas reveal" style="--d: 0.52s">
+            <a class="btn" href="#work"><span>See the work</span></a>
+            <a class="btn btn-ghost" href="#hello"><span>Say hello</span></a>
+          </div>
+        </div>
+
+        <svg class="scrawl sun-face" viewBox="0 0 200 100" aria-hidden="true">
+          <path class="eye eye-open" pathLength="1" d="M66 34 C 64 30 68 27 70 31 C 72 35 67 38 66 34" />
+          <path class="eye eye-wink" pathLength="1" d="M58 33 C 64 31 72 31 78 33" />
+          <path pathLength="1" d="M126 33 C 124 29 128 26 130 30 C 132 34 127 37 126 33" />
+          <path pathLength="1" d="M58 56 C 74 74 122 76 140 54" />
+          <path pathLength="1" d="M140 54 L146 64" />
+        </svg>
+      </section>
+
+      <div id="midband">
+        <div class="marquee" aria-hidden="true">
+          <div class="marquee-track">
+            <span class="marquee-unit"
+              >Strategy <i>&#10038;</i> Shaders <i>&#10038;</i> Campaigns <i>&#10038;</i> Plotters
+              <i>&#10038;</i> Type <i>&#10038;</i>
+            </span>
+            <span class="marquee-unit"
+              >Strategy <i>&#10038;</i> Shaders <i>&#10038;</i> Campaigns <i>&#10038;</i> Plotters
+              <i>&#10038;</i> Type <i>&#10038;</i>
+            </span>
+          </div>
+        </div>
+
+        <section class="creed" id="creed" aria-label="Manifesto">
+          <div class="creed-band">
+            <div class="creed-frame reveal">
+              <span class="corner c-tl" aria-hidden="true"></span>
+              <span class="corner c-tr" aria-hidden="true"></span>
+              <span class="corner c-bl" aria-hidden="true"></span>
+              <span class="corner c-br" aria-hidden="true"></span>
+              <p class="creed-text">
+                Good marketing is craft with a deadline. I obsess over the message, then the
+                pixels, then the
+                <span class="creed-mark"
+                  >weird little details<svg
+                    class="scrawl scrawl-loop"
+                    viewBox="0 0 330 96"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      pathLength="1"
+                      d="M28 55 C 22 26 96 10 172 12 C 252 14 318 30 316 52 C 314 78 240 90 156 88 C 76 86 30 76 30 56 C 30 34 88 22 150 20"
+                    /></svg></span
+                >
+                nobody asked for. That last part is where the fun lives.
+              </p>
+              <svg class="scrawl creed-bang" viewBox="0 0 60 80" aria-hidden="true">
+                <path pathLength="1" d="M28 8 C 30 24 32 38 33 52" />
+                <path pathLength="1" d="M32 64 C 30 62 34 60 35 63 C 36 66 32 68 32 64" />
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="work" id="work" aria-labelledby="work-title">
+          <header class="sec-head reveal">
+            <svg class="fan" viewBox="0 0 120 38" aria-hidden="true">
+              <g fill="none" stroke="currentColor" stroke-width="1.4">
+                <path d="M60 36 L18 22" />
+                <path d="M60 36 L30 10" />
+                <path d="M60 36 L49 4" />
+                <path d="M60 36 L60 2" />
+                <path d="M60 36 L71 4" />
+                <path d="M60 36 L90 10" />
+                <path d="M60 36 L102 22" />
+              </g>
+              <rect x="56" y="32" width="8" height="8" transform="rotate(45 60 36)" fill="currentColor" />
+            </svg>
+            <h2 class="sec-title" id="work-title">Selected work</h2>
+            <p class="sec-sub">Four projects that survived contact with reality.</p>
+          </header>
+
+          <div class="work-grid">
+            <nav class="dir-rail" aria-label="Project directory">
+              <ol>
+                <li>
+                  <a class="dir-row" href="#p-salt-circuit">
+                    <i class="dir-gem" aria-hidden="true"></i>
+                    <span class="dir-name">Salt &amp; Circuit</span>
+                    <span class="dir-cat">Brand &amp; launch</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dir-row" href="#p-feedback-loop">
+                    <i class="dir-gem" aria-hidden="true"></i>
+                    <span class="dir-name">Feedback Loop</span>
+                    <span class="dir-cat">Audio-reactive visuals</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dir-row" href="#p-long-funnel">
+                    <i class="dir-gem" aria-hidden="true"></i>
+                    <span class="dir-name">The Long Funnel</span>
+                    <span class="dir-cat">B2B content engine</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dir-row" href="#p-plotterbot">
+                    <i class="dir-gem" aria-hidden="true"></i>
+                    <span class="dir-name">Plotterbot</span>
+                    <span class="dir-cat">Drawing machine</span>
+                  </a>
+                </li>
+              </ol>
+            </nav>
+
+            <div class="plates">
+              <article class="plate reveal" id="p-salt-circuit" aria-labelledby="t-salt-circuit">
+                <div class="plate-in">
+                  <span class="plate-rule" aria-hidden="true"></span>
+                  <figure class="duo">
+                    <img
+                      src="https://picsum.photos/seed/tomfolio-salt-circuit/1200/800?grayscale"
+                      alt="Launch visuals for the Salt and Circuit rebrand"
+                      width="1200"
+                      height="800"
+                      loading="lazy"
+                    />
+                  </figure>
+                  <h3 class="plate-title" id="t-salt-circuit">Salt &amp; Circuit</h3>
+                  <p class="plate-meta">Brand &amp; launch <i aria-hidden="true">&#10038;</i> 2025</p>
+                  <p class="plate-sum">
+                    Rebrand and launch campaign for a hardware startup that needed to feel
+                    hand-soldered, not venture-polished.
+                  </p>
+                  <svg class="scrawl scrawl-hatch" viewBox="0 0 60 60" aria-hidden="true">
+                    <path pathLength="1" d="M8 34 L30 8" />
+                    <path pathLength="1" d="M16 46 L42 16" />
+                    <path pathLength="1" d="M26 54 L52 26" />
+                  </svg>
+                </div>
+              </article>
+
+              <article class="plate reveal" id="p-feedback-loop" aria-labelledby="t-feedback-loop">
+                <div class="plate-in">
+                  <span class="plate-rule" aria-hidden="true"></span>
+                  <figure class="duo">
+                    <img
+                      src="https://picsum.photos/seed/tomfolio-feedback-loop/1100/880?grayscale"
+                      alt="Audio-reactive projection visuals for the Feedback Loop club night"
+                      width="1100"
+                      height="880"
+                      loading="lazy"
+                    />
+                  </figure>
+                  <h3 class="plate-title" id="t-feedback-loop">Feedback Loop</h3>
+                  <p class="plate-meta">Audio-reactive visuals <i aria-hidden="true">&#10038;</i> 2024</p>
+                  <p class="plate-sum">
+                    Projection visuals for a club night, driven live by the desk feed and a
+                    fistful of shaders.
+                  </p>
+                  <svg class="scrawl scrawl-bang" viewBox="0 0 90 80" aria-hidden="true">
+                    <path pathLength="1" d="M24 10 C 27 26 30 40 32 54" />
+                    <path pathLength="1" d="M31 66 C 29 64 33 61 34 64 C 35 67 32 69 31 66" />
+                    <path pathLength="1" d="M52 12 C 54 27 56 40 57 53" />
+                    <path pathLength="1" d="M56 65 C 54 63 58 60 59 63 C 60 66 57 68 56 65" />
+                  </svg>
+                </div>
+              </article>
+
+              <article class="plate reveal" id="p-long-funnel" aria-labelledby="t-long-funnel">
+                <div class="plate-in">
+                  <span class="plate-rule" aria-hidden="true"></span>
+                  <figure class="duo">
+                    <img
+                      src="https://picsum.photos/seed/tomfolio-long-funnel/1080/860?grayscale"
+                      alt="Editorial spread from The Long Funnel content program"
+                      width="1080"
+                      height="860"
+                      loading="lazy"
+                    />
+                  </figure>
+                  <h3 class="plate-title" id="t-long-funnel">The Long Funnel</h3>
+                  <p class="plate-meta">B2B content engine <i aria-hidden="true">&#10038;</i> 2024</p>
+                  <p class="plate-sum">
+                    Thirty-eight weeks of shipped campaign content for a buyer journey that
+                    refuses to be rushed.
+                  </p>
+                  <svg class="scrawl scrawl-hatch" viewBox="0 0 60 60" aria-hidden="true">
+                    <path pathLength="1" d="M8 34 L30 8" />
+                    <path pathLength="1" d="M16 46 L42 16" />
+                    <path pathLength="1" d="M26 54 L52 26" />
+                  </svg>
+                </div>
+              </article>
+
+              <article class="plate reveal" id="p-plotterbot" aria-labelledby="t-plotterbot">
+                <div class="plate-in">
+                  <span class="plate-rule" aria-hidden="true"></span>
+                  <figure class="duo">
+                    <img
+                      src="https://picsum.photos/seed/tomfolio-plotterbot/1200/800?grayscale"
+                      alt="Plotterbot, a pen plotter drawing generative line art"
+                      width="1200"
+                      height="800"
+                      loading="lazy"
+                    />
+                  </figure>
+                  <h3 class="plate-title" id="t-plotterbot">Plotterbot</h3>
+                  <p class="plate-meta">Drawing machine <i aria-hidden="true">&#10038;</i> 2023</p>
+                  <p class="plate-sum">
+                    A pen plotter that turns market data into generative line art, one postcard
+                    at a time.
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="playground" id="playground" aria-labelledby="playground-title">
+          <header class="sec-head reveal">
+            <svg class="fan" viewBox="0 0 120 38" aria-hidden="true">
+              <g fill="none" stroke="currentColor" stroke-width="1.4">
+                <path d="M60 36 L18 22" />
+                <path d="M60 36 L30 10" />
+                <path d="M60 36 L49 4" />
+                <path d="M60 36 L60 2" />
+                <path d="M60 36 L71 4" />
+                <path d="M60 36 L90 10" />
+                <path d="M60 36 L102 22" />
+              </g>
+              <rect x="56" y="32" width="8" height="8" transform="rotate(45 60 36)" fill="currentColor" />
+            </svg>
+            <h2 class="sec-title" id="playground-title">The playground</h2>
+            <p class="sec-sub">Self-initiated experiments, shipped whenever the itch strikes.</p>
+          </header>
+
+          <div class="stub-grid">
+            <figure class="stub stub-a reveal">
+              <div class="stub-in">
+                <div class="duo">
+                  <img
+                    src="https://picsum.photos/seed/tomfolio-cloud-study/1200/800?grayscale"
+                    alt="Frame from a mushroom cloud particle simulation"
+                    width="1200"
+                    height="800"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption>
+                  <span class="stub-name">Mushroom-cloud particle study</span>
+                  <span class="stub-detail">canvas vfx, 2026</span>
+                </figcaption>
+              </div>
+              <svg class="scrawl scrawl-burst" viewBox="0 0 70 70" aria-hidden="true">
+                <path pathLength="1" d="M12 36 C 24 30 48 30 60 34" />
+                <path pathLength="1" d="M30 12 C 32 28 36 48 40 58" />
+                <path pathLength="1" d="M14 18 C 26 28 46 44 58 52" />
+              </svg>
+            </figure>
+
+            <figure class="stub stub-b reveal" style="--d: 0.12s">
+              <div class="stub-in">
+                <div class="duo">
+                  <img
+                    src="https://picsum.photos/seed/tomfolio-plotter-postcards/800/1040?grayscale"
+                    alt="Stack of generative pen plotter postcards"
+                    width="800"
+                    height="1040"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption>
+                  <span class="stub-name">Plotter postcards</span>
+                  <span class="stub-detail">ink on paper, 2025</span>
+                </figcaption>
+              </div>
+              <svg class="scrawl scrawl-reframe" viewBox="0 0 320 400" preserveAspectRatio="none" aria-hidden="true">
+                <path
+                  pathLength="1"
+                  d="M14 22 C 96 12 220 14 306 20 C 312 130 310 270 304 386 C 210 392 100 390 18 384 C 10 264 12 130 14 22 C 60 18 120 16 170 16"
+                />
+              </svg>
+            </figure>
+
+            <figure class="stub stub-c reveal">
+              <div class="stub-in">
+                <div class="duo">
+                  <img
+                    src="https://picsum.photos/seed/tomfolio-shader-sketchbook/1600/680?grayscale"
+                    alt="Abstract still from a GLSL shader sketch"
+                    width="1600"
+                    height="680"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption>
+                  <span class="stub-name">Shader sketchbook</span>
+                  <span class="stub-detail">GLSL doodles, ongoing</span>
+                </figcaption>
+              </div>
+            </figure>
+
+            <div class="plaque reveal" style="--d: 0.12s">
+              <div class="plaque-in">
+                <p class="plaque-motto">If it beeps, plots, or glows, I want to build one.</p>
+                <h3 class="plaque-head">Currently into</h3>
+                <ul class="plaque-list">
+                  <li>WebGPU compute</li>
+                  <li>Riso printing</li>
+                  <li>FM synthesis</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer" id="hello" aria-labelledby="footer-title">
+        <div class="footer-inner">
+          <h2 class="footer-title reveal" id="footer-title">
+            Got something
+            <span class="footer-brut"
+              >weird<svg class="scrawl scrawl-under2" viewBox="0 0 180 22" aria-hidden="true">
+                <path pathLength="1" d="M6 12 C 40 5 90 17 174 8" />
+                <path pathLength="1" d="M16 18 C 70 12 120 19 162 13" /></svg
+            ></span>
+            to build?
+          </h2>
+          <svg class="scrawl foot-arrow reveal" viewBox="0 0 90 96" aria-hidden="true" style="--d: 0.2s">
+            <path pathLength="1" d="M18 8 C 50 22 72 44 60 82" />
+            <path pathLength="1" d="M60 82 L44 70" />
+            <path pathLength="1" d="M60 82 L72 64" />
+          </svg>
+          <a class="btn btn-big reveal" href="mailto:hello@tomtoolery.studio" style="--d: 0.3s"
+            ><span>Say hello</span></a
+          >
+          <ul class="socials reveal" style="--d: 0.4s">
+            <li>
+              <a href="https://github.com/TomVDH" rel="noopener" target="_blank">GitHub &#8599;</a>
+            </li>
+            <li><a href="mailto:hello@tomtoolery.studio">hello@tomtoolery.studio</a></li>
+          </ul>
+          <p class="fineprint">
+            &copy; 2026 Tomtoolery. Built by hand with three.js and GSAP. No cookies, no trackers.
+          </p>
+        </div>
+      </footer>
+    </main>
+
+    <a class="dir-pill brut-pill" href="/directions/">Directions</a>
+
+    <script type="module" src="/src/directions/brut/page.ts"></script>
+  </body>
+</html>

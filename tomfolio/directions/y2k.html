@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TT2000, a Tomtoolery design direction</title>
+    <meta
+      name="description"
+      content="Y2K chrome revival direction for the Tomtoolery portfolio. Liquid metal, hot magenta, orbit rings."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#08080B" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="yk">
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <canvas id="gl" aria-hidden="true"></canvas>
+
+    <header class="yk-nav">
+      <a class="yk-brand chrome-type" data-text="TT2000" href="#top">TT2000</a>
+      <nav class="yk-links" aria-label="Main">
+        <a href="#work">Work</a>
+        <a href="#stickers">Stickers</a>
+        <a href="#hello">Say hello</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="yk-hero" aria-label="Introduction">
+        <div class="yk-orbit" aria-hidden="true">
+          <svg viewBox="0 0 400 400">
+            <defs>
+              <path id="orbitPath" d="M 200,200 m -168,0 a 168,168 0 1,1 336,0 a 168,168 0 1,1 -336,0" />
+            </defs>
+            <text>
+              <textPath href="#orbitPath">
+                MARKETER &#10022; ARTIST &#10022; DIGITAL NERD &#10022; HOBBYIST &#10022; MARKETER &#10022; ARTIST &#10022; DIGITAL NERD &#10022;
+              </textPath>
+            </text>
+          </svg>
+        </div>
+
+        <h1 class="yk-headline">
+          <span class="yk-headline-line">Half marketer,</span>
+          <span class="yk-headline-line">half artist, <em>all nerd</em>.</span>
+        </h1>
+        <p class="yk-sub">I plan campaigns by day and melt pixels after hours. This is the toolbox.</p>
+        <a class="yk-btn" href="#work">See the work</a>
+
+        <span class="yk-sticker yk-sticker-a" aria-hidden="true">handmade pixels</span>
+        <span class="yk-sticker yk-sticker-b" aria-hidden="true">zero trackers!</span>
+      </section>
+
+      <div class="yk-marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <span class="marquee-unit"
+            >STRATEGY <i>&#10022;</i> SHADERS <i>&#10022;</i> CAMPAIGNS <i>&#10022;</i> PLOTTERS
+            <i>&#10022;</i> TYPE <i>&#10022;</i>
+          </span>
+          <span class="marquee-unit"
+            >STRATEGY <i>&#10022;</i> SHADERS <i>&#10022;</i> CAMPAIGNS <i>&#10022;</i> PLOTTERS
+            <i>&#10022;</i> TYPE <i>&#10022;</i>
+          </span>
+        </div>
+      </div>
+
+      <section class="yk-work" id="work" aria-labelledby="work-title">
+        <h2 class="yk-section-title" id="work-title">Selected work</h2>
+        <p class="yk-section-sub">Four projects. Scroll sideways through the showroom.</p>
+        <div class="yk-pan">
+          <div class="yk-track"></div>
+        </div>
+      </section>
+
+      <section class="yk-manifesto" aria-label="Manifesto">
+        <p class="yk-manifesto-text"></p>
+      </section>
+
+      <section class="yk-stickerwall" id="stickers" aria-labelledby="stickers-title">
+        <h2 class="yk-section-title" id="stickers-title">The sticker wall</h2>
+        <p class="yk-section-sub">Zero-client experiments, stuck on whenever the itch strikes.</p>
+        <div class="yk-wall"></div>
+      </section>
+
+      <footer class="yk-footer" id="hello" aria-labelledby="footer-title">
+        <h2 class="yk-footer-title" id="footer-title">Got something weird to build?</h2>
+        <a class="yk-btn yk-btn-big" href="mailto:hello@tomtoolery.studio">Say hello</a>
+        <div class="yk-footer-row"></div>
+        <p class="yk-fineprint"></p>
+      </footer>
+    </main>
+
+    <a class="dir-pill yk-pill" href="/directions/">Directions</a>
+
+    <script type="module" src="/src/directions/y2k/page.ts"></script>
+  </body>
+</html>

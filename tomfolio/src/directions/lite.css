@@ -1,0 +1,107 @@
+/* ------------------------------------------------------------------
+   Lite direction shell: shared structural bones for the filtered-
+   shader directions. Worlds (tokens, type, gallery patterns, hero
+   composition) live in each direction's page.css; this file only
+   keeps the skeleton standing.
+------------------------------------------------------------------- */
+
+@import "./fonts.css";
+
+.dx-wrap {
+  width: min(1240px, 92vw);
+  margin-inline: auto;
+}
+
+.dx-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: clamp(16px, 4vw, 48px);
+}
+.dx-nav nav {
+  display: flex;
+  gap: clamp(16px, 3vw, 34px);
+}
+
+.dx-hero {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.dx-hero-media {
+  position: absolute;
+  inset: 0;
+}
+.dx-hero-media canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.dx-hero-copy {
+  position: relative;
+  z-index: 1;
+  width: min(1240px, 92vw);
+  margin-inline: auto;
+  padding-bottom: clamp(48px, 9vh, 100px);
+}
+.dx-hero-copy h1 {
+  max-width: 14ch;
+  text-wrap: balance;
+}
+.dx-hero-copy > p {
+  margin-top: 22px;
+  max-width: 44ch;
+}
+.dx-cta {
+  display: inline-block;
+  margin-top: 30px;
+}
+
+.dx-work {
+  padding-block: clamp(70px, 11vh, 130px);
+}
+.dx-gallery {
+  margin-top: clamp(28px, 4vh, 52px);
+}
+
+.dx-note {
+  padding-block: clamp(70px, 11vh, 140px);
+}
+
+.dx-end {
+  min-height: 70dvh;
+  display: flex;
+  align-items: center;
+}
+.dx-end .dx-wrap {
+  padding-block: clamp(60px, 9vh, 110px);
+}
+.dx-end h2 {
+  max-width: 15ch;
+  text-wrap: balance;
+}
+.dx-links {
+  margin-top: 44px;
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.dx-fine {
+  margin-top: 48px;
+  font-size: 0.84rem;
+  opacity: 0.72;
+}
+
+@media (max-width: 767px) {
+  .dx-nav nav {
+    gap: 14px;
+  }
+}

@@ -1,0 +1,223 @@
+/* ------------------------------------------------------------------
+   GREIGE: the white cube.
+
+   A warm greige wall, museum light, one terracotta accent. The
+   karesansui shader hangs in the hero as a framed work (it is
+   already sand-toned; the gallery simply hung it). Every project
+   gets a mat, a frame, a plinth caption and too much wall, which
+   is exactly the right amount of wall.
+------------------------------------------------------------------- */
+
+:root {
+  --gg-wall: #d9d4cb;
+  --gg-wall-2: #cfc9bf;
+  --gg-ink: #211e19;
+  --gg-terra: #a8633c;
+  --gg-soft: #7c766b;
+  --gg-mat: #f2efe8;
+}
+
+.greige {
+  background: var(--gg-wall);
+  color: var(--gg-ink);
+  font-family: "Satoshi", sans-serif;
+  line-height: 1.65;
+}
+
+.greige ::selection {
+  background: var(--gg-terra);
+  color: var(--gg-mat);
+}
+.greige :focus-visible {
+  outline: 2px solid var(--gg-terra);
+  outline-offset: 3px;
+}
+.greige .skip-link {
+  background: var(--gg-ink);
+  color: var(--gg-mat);
+}
+
+.greige .dx-nav {
+  background: linear-gradient(to bottom, rgba(217, 212, 203, 0.94), rgba(217, 212, 203, 0));
+}
+.greige .dx-brand {
+  font-family: "General Sans", sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.greige .dx-nav nav a {
+  font-size: 0.88rem;
+  color: var(--gg-soft);
+}
+.greige .dx-nav nav a:hover {
+  color: var(--gg-terra);
+}
+
+/* Hero: copy on the wall, the sand garden hung beside it. */
+.greige .dx-hero {
+  align-items: center;
+}
+.greige .dx-hero-media {
+  position: absolute;
+  inset: auto clamp(16px, 6vw, 90px) auto auto;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(44vw, 620px);
+  aspect-ratio: 4 / 3;
+  padding: clamp(14px, 1.6vw, 24px);
+  background: var(--gg-mat);
+  box-shadow: 0 18px 40px rgba(33, 30, 25, 0.18);
+}
+.greige .dx-hero-media canvas {
+  filter: sepia(0.25) saturate(0.85);
+}
+.greige .dx-hero-copy {
+  padding-bottom: 0;
+  margin-inline: 0;
+  padding-inline: clamp(16px, 6vw, 90px);
+  width: 100%;
+}
+.greige .dx-hero-copy h1 {
+  font-family: "General Sans", sans-serif;
+  font-weight: 600;
+  font-size: clamp(2.2rem, 4.8vw, 4rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  max-width: 12ch;
+}
+.greige .dx-hero-copy > p {
+  color: var(--gg-soft);
+  font-size: clamp(0.98rem, 1.25vw, 1.12rem);
+  max-width: 36ch;
+}
+.greige .dx-cta {
+  font-weight: 500;
+  color: var(--gg-ink);
+  border-bottom: 2px solid var(--gg-terra);
+  padding-bottom: 3px;
+}
+.greige .dx-cta:hover {
+  color: var(--gg-terra);
+}
+
+/* Work: the hang. */
+.greige h2 {
+  font-family: "General Sans", sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+  letter-spacing: -0.015em;
+  text-align: center;
+}
+
+.greige .gg-hang {
+  margin-top: clamp(60px, 9vh, 110px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.greige .gg-frame {
+  background: var(--gg-mat);
+  padding: clamp(18px, 2.2vw, 34px);
+  box-shadow: 0 16px 36px rgba(33, 30, 25, 0.16);
+}
+.greige .gg-hang:nth-child(odd) .gg-frame {
+  transform: translateX(clamp(-60px, -5vw, -20px));
+}
+.greige .gg-hang:nth-child(even) .gg-frame {
+  transform: translateX(clamp(20px, 5vw, 60px));
+}
+.greige .gg-frame img {
+  width: min(640px, 78vw);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  filter: grayscale(0.9) sepia(0.18) contrast(1.02);
+}
+.greige .gg-plinth {
+  margin-top: 18px;
+  text-align: center;
+}
+.greige .gg-plinth h3 {
+  font-family: "General Sans", sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.greige .gg-plinth p {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: var(--gg-soft);
+}
+.greige .gg-plinth .gg-sum {
+  margin-top: 8px;
+  max-width: 46ch;
+  font-size: 0.9rem;
+}
+
+/* Note: wall text. */
+.greige .dx-note {
+  background: var(--gg-wall-2);
+}
+.greige .dx-note-text {
+  text-align: center;
+  font-family: "General Sans", sans-serif;
+  font-weight: 500;
+  font-size: clamp(1.3rem, 2.5vw, 2.1rem);
+  line-height: 1.5;
+  max-width: 32ch;
+  margin-inline: auto;
+}
+.greige .dx-note-text em {
+  font-style: normal;
+  color: var(--gg-terra);
+}
+
+/* End. */
+.greige .dx-end {
+  text-align: center;
+}
+.greige .dx-end h2 {
+  margin-inline: auto;
+  font-size: clamp(1.9rem, 4.2vw, 3.4rem);
+}
+.greige .dx-end .dx-cta {
+  border: 1px solid var(--gg-ink);
+  padding: 14px 32px;
+  border-bottom-width: 1px;
+}
+.greige .dx-end .dx-cta:hover {
+  background: var(--gg-ink);
+  color: var(--gg-mat);
+}
+.greige .dx-links {
+  justify-content: center;
+}
+.greige .dx-links a {
+  font-size: 0.88rem;
+  color: var(--gg-soft);
+}
+.greige .dx-links a:hover {
+  color: var(--gg-terra);
+}
+.greige .dir-pill {
+  background: var(--gg-ink);
+  color: var(--gg-mat);
+}
+
+@media (max-width: 960px) {
+  .greige .dx-hero {
+    align-items: flex-end;
+  }
+  .greige .dx-hero-media {
+    position: absolute;
+    inset: 10vh 16px auto;
+    transform: none;
+    width: min(76vw, 480px);
+    margin-left: auto;
+  }
+  .greige .dx-hero-copy {
+    padding-bottom: 8vh;
+  }
+  .greige .gg-hang:nth-child(odd) .gg-frame,
+  .greige .gg-hang:nth-child(even) .gg-frame {
+    transform: none;
+  }
+}

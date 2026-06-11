@@ -1,0 +1,175 @@
+/* ------------------------------------------------------------------
+   TWILIGHT: dusk editorial.
+
+   The sky does the branding: plum fading into tan, the murmuration
+   shader re-tinted toward plum carrying the hero. Sentient serif
+   keeps it literary. The gallery is full-bleed photographic panels
+   with caption bars, like plates in a dusk-light photo book.
+------------------------------------------------------------------- */
+
+:root {
+  --tw-night: #241b2e;
+  --tw-plum: #6e4a66;
+  --tw-tan: #c99b72;
+  --tw-cream: #f2e8dc;
+  --tw-soft: rgba(242, 232, 220, 0.72);
+}
+
+.twilight {
+  background: var(--tw-night);
+  color: var(--tw-cream);
+  font-family: "Satoshi", sans-serif;
+  line-height: 1.65;
+}
+
+.twilight ::selection {
+  background: var(--tw-tan);
+  color: var(--tw-night);
+}
+.twilight :focus-visible {
+  outline: 2px solid var(--tw-tan);
+  outline-offset: 3px;
+}
+.twilight .skip-link {
+  background: var(--tw-tan);
+  color: var(--tw-night);
+}
+
+.twilight .dx-brand,
+.twilight h1,
+.twilight h2,
+.twilight .tw-title {
+  font-family: "Sentient", serif;
+}
+
+.twilight .dx-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--tw-cream);
+}
+.twilight .dx-nav nav a {
+  font-size: 0.9rem;
+  color: var(--tw-soft);
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.twilight .dx-nav nav a:hover {
+  color: var(--tw-tan);
+  border-bottom-color: var(--tw-tan);
+}
+
+/* Hero: the flock at plum dusk. */
+.twilight .dx-hero-media canvas {
+  filter: hue-rotate(282deg) saturate(0.75) brightness(1.05);
+}
+.twilight .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(36, 27, 46, 0.9), rgba(36, 27, 46, 0.05) 50%);
+}
+.twilight .dx-hero-copy h1 {
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5.6vw, 4.9rem);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+}
+.twilight .dx-hero-copy h1 em,
+.twilight .dx-note-text em {
+  font-style: italic;
+  color: var(--tw-tan);
+}
+.twilight .dx-hero-copy > p {
+  color: var(--tw-soft);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+}
+.twilight .dx-cta {
+  font-family: "Sentient", serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--tw-tan);
+  border-bottom: 1px solid var(--tw-tan);
+  padding-bottom: 3px;
+}
+.twilight .dx-cta:hover {
+  color: var(--tw-cream);
+  border-bottom-color: var(--tw-cream);
+}
+
+/* Work: dusk plates. */
+.twilight .dx-work {
+  padding-block: clamp(70px, 11vh, 130px) 0;
+}
+.twilight h2 {
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.8vw, 3rem);
+}
+.twilight .dx-gallery {
+  margin-top: clamp(28px, 4vh, 52px);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+.twilight .tw-plate {
+  position: relative;
+}
+.twilight .tw-plate img {
+  width: 100%;
+  height: clamp(380px, 64vh, 620px);
+  object-fit: cover;
+  display: block;
+  filter: grayscale(0.85) sepia(0.35) hue-rotate(-18deg) saturate(1.4) brightness(0.82);
+}
+.twilight .tw-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+  width: min(1240px, 92vw);
+  margin-inline: auto;
+  padding: 18px 0 clamp(40px, 7vh, 80px);
+}
+.twilight .tw-title {
+  font-weight: 700;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+}
+.twilight .tw-meta {
+  font-size: 0.85rem;
+  color: var(--tw-tan);
+}
+.twilight .tw-sum {
+  flex-basis: 100%;
+  max-width: 56ch;
+  color: var(--tw-soft);
+  font-size: 0.95rem;
+}
+
+/* Note: a passage between plates. */
+.twilight .dx-note {
+  background: linear-gradient(to bottom, var(--tw-night), #31243c, var(--tw-night));
+}
+.twilight .dx-note-text {
+  font-family: "Sentient", serif;
+  font-size: clamp(1.45rem, 2.8vw, 2.4rem);
+  line-height: 1.5;
+  max-width: 28ch;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* End. */
+.twilight .dx-end h2 {
+  font-size: clamp(2.1rem, 4.6vw, 3.8rem);
+}
+.twilight .dx-links a {
+  font-size: 0.9rem;
+  color: var(--tw-soft);
+  border-bottom: 1px solid rgba(201, 155, 114, 0.4);
+  padding-bottom: 2px;
+}
+.twilight .dx-links a:hover {
+  color: var(--tw-tan);
+}
+.twilight .dir-pill {
+  background: var(--tw-tan);
+  color: var(--tw-night);
+}

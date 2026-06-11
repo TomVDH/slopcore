@@ -1,0 +1,235 @@
+/* ------------------------------------------------------------------
+   UBE: pastel claymorphism.
+
+   Pale ube room, biscuit warmth, everything puffy and pressable.
+   The cutout shader is inverted and hue-shifted by filter into a
+   pastel collage behind the hero (a filter doing real work).
+   Quicksand keeps it round; cards look like marshmallows that mean
+   business.
+------------------------------------------------------------------- */
+
+:root {
+  --ub-milk: #efe9f7;
+  --ub-ube: #9a7fd1;
+  --ub-deep: #6c55a3;
+  --ub-biscuit: #d9b48f;
+  --ub-ink: #332b44;
+  --ub-card: #f7f3fc;
+}
+
+.ube {
+  background: var(--ub-milk);
+  color: var(--ub-ink);
+  font-family: "Quicksand", sans-serif;
+  line-height: 1.62;
+}
+
+.ube ::selection {
+  background: var(--ub-ube);
+  color: var(--ub-milk);
+}
+.ube :focus-visible {
+  outline: 3px solid var(--ub-ube);
+  outline-offset: 3px;
+}
+.ube .skip-link {
+  background: var(--ub-ube);
+  color: var(--ub-milk);
+  border-radius: 999px;
+}
+
+.ube .dx-nav {
+  background: linear-gradient(to bottom, rgba(239, 233, 247, 0.95), rgba(239, 233, 247, 0));
+}
+.ube .dx-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ub-deep);
+}
+.ube .dx-nav nav a {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ub-ink);
+  padding: 7px 14px;
+  border-radius: 999px;
+  transition: background-color 0.25s ease;
+}
+.ube .dx-nav nav a:hover {
+  background: rgba(154, 127, 209, 0.18);
+}
+
+/* Hero: the inverted collage, gone pastel. */
+.ube .dx-hero {
+  align-items: center;
+  text-align: center;
+}
+.ube .dx-hero-media canvas {
+  filter: invert(0.93) hue-rotate(218deg) saturate(0.62) brightness(1.06);
+  opacity: 0.95;
+}
+.ube .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 65% at 50% 60%, rgba(239, 233, 247, 0.1), rgba(239, 233, 247, 0.88));
+}
+.ube .dx-hero-copy {
+  padding-bottom: 0;
+}
+.ube .dx-hero-copy h1 {
+  margin-inline: auto;
+  font-weight: 700;
+  font-size: clamp(2.3rem, 5.2vw, 4.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ub-deep);
+}
+.ube .dx-hero-copy > p {
+  margin-inline: auto;
+  font-weight: 500;
+  color: var(--ub-ink);
+  opacity: 0.78;
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+}
+.ube .dx-cta {
+  background: var(--ub-ube);
+  color: var(--ub-milk);
+  font-weight: 700;
+  padding: 16px 36px;
+  border-radius: 999px;
+  box-shadow:
+    0 8px 22px rgba(108, 85, 163, 0.35),
+    inset 0 -3px 0 rgba(51, 43, 68, 0.18);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ube .dx-cta:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 28px rgba(108, 85, 163, 0.4),
+    inset 0 -3px 0 rgba(51, 43, 68, 0.18);
+}
+.ube .dx-cta:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Work: marshmallow cards. */
+.ube h2 {
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.8vw, 3rem);
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--ub-deep);
+}
+
+.ube .dx-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 3.4vw, 48px);
+}
+.ube .ub-card {
+  background: var(--ub-card);
+  border-radius: 16px;
+  padding: 16px 16px 24px;
+  box-shadow:
+    0 14px 34px rgba(108, 85, 163, 0.18),
+    inset 0 -4px 0 rgba(154, 127, 209, 0.16);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ube .ub-card:hover {
+  transform: translateY(-5px);
+}
+.ube .ub-card:nth-child(even) {
+  box-shadow:
+    0 14px 34px rgba(154, 110, 60, 0.16),
+    inset 0 -4px 0 rgba(217, 180, 143, 0.3);
+}
+.ube .ub-card figure {
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--ub-ube);
+}
+.ube .ub-card:nth-child(even) figure {
+  background: var(--ub-biscuit);
+}
+.ube .ub-card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(1) contrast(0.95) brightness(1.12);
+  mix-blend-mode: multiply;
+}
+.ube .ub-title {
+  margin-top: 16px;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--ub-deep);
+}
+.ube .ub-meta {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--ub-biscuit);
+}
+.ube .ub-card:nth-child(even) .ub-meta {
+  color: var(--ub-ube);
+}
+.ube .ub-sum {
+  margin-top: 8px;
+  font-weight: 500;
+  font-size: 0.92rem;
+  opacity: 0.82;
+}
+
+/* Note: the squishiest quote. */
+.ube .dx-note-text {
+  background: var(--ub-card);
+  border-radius: 20px;
+  box-shadow:
+    0 16px 38px rgba(108, 85, 163, 0.2),
+    inset 0 -5px 0 rgba(154, 127, 209, 0.18);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 2.5vw, 2.1rem);
+  line-height: 1.42;
+  max-width: 30ch;
+  margin-inline: auto;
+  padding: clamp(28px, 4vw, 52px);
+  text-align: center;
+}
+.ube .dx-note-text em {
+  font-style: normal;
+  color: var(--ub-ube);
+}
+
+/* End. */
+.ube .dx-end {
+  text-align: center;
+}
+.ube .dx-end h2 {
+  margin-inline: auto;
+  font-size: clamp(2rem, 4.4vw, 3.6rem);
+}
+.ube .dx-links {
+  justify-content: center;
+}
+.ube .dx-links a {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ub-deep);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.ube .dx-links a:hover {
+  background: rgba(154, 127, 209, 0.18);
+}
+.ube .dir-pill {
+  background: var(--ub-ube);
+  color: var(--ub-milk);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .ube .dx-gallery {
+    grid-template-columns: 1fr;
+  }
+}

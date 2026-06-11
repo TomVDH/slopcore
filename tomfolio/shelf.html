@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iteration shelf, tomfolio hero shaders</title>
+    <meta name="description" content="Live comparison shelf for tomfolio hero shader candidates." />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#0B0B0D" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="preload"
+      href="/fonts/clash-display-600.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/satoshi-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body class="shelf-body">
+    <header class="shelf-head">
+      <a class="nav-brand" href="/" aria-label="Tomtoolery, back to the site">tomtoolery</a>
+      <h1 class="shelf-title">Iteration shelf</h1>
+      <p class="shelf-sub">
+        Hero shader candidates, live. Click any tile to try it above the fold.
+      </p>
+    </header>
+
+    <main class="shelf-grid" id="shelf-grid" aria-label="Shader candidates"></main>
+
+    <footer class="shelf-foot">
+      <p>
+        Promote a winner by setting <code>DEFAULT_VARIANT_ID</code> in
+        <code>src/gl/variants/index.ts</code>. Every candidate runs the same uniforms, so the
+        swap is one line. These tiles restyle the Acid hero only; whole alternate design
+        languages live on the <a href="/directions/">direction shelf</a>.
+      </p>
+    </footer>
+
+    <script type="module" src="/src/shelf.ts"></script>
+  </body>
+</html>

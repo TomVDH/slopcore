@@ -1,0 +1,204 @@
+/* ------------------------------------------------------------------
+   ORCHID: night bloom.
+
+   Violet-black room, orchid light. The liquid-light shader runs
+   nearly native behind the hero, saturated a touch deeper. Khand
+   condensed caps shout politely; posters overlap in the gallery
+   like flyers on a venue wall. Loud, nocturnal, floral.
+------------------------------------------------------------------- */
+
+:root {
+  --or-void: #150f1e;
+  --or-deep: #1f1530;
+  --or-orchid: #b98bdb;
+  --or-plum: #6e2d66;
+  --or-fog: #cfc4de;
+  --or-line: rgba(185, 139, 219, 0.25);
+}
+
+.orchid {
+  background: var(--or-void);
+  color: var(--or-fog);
+  font-family: "General Sans", sans-serif;
+  line-height: 1.62;
+}
+
+.orchid ::selection {
+  background: var(--or-orchid);
+  color: var(--or-void);
+}
+.orchid :focus-visible {
+  outline: 2px solid var(--or-orchid);
+  outline-offset: 3px;
+}
+.orchid .skip-link {
+  background: var(--or-orchid);
+  color: var(--or-void);
+}
+
+.orchid .dx-brand,
+.orchid h1,
+.orchid h2,
+.orchid .or-title {
+  font-family: "Khand", sans-serif;
+  text-transform: uppercase;
+}
+
+.orchid .dx-brand {
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  color: var(--or-orchid);
+}
+.orchid .dx-nav nav a {
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--or-fog);
+  border-bottom: 2px solid transparent;
+  padding-bottom: 2px;
+}
+.orchid .dx-nav nav a:hover {
+  color: var(--or-orchid);
+  border-bottom-color: var(--or-orchid);
+}
+
+/* Hero: the bloom. */
+.orchid .dx-hero-media canvas {
+  filter: saturate(1.25) hue-rotate(12deg) brightness(0.92);
+}
+.orchid .dx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(21, 15, 30, 0.92), rgba(21, 15, 30, 0.15) 55%);
+}
+.orchid .dx-hero-copy h1 {
+  font-weight: 700;
+  font-size: clamp(3rem, 7.4vw, 6rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  max-width: 12ch;
+  color: #efe9f8;
+  text-shadow: 0 0 34px rgba(185, 139, 219, 0.45);
+}
+.orchid .dx-hero-copy > p {
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+  color: var(--or-fog);
+}
+.orchid .dx-cta {
+  background: var(--or-orchid);
+  color: var(--or-void);
+  font-weight: 600;
+  font-size: 0.98rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 15px 34px;
+  transition: background-color 0.25s ease, transform 0.2s ease;
+}
+.orchid .dx-cta:hover {
+  background: #d6b3ef;
+  transform: translateY(-2px);
+}
+
+/* Work: flyers on the venue wall. */
+.orchid h2 {
+  font-weight: 700;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  letter-spacing: 0.01em;
+  color: #efe9f8;
+}
+
+.orchid .dx-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 clamp(20px, 3vw, 48px);
+}
+.orchid .or-poster {
+  background: var(--or-deep);
+  border: 1px solid var(--or-line);
+  padding: 14px 14px 20px;
+}
+.orchid .or-poster:nth-child(odd) {
+  transform: rotate(-1.2deg);
+  margin-top: clamp(24px, 4vw, 56px);
+}
+.orchid .or-poster:nth-child(even) {
+  transform: rotate(1.1deg) translateY(-26px);
+}
+.orchid .or-poster figure {
+  background: var(--or-plum);
+}
+.orchid .or-poster img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.08) brightness(1.05);
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+.orchid .or-title {
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  color: var(--or-orchid);
+}
+.orchid .or-meta {
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--or-fog);
+  opacity: 0.7;
+}
+.orchid .or-sum {
+  margin-top: 10px;
+  font-size: 0.92rem;
+  max-width: 46ch;
+}
+
+/* Note: lit signage. */
+.orchid .dx-note-text {
+  font-family: "Khand", sans-serif;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: clamp(1.6rem, 3.4vw, 3rem);
+  line-height: 1.18;
+  max-width: 26ch;
+  margin-inline: auto;
+  text-align: center;
+  color: #efe9f8;
+}
+.orchid .dx-note-text em {
+  font-style: normal;
+  color: var(--or-orchid);
+  text-shadow: 0 0 26px rgba(185, 139, 219, 0.8);
+}
+
+/* End. */
+.orchid .dx-end h2 {
+  font-size: clamp(2.4rem, 5.2vw, 4.4rem);
+}
+.orchid .dx-links a {
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--or-fog);
+  border-bottom: 1px solid var(--or-line);
+  padding-bottom: 2px;
+}
+.orchid .dx-links a:hover {
+  color: var(--or-orchid);
+}
+.orchid .dir-pill {
+  background: var(--or-orchid);
+  color: var(--or-void);
+}
+
+@media (max-width: 767px) {
+  .orchid .dx-gallery {
+    grid-template-columns: 1fr;
+  }
+  .orchid .or-poster:nth-child(even) {
+    transform: rotate(1.1deg);
+  }
+}

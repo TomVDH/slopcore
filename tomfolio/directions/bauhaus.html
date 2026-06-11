@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toolhaus, a Tomtoolery design direction</title>
+    <meta
+      name="description"
+      content="Constructivist poster direction for the Tomtoolery portfolio. Primaries on warm white, shapes at play."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#F5F2EA" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bh">
+    <a class="skip-link" href="#work">Skip to the work</a>
+
+    <header class="bh-nav">
+      <a class="bh-brand" href="#top">TOOLHAUS</a>
+      <nav class="bh-links" aria-label="Main">
+        <a class="bh-link-red" href="#work">Work</a>
+        <a class="bh-link-blue" href="#play">Play</a>
+        <a class="bh-link-yellow" href="#hello">Say hello</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="bh-hero" aria-label="Introduction">
+        <canvas id="gl" aria-hidden="true"></canvas>
+        <div class="bh-hero-inner">
+          <h1 class="bh-headline">
+            <span class="bh-headline-row">Half marketer,</span>
+            <span class="bh-headline-row">half artist,</span>
+            <span class="bh-headline-row bh-headline-pop">all nerd.</span>
+          </h1>
+          <p class="bh-sub">I plan campaigns by day and melt pixels after hours. This is the toolbox.</p>
+          <a class="bh-btn" href="#work">See the work</a>
+        </div>
+      </section>
+
+      <section class="bh-work" id="work" aria-labelledby="work-title">
+        <h2 class="bh-section-title" id="work-title">Selected work</h2>
+        <div class="bh-wall"></div>
+      </section>
+
+      <section class="bh-manifesto" aria-label="Manifesto">
+        <span class="bh-shape bh-shape-circle" aria-hidden="true"></span>
+        <span class="bh-shape bh-shape-bar" aria-hidden="true"></span>
+        <span class="bh-shape bh-shape-square" aria-hidden="true"></span>
+        <p class="bh-manifesto-text"></p>
+      </section>
+
+      <section class="bh-play" id="play" aria-labelledby="play-title">
+        <h2 class="bh-section-title" id="play-title">The playground</h2>
+        <div class="bh-play-grid"></div>
+        <p class="bh-motto"></p>
+      </section>
+
+      <footer class="bh-footer" id="hello" aria-labelledby="footer-title">
+        <h2 class="bh-footer-title" id="footer-title">Got something weird to build?</h2>
+        <a class="bh-btn bh-btn-big" href="mailto:hello@tomtoolery.studio">Say hello</a>
+        <div class="bh-footer-row"></div>
+        <p class="bh-fineprint"></p>
+      </footer>
+    </main>
+
+    <a class="dir-pill bh-pill" href="/directions/">Directions</a>
+
+    <script type="module" src="/src/directions/bauhaus/page.ts"></script>
+  </body>
+</html>
