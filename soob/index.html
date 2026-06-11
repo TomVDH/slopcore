@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SOOB! — silent service</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🫧</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=VT323&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/soob.css"/>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- ============ HUD ============ -->
+<div id="hud">
+  <div id="hullPanel" class="panel">
+    <div class="rowline"><span class="label">HULL INTEGRITY</span><span id="hullNum">100</span></div>
+    <div id="hullBarWrap"><div id="hullBar"></div></div>
+    <div class="rowline depth"><span class="label">DEPTH</span><span><span id="depthNum">012</span><span class="unit"> m</span></span></div>
+  </div>
+
+  <div id="gaugeWrap" class="panel"><canvas id="depthGauge" width="86" height="300"></canvas></div>
+
+  <div id="alertPanel" class="panel">
+    <div id="alertChip">UNDETECTED</div>
+    <div id="chargeWarn">DEPTH CHARGES IN THE WATER</div>
+  </div>
+
+  <div id="patrolPanel" class="panel">
+    <div id="tonNum">0 t</div>
+    <div id="tonSub">SHIPS 00 · BEST 0 t</div>
+  </div>
+
+  <div id="connPanel" class="panel">
+    <div id="teleList"></div>
+    <div id="lamps">
+      <span id="lampSilent" class="lamp">SILENT</span>
+      <span id="lampCav" class="lamp">CAV</span>
+      <span id="lampLayer" class="lamp">LAYER</span>
+    </div>
+    <div id="tubesRow"><div id="tubes"></div><span id="decoyNum">DECOY ×3</span></div>
+  </div>
+
+  <div id="sigWrap" class="panel">
+    <span class="label">SIG</span>
+    <div id="sigRail"><div id="sigBar"></div><div id="sigTick"></div></div>
+  </div>
+
+  <div id="scopeWrap" class="panel"><canvas id="scope" width="240" height="240"></canvas></div>
+
+  <div id="hintBar" class="panel"><kbd>W</kbd><kbd>S</kbd> telegraph · <kbd>A</kbd><kbd>D</kbd> rudder · <kbd>Q</kbd><kbd>E</kbd> dive/rise · <kbd>LMB</kbd> torpedo · <kbd>F</kbd> ping · <kbd>C</kbd> silent · <kbd>X</kbd> decoy</div>
+  <div id="sysChips">[M] SOUND&nbsp;&nbsp;[P] PAUSE<br/>SOOB! // SILENT SERVICE</div>
+</div>
+
+<div id="xh">
+  <div class="b tl"></div><div class="b tr"></div><div class="b bl"></div><div class="b br"></div>
+  <div class="dot"></div>
+  <div id="xhInfo"></div>
+</div>
+
+<div id="vignette"></div>
+<div id="banner"></div>
+<div id="feed"></div>
+
+<!-- ============ TITLE ============ -->
+<div id="titleScreen" class="screen">
+  <div class="tag">TOMTOOLERY SILENT SERVICE PRESENTS</div>
+  <div class="titleScope"><h1>SOOB<span class="bang">!</span></h1></div>
+  <div class="rule"></div>
+  <div class="brief">HOSTILE SHIPPING LANES — SINK TONNAGE<br/>YOUR SPEED IS YOUR SIGNATURE · THE LAYER HIDES YOU</div>
+  <div class="deploy">CLICK TO DIVE</div>
+  <div class="controls">
+    <div><kbd>W</kbd><kbd>S</kbd></div><div>ENGINE TELEGRAPH</div>
+    <div><kbd>A</kbd><kbd>D</kbd></div><div>RUDDER</div>
+    <div><kbd>Q</kbd><kbd>E</kbd></div><div>DIVE / RISE</div>
+    <div><kbd>MOUSE</kbd></div><div>FIRE SOLUTION · <kbd>LMB</kbd> / <kbd>SPACE</kbd> TORPEDO</div>
+    <div><kbd>F</kbd></div><div>ACTIVE PING — LOUD, BUT IT SEES</div>
+    <div><kbd>C</kbd></div><div>SILENT RUNNING · <kbd>X</kbd> NOISEMAKER DECOY</div>
+    <div><kbd>WHEEL</kbd></div><div>CAMERA ZOOM</div>
+  </div>
+  <div class="hiScore" id="titleHi"></div>
+  <div class="smallNote">PROCEDURAL AUDIO — HEADPHONES RECOMMENDED</div>
+</div>
+
+<!-- ============ GAME OVER ============ -->
+<div id="goScreen" class="screen hidden">
+  <div class="tag">PATROL REPORT — BOAT LOST WITH ALL HANDS</div>
+  <h1 id="goTitle">ON ETERNAL PATROL</h1>
+  <div class="rule"></div>
+  <div class="stats">
+    <div>TONNAGE SUNK</div><div id="stTon">0 t</div>
+    <div>SHIPS SUNK</div><div id="stShips">0</div>
+    <div>PATROL TIME</div><div id="stTime">0:00</div>
+    <div>DEEPEST POINT</div><div id="stDeep">0 m</div>
+    <div>CAUSE OF LOSS</div><div id="stCause">—</div>
+  </div>
+  <div id="newRecord">★ RECORD PATROL — THE FLOTILLA SALUTES ★</div>
+  <div class="deploy" style="margin-top:32px">CLICK TO PUT TO SEA</div>
+  <div class="smallNote">[R] ALSO PUTS TO SEA</div>
+</div>
+
+<!-- ============ PAUSE ============ -->
+<div id="pauseScreen" class="screen hidden">
+  <h1 style="font-size:44px">ALL STOP</h1>
+  <div class="brief">HOLDING TRIM — <kbd>P</kbd> TO RESUME</div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
