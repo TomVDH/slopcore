@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Skyline Lab — City Background Iterations</title>
+<link rel="stylesheet" href="../css/game.css">
+<link rel="stylesheet" href="../css/tester.css">
+<style>
+  body {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px;
+    padding: 14px;
+    align-items: stretch !important;
+    height: auto !important;
+    min-height: 100vh;
+    overflow: auto;
+  }
+  .mast {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 0 4px 8px;
+    border-bottom: 1px solid #181835;
+  }
+  .mast .left { display: flex; align-items: baseline; gap: 12px; }
+  .mast h1 {
+    font-family: 'SF Mono','Menlo','Courier New',monospace;
+    font-weight: 700; font-size: 14px; color: #fff; letter-spacing: 1.5px;
+  }
+  .mast .badge {
+    font-size: 8px; background: #00d4ff22; color: #00d4ff;
+    padding: 2px 6px; border-radius: 10px; letter-spacing: 1px;
+  }
+  .mast .meta {
+    font-family: 'SF Mono','Menlo','Courier New',monospace;
+    font-size: 9px; color: #556; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .mast .meta b { color: #cce; font-weight: 500; }
+
+  #stage-frame {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    background: #06060c;
+    border: 1px solid #181835;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    min-height: 320px;
+    height: 56vh;
+  }
+  canvas#game {
+    display: block;
+    background: #04040a;
+    border: 1px solid #181835;
+    border-radius: 6px;
+    box-shadow: 0 0 50px #00d4ff05, 0 6px 25px #00000070;
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    object-fit: contain;
+  }
+  #stage-hud {
+    position: absolute; inset: 0; pointer-events: none;
+    font-family: 'SF Mono','Menlo','Courier New',monospace;
+    font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: rgba(160,180,200,0.55);
+  }
+  #stage-hud .crn { position: absolute; padding: 14px 18px; }
+  #stage-hud .tl { top: 0; left: 0; }
+  #stage-hud .tr { top: 0; right: 0; text-align: right; }
+  #stage-hud .bl { bottom: 0; left: 0; }
+  #stage-hud .br { bottom: 0; right: 0; text-align: right; }
+  #stage-hud .lab { color: #455; }
+  #stage-hud .v   { color: #0ee; font-size: 10px; letter-spacing: 1.4px; display: block; margin-top: 2px; }
+  #stage-hud .v.ref { color: #f93; }
+
+  /* Variant rail — the lab's spine */
+  .variant-rail {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .vtab {
+    background: #0a0a16;
+    border: 1px solid #181835;
+    border-radius: 6px;
+    padding: 10px 12px 9px;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'SF Mono','Menlo','Courier New',monospace;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .vtab:hover { border-color: #2a2a4a; }
+  .vtab.on { border-color: #00c0e0; background: #0a121e; }
+  .vtab .k {
+    font-size: 8px; color: #556; letter-spacing: 1.5px;
+  }
+  .vtab.on .k { color: #00c0e0; }
+  .vtab .n {
+    display: block; font-size: 11px; font-weight: 700; color: #cce;
+    letter-spacing: 1px; margin-top: 3px; text-transform: uppercase;
+  }
+  .vtab.on .n { color: #fff; }
+  .vtab .l {
+    display: block; font-size: 8.5px; color: #667; letter-spacing: 0.4px;
+    margin-top: 3px; font-style: italic;
+  }
+  @media (max-width: 1100px) { .variant-rail { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px)  { .variant-rail { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Blurb + controls strip */
+  .strip {
+    display: flex; align-items: center; gap: 18px;
+    background: #0a0a16;
+    border: 1px solid #181835;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-family: 'SF Mono','Menlo','Courier New',monospace;
+  }
+  .strip .blurb {
+    flex: 1 1 auto; min-width: 0;
+    font-size: 10px; color: #99a4b0; letter-spacing: 0.4px; line-height: 1.5;
+  }
+  .strip .blurb b { color: #e8ecf0; font-weight: 500; }
+  .strip .controls { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+  .strip button {
+    background: #0c0c18; color: #8ac; border: 1px solid #1a1a3a;
+    padding: 6px 11px; font-size: 9px; letter-spacing: 1.2px; border-radius: 4px;
+    font-family: inherit; text-transform: uppercase; cursor: pointer;
+  }
+  .strip button:hover { border-color: #2a2a4a; color: #cce; }
+  .strip button:active, .strip button.held { background: #00c0e0; color: #04040a; border-color: #00c0e0; }
+  .strip button:disabled { opacity: 0.3; cursor: default; }
+  .strip label { font-size: 9px; color: #556; letter-spacing: 1px; text-transform: uppercase; }
+  .strip input[type=range] { width: 110px; accent-color: #00c0e0; }
+  .strip .kbd {
+    font-size: 8px; color: #445; letter-spacing: 0.6px; white-space: nowrap;
+  }
+  .strip .kbd b { color: #667; border: 1px solid #1a1a3a; border-radius: 3px; padding: 1px 4px; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="mast">
+  <div class="left">
+    <h1>SKYLINE LAB</h1>
+    <span class="badge">LAB 37 · ITERATIVE</span>
+  </div>
+  <div class="meta">
+    Baseline <b>FD.drawFarCity (untouched)</b> · Variants <b>lab-local SKY.*</b> · Contract <b>640px tile · 0.6x back parallax</b>
+  </div>
+</div>
+
+<div id="stage-frame">
+  <canvas id="game"></canvas>
+  <div id="stage-hud">
+    <div class="crn tl">
+      <div class="lab">Variant</div>
+      <div class="v" id="hudVar">V0 — CURRENT</div>
+    </div>
+    <div class="crn tr">
+      <div class="lab">Lane</div>
+      <div class="v" id="hudLane">shipping baseline</div>
+    </div>
+    <div class="crn bl">
+      <div class="lab">Seed</div>
+      <div class="v" id="hudSeed">—</div>
+    </div>
+    <div class="crn br">
+      <div class="lab">FPS</div>
+      <div class="v" id="hudFps">60</div>
+    </div>
+  </div>
+</div>
+
+<div class="strip">
+  <div class="blurb" id="blurb"></div>
+  <div class="controls">
+    <label>Scroll <input type="range" id="speed" min="0" max="3" step="0.1" value="0.8"></label>
+    <button id="btnFrame">FRAME: CITY</button>
+    <button id="btnPause">PAUSE</button>
+    <button id="btnReroll">REROLL</button>
+    <button id="btnCompare">HOLD = V0</button>
+    <span class="kbd"><b>0–6</b> variant · <b>F</b> frame · <b>C</b> compare · <b>R</b> reroll · <b>SPC</b> pause</span>
+  </div>
+</div>
+
+<div class="variant-rail" id="rail"></div>
+
+<!-- FD globals for config.js / buildings.js -->
+<script>
+  window.FD = {
+    ctx: null, W: 1138, H: 640, GROUND_H: 90,
+    particles: [], fireworks: [], pickups: [],
+    nukeActive: false, nukeStart: 0, nukeGx: 569, nukeGy: 550,
+    nukeDustTriggered: false,
+    screenShake: 0, globalTick: 0,
+    auroraIntensity: 0
+  };
+</script>
+<script src="../js/config.js"></script>
+<script src="../js/buildings.js"></script>
+<script>
+/* ============================================================
+   SKYLINE LAB — iterative city-background directions.
+   V0 renders the SHIPPING skyline via FD.drawFarCity, untouched.
+   V1–V5 are fully lab-local (SKY.*): same tile / parallax
+   contract as buildings.js so a winning direction ports
+   mechanically. No game file is modified by this lab.
+   ============================================================ */
+(() => {
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const dpr = Math.min(2, window.devicePixelRatio || 1);
+const T = 640;                       // FD.FAR_TILE_W contract
+
+/* ===== Viewport (widescreen, fit to frame) ===== */
+function applyViewport() {
+  const fr = document.getElementById('stage-frame').getBoundingClientRect();
+  let H = Math.min(760, fr.height - 24);
+  let W = H * 16 / 9;
+  if (W > fr.width - 24) { W = fr.width - 24; H = W * 9 / 16; }
+  W = Math.round(W); H = Math.round(H);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  FD.W = W; FD.H = H;
+  FD.GROUND_H = Math.round(H * 0.16);
+  FD.ctx = ctx;
+  regenStars();
+}
+window.addEventListener('resize', applyViewport);
+
+/* ===== Deterministic PRNG (mulberry32) ===== */
+function prng(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ===== Shared scenery (identical across variants — honest A/B) ===== */
+let stars = [];
+function regenStars() {
+  const r = prng(424242);
+  stars = Array.from({ length: Math.round(FD.W * 0.09) }, () => ({
+    x: r() * FD.W, y: r() * FD.H * 0.55,
+    r: r() * 1.1 + 0.3, phase: r() * Math.PI * 2
+  }));
+}
+function drawSky() {
+  const gy = FD.H - FD.GROUND_H;
+  const sg = ctx.createLinearGradient(0, 0, 0, gy);
+  sg.addColorStop(0, '#040616');
+  sg.addColorStop(1, '#100a14');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, 0, FD.W, gy);
+  for (const s of stars) {
+    const tw = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(FD.globalTick * 0.02 + s.phase));
+    ctx.globalAlpha = 0.7 * tw;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(s.x | 0, s.y | 0, s.r, s.r);
+  }
+  ctx.globalAlpha = 1;
+  // Light-pollution horizon glow — shared by every variant (honest A/B),
+  // silhouettes the skyline so dark directions stay legible.
+  const glowH = gy * 0.30;
+  const hg = ctx.createLinearGradient(0, gy - glowH, 0, gy);
+  hg.addColorStop(0, 'hsla(265, 45%, 24%, 0)');
+  hg.addColorStop(0.65, 'hsla(265, 45%, 24%, 0.22)');
+  hg.addColorStop(1, 'hsla(280, 40%, 28%, 0.38)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, gy - glowH, FD.W, glowH);
+  const wg = ctx.createLinearGradient(0, gy - gy * 0.07, 0, gy);
+  wg.addColorStop(0, 'hsla(30, 60%, 30%, 0)');
+  wg.addColorStop(1, 'hsla(30, 60%, 30%, 0.20)');
+  ctx.fillStyle = wg;
+  ctx.fillRect(0, gy - gy * 0.07, FD.W, gy * 0.07);
+}
+
+/* ===== Shared draw helpers ===== */
+const gy = () => FD.H - FD.GROUND_H;
+function tileLoop(scroll, mult, fn) {
+  const off = (((scroll * mult) % T) + T) % T;
+  for (let to = -T; to < FD.W + T; to += T) fn(to - off);
+}
+// Building body + optional per-window paint
+function body(bx, top, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(bx, top, w, h);
+}
+// Pixel glyph painter (FD.PX 5x5 font)
+function glyph(ch, x, y, scale, color, alpha) {
+  const rows = FD.PX[ch]; if (!rows) return;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  for (let r = 0; r < 5; r++)
+    for (let c = 0; c < 5; c++)
+      if ((rows[r] >> (4 - c)) & 1) ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+  ctx.globalAlpha = 1;
+}
+
+/* ============================================================
+   VARIANTS
+   Each: { key, name, lane, blurb, gen(seed) -> model, draw(model, scroll) }
+   Heights are fractions of (H - GROUND_H) so every viewport scales.
+   ============================================================ */
+const AMBER = '255,200,55';
+const SKY_VARIANTS = [];
+
+/* ----- V0 — CURRENT (shipping renderer, untouched) ----- */
+SKY_VARIANTS.push({
+  key: 'V0', name: 'Current', lane: 'shipping baseline',
+  blurb: '<b>The skyline as shipped</b> — FD.drawFarCity straight from buildings.js. Untouched reference every other variant is judged against.',
+  gen: () => ({}),
+  draw: (m, scroll) => { FD.drawFarCity(scroll); }
+});
+
+/* ----- V1 — DEPTH STACK (atmospheric perspective) ----- */
+SKY_VARIANTS.push({
+  key: 'V1', name: 'Depth Stack', lane: 'BR2049 fog tiers',
+  blurb: '<b>Three tiers instead of two.</b> A new far slab tier sits in haze behind everything (0.35x scroll), silhouettes get setbacks and shoulders, and windows cluster into lit floors instead of random scatter. Atmospheric perspective: each tier lifts toward the sky colour.',
+  gen(seed) {
+    const r = prng(seed);
+    const far = [], back = [], front = [];
+    // far slabs — wide, no windows
+    let x = 0;
+    while (x < T) {
+      const w = 50 + r() * 90;
+      far.push({ x, w: Math.min(w, T - x), hf: 0.30 + r() * 0.22 });
+      x += w + 4 + r() * 20;
+    }
+    // back — setback towers
+    x = 2;
+    while (x < T - 20) {
+      const w = 16 + r() * 18;
+      const hf = 0.16 + r() * 0.34;
+      const setbacks = r() < 0.45 ? 1 + (r() < 0.3 ? 1 : 0) : 0;
+      // lit floors: pick 1-3 row bands
+      const floors = [];
+      const nf = 1 + Math.floor(r() * 3);
+      for (let i = 0; i < nf; i++) floors.push(r());
+      back.push({ x, w, hf, setbacks, floors, sh: r() });
+      x += w + 4 + r() * 14;
+    }
+    // front — short, dense, dark
+    x = 0;
+    while (x < T - 14) {
+      const w = 14 + r() * 16;
+      front.push({ x, w, hf: 0.05 + r() * 0.13, lit: r() < 0.4, ly: r() });
+      x += w + 2 + r() * 8;
+    }
+    return { far, back, front };
+  },
+  draw(m, scroll) {
+    const G = gy(), HH = G;
+    // far tier — haze-lifted slabs
+    tileLoop(scroll, 0.35, (ox) => {
+      for (const b of m.far) {
+        const h = b.hf * HH, top = G - h;
+        body(b.x + ox, top, b.w, h, '#0d0c22');
+      }
+    });
+    // haze band over far tier
+    const hz = ctx.createLinearGradient(0, G - HH * 0.5, 0, G);
+    hz.addColorStop(0, 'rgba(16,10,20,0)');
+    hz.addColorStop(1, 'rgba(24,16,34,0.85)');
+    ctx.fillStyle = hz;
+    ctx.fillRect(0, G - HH * 0.5, FD.W, HH * 0.5);
+    // back tier — setback towers + lit floors
+    tileLoop(scroll, 0.6, (ox) => {
+      for (const b of m.back) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#080818');
+        // setback shoulders
+        for (let s = 0; s < b.setbacks; s++) {
+          const sw = b.w * (0.65 - s * 0.2);
+          const sh = h * (0.16 + s * 0.1);
+          body(bx + (b.w - sw) / 2, top - sh, sw, sh, '#080818');
+        }
+        // clustered lit floors
+        for (const f of b.floors) {
+          const fy = top + 6 + f * (h - 14);
+          ctx.fillStyle = `rgba(${AMBER},0.42)`;
+          for (let wx = bx + 2; wx < bx + b.w - 3; wx += 5)
+            ctx.fillRect(wx, fy, 2, 3);
+        }
+      }
+    });
+    // front tier — near-black silhouette, sparse single lights
+    tileLoop(scroll, 1.0, (ox) => {
+      for (const b of m.front) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#0e0e24');
+        if (b.lit) {
+          ctx.fillStyle = `rgba(${AMBER},0.4)`;
+          ctx.fillRect(bx + 3 + b.ly * (b.w - 8), top + 4 + b.ly * (h - 10), 3, 4);
+        }
+      }
+    });
+  }
+});
+
+/* ----- V2 — DECO CROWNS (Metropolis ziggurats) ----- */
+SKY_VARIANTS.push({
+  key: 'V2', name: 'Deco Crowns', lane: 'Metropolis deco',
+  blurb: '<b>Stepped ziggurat crowns and mast spires.</b> Tall-thin deco towers with 2–3 crown tiers, warm edge light along each step, vertical window ribbons running full height. Front row stays low so the crowns own the sky.',
+  gen(seed) {
+    const r = prng(seed);
+    const back = [], front = [];
+    let x = 4;
+    while (x < T - 26) {
+      const w = 18 + r() * 16;
+      const hf = 0.22 + r() * 0.36;
+      back.push({
+        x, w, hf,
+        tiers: 2 + (r() < 0.5 ? 1 : 0),
+        spire: r() < 0.55,
+        ribbons: 2 + Math.floor(r() * 2),
+        ribLit: r(),
+        lantern: r() < 0.18
+      });
+      x += w + 10 + r() * 22;
+    }
+    x = 0;
+    while (x < T - 14) {
+      const w = 16 + r() * 18;
+      front.push({ x, w, hf: 0.06 + r() * 0.12, corner: r() < 0.5 });
+      x += w + 3 + r() * 9;
+    }
+    return { back, front };
+  },
+  draw(m, scroll) {
+    const G = gy(), HH = G;
+    tileLoop(scroll, 0.6, (ox) => {
+      for (const b of m.back) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#0b0b1f');
+        // faint edge lines so the tower bodies hold against the sky
+        ctx.fillStyle = 'rgba(60,60,110,0.22)';
+        ctx.fillRect(bx, top, 1, h);
+        ctx.fillRect(bx + b.w - 1, top, 1, h);
+        // crown tiers
+        let cw = b.w, cy = top;
+        for (let t2 = 0; t2 < b.tiers; t2++) {
+          cw *= 0.68;
+          const th = Math.max(5, h * 0.07);
+          cy -= th;
+          body(bx + (b.w - cw) / 2, cy, cw, th, '#0b0b1d');
+          // warm edge light on each step
+          ctx.fillStyle = `rgba(${AMBER},0.5)`;
+          ctx.fillRect(bx + (b.w - cw) / 2, cy, cw, 1);
+        }
+        // spire
+        if (b.spire) {
+          const sx = bx + b.w / 2;
+          const sh = h * 0.14;
+          ctx.fillStyle = '#11112a';
+          ctx.fillRect(sx - 1, cy - sh, 2, sh);
+          ctx.fillStyle = `rgba(${AMBER},0.85)`;
+          ctx.fillRect(sx - 0.5, cy - sh - 2, 1.5, 2);
+        }
+        // vertical window ribbons
+        for (let rb = 0; rb < b.ribbons; rb++) {
+          const rx = bx + 3 + (rb + 0.5) * ((b.w - 6) / b.ribbons);
+          const litTo = top + 8 + b.ribLit * (h - 20);
+          ctx.fillStyle = `rgba(${AMBER},0.22)`;
+          ctx.fillRect(rx, top + 6, 1.6, h - 12);
+          ctx.fillStyle = `rgba(${AMBER},0.45)`;
+          ctx.fillRect(rx, litTo, 1.6, Math.min(14, G - litTo - 4));
+        }
+        // lantern roof halo
+        if (b.lantern) {
+          const lx = bx + b.w / 2;
+          const lg = ctx.createRadialGradient(lx, cy, 0, lx, cy, b.w * 1.4);
+          lg.addColorStop(0, `rgba(${AMBER},0.16)`);
+          lg.addColorStop(1, `rgba(${AMBER},0)`);
+          ctx.fillStyle = lg;
+          ctx.beginPath(); ctx.arc(lx, cy, b.w * 1.4, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    });
+    tileLoop(scroll, 1.0, (ox) => {
+      for (const b of m.front) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#0e0e24');
+        if (b.corner) body(bx + b.w - 5, top - 4, 5, 4, '#0e0e24');
+        ctx.fillStyle = `rgba(${AMBER},0.06)`;
+        for (let wx = bx + 3; wx < bx + b.w - 4; wx += 6)
+          for (let wy = top + 5; wy < G - 6; wy += 9)
+            ctx.fillRect(wx, wy, 3, 4);
+      }
+    });
+  }
+});
+
+/* ----- V3 — MEGASPINE (distant supertall cluster) ----- */
+SKY_VARIANTS.push({
+  key: 'V3', name: 'Megaspine', lane: 'GitS megastructure',
+  blurb: '<b>One monumental supertall cluster per tile</b> — sky bridges strung between towers, aviation beacons blinking out of phase, horizontal haze bands slicing the upper floors. Low filler rows keep the spine reading as a distant monument.',
+  gen(seed) {
+    const r = prng(seed);
+    const spineX = 80 + r() * (T - 260);
+    const spine = [];
+    const n = 3 + Math.floor(r() * 2);
+    let sx = spineX;
+    for (let i = 0; i < n; i++) {
+      const w = 26 + r() * 22;
+      spine.push({ x: sx, w, hf: 0.42 + r() * 0.20, seam: r() < 0.7, ph: r() * 6.28 });
+      sx += w + 8 + r() * 16;
+    }
+    // bridges between adjacent spine towers
+    const bridges = [];
+    for (let i = 0; i < spine.length - 1; i++) {
+      const nb = 1 + (r() < 0.5 ? 1 : 0);
+      for (let k = 0; k < nb; k++) bridges.push({ a: i, b: i + 1, t: 0.25 + r() * 0.45 });
+    }
+    const back = [], front = [];
+    let x = 0;
+    while (x < T - 16) {
+      const w = 15 + r() * 16;
+      back.push({ x, w, hf: 0.10 + r() * 0.16, lit: r() });
+      x += w + 3 + r() * 10;
+    }
+    x = 0;
+    while (x < T - 14) {
+      const w = 14 + r() * 15;
+      front.push({ x, w, hf: 0.04 + r() * 0.10 });
+      x += w + 2 + r() * 8;
+    }
+    return { spine, bridges, back, front };
+  },
+  draw(m, scroll) {
+    const G = gy(), HH = G;
+    // spine cluster — slowest parallax (0.3x), monumental
+    tileLoop(scroll, 0.3, (ox) => {
+      for (const b of m.spine) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#12102c');
+        // sparse distant window dots
+        ctx.fillStyle = 'rgba(150,170,220,0.13)';
+        for (let wy = top + 8; wy < G - 10; wy += 11)
+          for (let wx = bx + 3; wx < bx + b.w - 3; wx += 7)
+            if (FD.windowHash(b.x | 0, wx | 0, wy | 0) > 0.7) ctx.fillRect(wx, wy, 1.5, 2);
+        // vertical light seam
+        if (b.seam) {
+          ctx.fillStyle = 'rgba(120,180,255,0.18)';
+          ctx.fillRect(bx + b.w / 2 - 0.5, top + 4, 1, h - 8);
+        }
+        // aviation beacon — slow asynchronous blink
+        const blink = Math.sin(FD.globalTick * 0.035 + b.ph) > 0.55;
+        ctx.fillStyle = blink ? 'rgba(255,40,30,0.9)' : 'rgba(255,40,30,0.12)';
+        ctx.beginPath(); ctx.arc(bx + b.w / 2, top - 3, 2, 0, Math.PI * 2); ctx.fill();
+        if (blink) {
+          ctx.fillStyle = 'rgba(255,40,30,0.10)';
+          ctx.beginPath(); ctx.arc(bx + b.w / 2, top - 3, 6, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // sky bridges
+      for (const br of m.bridges) {
+        const a = m.spine[br.a], b2 = m.spine[br.b];
+        const ah = a.hf * HH, bh = b2.hf * HH;
+        const y = G - Math.min(ah, bh) * (1 - br.t) - Math.min(ah, bh) * br.t * 0.2;
+        const x1 = a.x + ox + a.w - 1, x2 = b2.x + ox + 1;
+        body(x1, y, x2 - x1, 3, '#0d0c24');
+        ctx.fillStyle = `rgba(${AMBER},0.25)`;
+        for (let lx = x1 + 2; lx < x2 - 2; lx += 5) ctx.fillRect(lx, y + 1, 2, 1);
+      }
+    });
+    // haze bands slicing the spine
+    for (let hb = 0; hb < 2; hb++) {
+      const y = G - HH * (0.34 + hb * 0.17);
+      const g = ctx.createLinearGradient(0, y - 9, 0, y + 9);
+      g.addColorStop(0, 'rgba(16,12,26,0)');
+      g.addColorStop(0.5, 'rgba(22,16,36,0.38)');
+      g.addColorStop(1, 'rgba(16,12,26,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - 9, FD.W, 18);
+    }
+    // filler rows
+    tileLoop(scroll, 0.6, (ox) => {
+      for (const b of m.back) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#080818');
+        ctx.fillStyle = `rgba(${AMBER},0.28)`;
+        ctx.fillRect(bx + 2 + b.lit * (b.w - 6), top + 4 + b.lit * (h - 10), 2, 3);
+      }
+    });
+    tileLoop(scroll, 1.0, (ox) => {
+      for (const b of m.front)
+        body(b.x + ox, G - b.hf * HH, b.w, b.hf * HH, '#0e0e24');
+    });
+  }
+});
+
+/* ----- V4 — SIGNAL DISTRICT (neon strata) ----- */
+SKY_VARIANTS.push({
+  key: 'V4', name: 'Signal District', lane: 'Kowloon neon stratum',
+  blurb: '<b>The city as a signal field.</b> Districts get colour zones (amber majority, cyan and magenta pockets), billboard strips with real pixel-font letters burn on the facades, one holo ring pulses over a rooftop. Front row goes near-black so the signal layer floats.',
+  gen(seed) {
+    const r = prng(seed);
+    const WORDS = ['ZENA', 'NOVA', 'DRONE', 'TONK', 'RUSH', 'NEON'];
+    const DISTRICTS = [
+      { c: AMBER, p: 0.6 },
+      { c: '80,220,255', p: 0.25 },
+      { c: '255,80,200', p: 0.15 }
+    ];
+    const back = [], front = [];
+    let x = 2, holoSet = false;
+    while (x < T - 20) {
+      const w = 17 + r() * 19;
+      const hf = 0.14 + r() * 0.30;
+      const dr = r();
+      const district = dr < 0.6 ? 0 : dr < 0.85 ? 1 : 2;
+      const board = r() < 0.38 ? {
+        word: WORDS[Math.floor(r() * WORDS.length)],
+        t: 0.2 + r() * 0.5, ph: r() * 6.28
+      } : null;
+      const holo = !holoSet && r() < 0.12 ? (holoSet = true, { ph: r() * 6.28 }) : null;
+      back.push({ x, w, hf, district, board, holo, wseed: Math.floor(r() * 9999) });
+      x += w + 4 + r() * 12;
+    }
+    x = 0;
+    while (x < T - 14) {
+      const w = 15 + r() * 16;
+      front.push({ x, w, hf: 0.05 + r() * 0.11 });
+      x += w + 2 + r() * 7;
+    }
+    return { back, front, DISTRICTS };
+  },
+  draw(m, scroll) {
+    const G = gy(), HH = G;
+    tileLoop(scroll, 0.6, (ox) => {
+      for (const b of m.back) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        const dc = m.DISTRICTS[b.district].c;
+        body(bx, top, b.w, h, '#080818');
+        // district-tinted windows
+        for (let wy = top + 5; wy < G - 7; wy += 8) {
+          for (let wx = bx + 2; wx < bx + b.w - 3; wx += 5) {
+            const on = FD.windowHash(b.wseed, wx | 0, wy | 0) > 0.55;
+            ctx.fillStyle = on ? `rgba(${dc},0.34)` : `rgba(${dc},0.03)`;
+            ctx.fillRect(wx, wy, 2, 3);
+          }
+        }
+        // billboard strip with pixel letters
+        if (b.board) {
+          const by = top + b.board.t * (h - 14);
+          const flick = Math.sin(FD.globalTick * 0.05 + b.board.ph) > -0.8 ? 1 : 0.25;
+          ctx.fillStyle = `rgba(${dc},${0.13 * flick})`;
+          ctx.fillRect(bx - 1, by - 2, b.w + 2, 11);
+          const sc = 1.2;
+          const word = b.board.word;
+          const tw = word.length * 6 * sc;
+          let gx2 = bx + (b.w - tw) / 2;
+          for (const ch of word) {
+            glyph(ch, gx2, by, sc, `rgb(${dc})`, 0.8 * flick);
+            gx2 += 6 * sc;
+          }
+        }
+        // holo ring above one rooftop
+        if (b.holo) {
+          const pulse = 0.5 + 0.5 * Math.sin(FD.globalTick * 0.04 + b.holo.ph);
+          const hx = bx + b.w / 2, hy = top - 10 - pulse * 4;
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+          ctx.strokeStyle = `rgba(80,220,255,${0.22 + pulse * 0.25})`;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.ellipse(hx, hy, b.w * 0.55 + pulse * 3, 3.2 + pulse, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    });
+    tileLoop(scroll, 1.0, (ox) => {
+      for (const b of m.front)
+        body(b.x + ox, G - b.hf * HH, b.w, b.hf * HH, '#0c0c1f');
+    });
+  }
+});
+
+/* ----- V5 — ANTENNA FOREST (lived-in retrofit) ----- */
+SKY_VARIANTS.push({
+  key: 'V5', name: 'Antenna Forest', lane: 'retrofit rooftop grit',
+  blurb: '<b>The roofline tells the story.</b> Notched parapets, water towers on stilts, antenna clusters with blinking LEDs, one crane arm per tile, and catenary cables sagging between adjacent roofs with tiny lamps strung along them.',
+  gen(seed) {
+    const r = prng(seed);
+    const back = [], front = [];
+    let x = 3;
+    while (x < T - 22) {
+      const w = 18 + r() * 20;
+      const hf = 0.13 + r() * 0.30;
+      back.push({
+        x, w, hf,
+        notch: r() < 0.5 ? { o: r(), w: 0.2 + r() * 0.25 } : null,
+        water: r() < 0.30,
+        masts: r() < 0.6 ? 1 + Math.floor(r() * 3) : 0,
+        mph: r() * 6.28,
+        wseed: Math.floor(r() * 9999)
+      });
+      x += w + 4 + r() * 11;
+    }
+    // crane on one back building per tile
+    const crane = { i: Math.floor(r() * Math.max(1, back.length - 2)) + 1, dir: r() < 0.5 ? -1 : 1 };
+    // cables between adjacent roofs (skip wide gaps)
+    const cables = [];
+    for (let i = 0; i < back.length - 1; i++) {
+      const a = back[i], b2 = back[i + 1];
+      // close gap + similar roof heights, so cables sag instead of arching
+      if (b2.x - (a.x + a.w) < 26 && Math.abs(a.hf - b2.hf) < 0.10 && r() < 0.6)
+        cables.push({ a: i, b: i + 1, sag: 6 + r() * 9, lamps: r() < 0.5 });
+    }
+    x = 0;
+    while (x < T - 14) {
+      const w = 15 + r() * 15;
+      front.push({ x, w, hf: 0.05 + r() * 0.10, ac: r() < 0.3 });
+      x += w + 2 + r() * 8;
+    }
+    return { back, front, crane, cables };
+  },
+  draw(m, scroll) {
+    const G = gy(), HH = G;
+    tileLoop(scroll, 0.6, (ox) => {
+      m.back.forEach((b, i) => {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#080818');
+        // notched parapet
+        if (b.notch) {
+          const nw = b.notch.w * b.w, nx = bx + b.notch.o * (b.w - nw);
+          ctx.fillStyle = '#04040a';
+          ctx.fillRect(nx, top, nw, 3);
+        }
+        // sparse warm windows
+        for (let wy = top + 6; wy < G - 8; wy += 9) {
+          for (let wx = bx + 3; wx < bx + b.w - 4; wx += 6) {
+            const on = FD.windowHash(b.wseed, wx | 0, wy | 0) > 0.62;
+            ctx.fillStyle = on ? `rgba(${AMBER},0.42)` : `rgba(${AMBER},0.03)`;
+            ctx.fillRect(wx, wy, 2, 3);
+          }
+        }
+        // water tower
+        if (b.water) {
+          const wx2 = bx + b.w * 0.28, wy2 = top - 9;
+          ctx.fillStyle = '#0d0d20';
+          ctx.fillRect(wx2, wy2, 7, 6);                     // tank
+          ctx.beginPath();                                   // conical cap
+          ctx.moveTo(wx2 - 1, wy2); ctx.lineTo(wx2 + 3.5, wy2 - 3.5); ctx.lineTo(wx2 + 8, wy2);
+          ctx.fill();
+          ctx.fillRect(wx2 + 1, wy2 + 6, 1, 3);             // legs
+          ctx.fillRect(wx2 + 5, wy2 + 6, 1, 3);
+        }
+        // antenna masts with blinking LEDs
+        for (let a2 = 0; a2 < b.masts; a2++) {
+          const ax = bx + b.w * (0.55 + a2 * 0.16);
+          const ah = 6 + ((a2 * 37 + b.wseed) % 9);
+          ctx.fillStyle = '#1a1a30';
+          ctx.fillRect(ax, top - ah, 1, ah);
+          const on = Math.sin(FD.globalTick * 0.045 + b.mph + a2 * 2.1) > 0.5;
+          ctx.fillStyle = on ? 'rgba(255,60,40,0.85)' : 'rgba(255,60,40,0.08)';
+          ctx.fillRect(ax - 0.5, top - ah - 2, 2, 2);
+        }
+        // crane
+        if (i === m.crane.i) {
+          const cx2 = bx + b.w / 2, cy2 = top - h * 0.32;
+          ctx.strokeStyle = '#161630';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(cx2, top); ctx.lineTo(cx2, cy2);                       // tower
+          ctx.moveTo(cx2 - 8 * m.crane.dir, cy2 + 4);
+          ctx.lineTo(cx2 + 26 * m.crane.dir, cy2);                          // jib
+          ctx.stroke();
+          ctx.strokeStyle = '#121228';
+          ctx.beginPath();
+          ctx.moveTo(cx2 + 22 * m.crane.dir, cy2 + 0.5);
+          ctx.lineTo(cx2 + 22 * m.crane.dir, cy2 + 12);                     // hoist line
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255,60,40,0.7)';
+          ctx.fillRect(cx2 - 1, cy2 - 2, 2, 2);                             // tip LED
+        }
+      });
+      // catenary cables + lamps
+      for (const c of m.cables) {
+        const a = m.back[c.a], b2 = m.back[c.b];
+        const x1 = a.x + ox + a.w - 2, y1 = G - a.hf * HH + 2;
+        const x2 = b2.x + ox + 2, y2 = G - b2.hf * HH + 2;
+        const mx = (x1 + x2) / 2, my = Math.max(y1, y2) + c.sag;
+        ctx.strokeStyle = 'rgba(40,40,70,0.8)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(mx, my, x2, y2);
+        ctx.stroke();
+        if (c.lamps) {
+          ctx.fillStyle = `rgba(${AMBER},0.55)`;
+          for (const t2 of [0.3, 0.5, 0.7]) {
+            const qx = (1 - t2) * (1 - t2) * x1 + 2 * (1 - t2) * t2 * mx + t2 * t2 * x2;
+            const qy = (1 - t2) * (1 - t2) * y1 + 2 * (1 - t2) * t2 * my + t2 * t2 * y2;
+            ctx.fillRect(qx - 0.5, qy, 1.2, 1.2);
+          }
+        }
+      }
+    });
+    tileLoop(scroll, 1.0, (ox) => {
+      for (const b of m.front) {
+        const h = b.hf * HH, top = G - h, bx = b.x + ox;
+        body(bx, top, b.w, h, '#0e0e24');
+        if (b.ac) body(bx + b.w * 0.3, top - 3, 5, 3, '#0b0b1c');
+      }
+    });
+  }
+});
+
+/* ----- V6 — CURRENT · REFRESH (faithful re-cut through the og renderer) ----- */
+SKY_VARIANTS.push({
+  key: 'V6', name: 'Current · Refresh', lane: 'faithful re-cut',
+  blurb: '<b>The shipping skyline, regenerated — not restyled.</b> Rendered by the untouched FD.drawFarCity itself; only the building DATA is new, in the exact farBuildings schema: composed height rhythm with landmark talls and cluster gaps instead of the sine-wave formula, og width grain, one Z-Tower, identical window recipe (incl. EMP die/relight fields). Port = swap the generation block in config.js.',
+  gen(seed) {
+    const r = prng(seed);
+    const buildings = [];
+    // --- back layer: composed silhouette, one Z-Tower landmark ---
+    const zx = 60 + r() * (T - 140);
+    let x = 2 + r() * 6, prevH = 50 + r() * 40;
+    let clusterLeft = 3 + Math.floor(r() * 3);   // buildings until next gap
+    while (x < T - 16) {
+      const w = 13 + Math.floor(r() * 5) * 3;    // 13–25 in the og step-3 grain
+      let h;
+      const roll = r();
+      if (roll < 0.14)      h = 26 + r() * 16;   // short
+      else if (roll < 0.74) h = 42 + r() * 36;   // mid
+      else if (roll < 0.94) h = 78 + r() * 36;   // tall
+      else                  h = 112 + r() * 24;  // landmark
+      // pull toward neighbour inside a cluster; free jump at gaps
+      h = clusterLeft > 0 ? h * 0.55 + prevH * 0.45 : h;
+      prevH = h;
+      const isZ = !buildings.some(b => b.zTower) && x >= zx;
+      buildings.push(isZ
+        ? { x, h: 152 + r() * 8, w: 19, layer: 'back', zTower: true }
+        : { x, h, w, layer: 'back' });
+      x += w + (clusterLeft-- > 0 ? 2 + r() * 6 : 14 + r() * 22);
+      if (clusterLeft < 0) clusterLeft = 2 + Math.floor(r() * 4);
+    }
+    if (!buildings.some(b => b.zTower)) {        // guarantee the landmark
+      const bb = buildings[Math.floor(buildings.length / 2)];
+      bb.zTower = true; bb.h = 152 + r() * 8; bb.w = 19;
+    }
+    // --- front layer: short dense rhythm, og grain ---
+    x = r() * 8;
+    while (x < T - 14) {
+      const w = 14 + Math.floor(r() * 6) * 2;    // 14–24 step 2
+      buildings.push({ x, h: 12 + r() * 34, w, layer: 'front' });
+      x += w + 2 + r() * 9;
+    }
+    // --- window pre-compute: exact config.js recipe (incl. EMP fields) ---
+    buildings.forEach((b, i) => {
+      b.wins = [];
+      b.lightOnTick = Math.floor(FD.windowHash(i * 31, 99, 77) * 180);
+      const isBack = b.layer === 'back';
+      const winW = isBack ? 2 : 3, winH = isBack ? 3 : 4;
+      const spX = isBack ? 5 : 6, spY = isBack ? 7 : 9;
+      const ws = i * 7919 + seed;
+      for (let wy = 4; wy < b.h - 5; wy += spY)
+        for (let wx = 2; wx < b.w - winW; wx += spX)
+          b.wins.push({
+            dx: wx, dy: wy,
+            on: FD.windowHash(ws, wx, wy) > 0.42,
+            die: 200 + FD.windowHash(ws + 1, wx, wy + 9) * 600,
+            relight: 8500 + FD.windowHash(ws + 2, wx, wy + 17) * 2000,
+            w: winW, h: winH
+          });
+    });
+    return { buildings };
+  },
+  draw(m, scroll) {
+    // swap the dataset under the og renderer, draw, restore — V0's code path
+    const orig = FD.farBuildings;
+    FD.farBuildings = m.buildings;
+    FD.drawFarCity(scroll);
+    FD.farBuildings = orig;
+  }
+});
+
+/* ============================================================
+   LAB STATE + LOOP
+   ============================================================ */
+const state = {
+  vi: 0, seed: 1337, scroll: 0, speed: 0.8,
+  paused: false, comparing: false, models: {},
+  frame: 'city'   // 'city' = camera on the skyline band · 'full' = whole sky
+};
+
+function model() {
+  const v = SKY_VARIANTS[state.vi];
+  const k = v.key + ':' + state.seed;
+  if (!state.models[k]) state.models[k] = v.gen(state.seed);
+  return state.models[k];
+}
+
+function setVariant(i) {
+  state.vi = i;
+  const v = SKY_VARIANTS[i];
+  document.querySelectorAll('.vtab').forEach((el, k) => el.classList.toggle('on', k === i));
+  document.getElementById('hudVar').textContent = v.key + ' — ' + v.name.toUpperCase();
+  document.getElementById('hudLane').textContent = v.lane;
+  document.getElementById('hudSeed').textContent = i === 0 ? '—' : '#' + state.seed;
+  document.getElementById('blurb').innerHTML = v.blurb +
+    ' <span style="color:#445">· port path: same 640px tile + 0.6x back parallax as buildings.js</span>';
+  document.getElementById('btnReroll').disabled = (i === 0);
+}
+
+/* rail */
+const rail = document.getElementById('rail');
+SKY_VARIANTS.forEach((v, i) => {
+  const b = document.createElement('button');
+  b.className = 'vtab';
+  b.innerHTML = `<span class="k">${v.key}</span><span class="n">${v.name}</span><span class="l">${v.lane}</span>`;
+  b.addEventListener('click', () => setVariant(i));
+  rail.appendChild(b);
+});
+
+/* controls */
+document.getElementById('speed').addEventListener('input', e => state.speed = +e.target.value);
+document.getElementById('btnFrame').addEventListener('click', () => {
+  state.frame = state.frame === 'city' ? 'full' : 'city';
+  document.getElementById('btnFrame').textContent = 'FRAME: ' + state.frame.toUpperCase();
+});
+document.getElementById('btnPause').addEventListener('click', () => {
+  state.paused = !state.paused;
+  document.getElementById('btnPause').textContent = state.paused ? 'PLAY' : 'PAUSE';
+});
+document.getElementById('btnReroll').addEventListener('click', () => {
+  state.seed = (state.seed * 16807 + 7) % 2147483647;
+  document.getElementById('hudSeed').textContent = '#' + state.seed;
+});
+const cmpBtn = document.getElementById('btnCompare');
+const setCompare = on => {
+  state.comparing = on;
+  cmpBtn.classList.toggle('held', on);
+  document.getElementById('hudVar').classList.toggle('ref', on);
+  if (on) document.getElementById('hudVar').textContent = 'V0 — REFERENCE';
+  else setVariant(state.vi);
+};
+cmpBtn.addEventListener('mousedown', () => setCompare(true));
+cmpBtn.addEventListener('mouseup', () => setCompare(false));
+cmpBtn.addEventListener('mouseleave', () => state.comparing && setCompare(false));
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.key >= '0' && e.key <= '6') setVariant(+e.key);
+  else if (e.key === 'f' || e.key === 'F') document.getElementById('btnFrame').click();
+  else if (e.key === 'c' || e.key === 'C') setCompare(true);
+  else if (e.key === 'r' || e.key === 'R') state.vi && document.getElementById('btnReroll').click();
+  else if (e.key === ' ') { e.preventDefault(); document.getElementById('btnPause').click(); }
+});
+window.addEventListener('keyup', e => {
+  if (e.key === 'c' || e.key === 'C') setCompare(false);
+});
+
+/* fps */
+let fpsAcc = 0, fpsN = 0, fpsShown = 60, lastTs = performance.now();
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastTs) / 1000);
+  lastTs = now;
+  if (!state.paused) {
+    state.scroll += state.speed * dt * 60;
+    FD.globalTick++;
+  }
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc >= 0.5) {
+    fpsShown = Math.round(fpsN / fpsAcc);
+    document.getElementById('hudFps').textContent = fpsShown;
+    fpsAcc = 0; fpsN = 0;
+  }
+
+  drawSky();
+  // City-focus camera: zoom anchored at the ground-line centre so the
+  // skyline band fills the stage; sky/stars stay full-frame behind it.
+  const z = state.frame === 'city' ? 1.8 : 1;
+  ctx.save();
+  if (z !== 1) {
+    ctx.translate(FD.W / 2, gy());
+    ctx.scale(z, z);
+    ctx.translate(-FD.W / 2, -gy());
+  }
+  if (state.comparing) {
+    FD.drawFarCity(state.scroll);
+  } else {
+    SKY_VARIANTS[state.vi].draw(model(), state.scroll);
+  }
+  FD.drawGround((state.scroll % 24 + 24) % 24);
+  ctx.restore();
+
+  requestAnimationFrame(frame);
+}
+
+/* boot — re-apply sizing as the host panel settles (Launch preview,
+   split panes, late layout) and track the frame element directly */
+applyViewport();
+requestAnimationFrame(applyViewport);
+setTimeout(applyViewport, 300);
+if (window.ResizeObserver) {
+  let roT = 0;
+  new ResizeObserver(() => {
+    clearTimeout(roT);
+    roT = setTimeout(applyViewport, 80);
+  }).observe(document.getElementById('stage-frame'));
+}
+setVariant(0);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
