@@ -1,0 +1,29 @@
+{
+  "name": "zena-sticker-club",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ZENA FC — Sticker Club '26: a foil-pack unboxing & collection toy.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fontsource/anton": "^5.1.0",
+    "@fontsource/hanken-grotesk": "^5.1.0",
+    "@fontsource/space-mono": "^5.1.0",
+    "gsap": "^3.13.0",
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.171.0",
+    "sharp": "^0.33.5",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vite-imagetools": "^7.0.5",
+    "vitest": "^2.1.8"
+  }
+}

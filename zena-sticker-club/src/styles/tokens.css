@@ -1,0 +1,137 @@
+/* ===========================================================================
+   Design tokens + base. "Jeweller's vitrine": a dark, warm-charcoal stage so
+   the saturated red cards are the only loud thing on screen. One locked accent
+   per surface; rarity foil hues appear only post-reveal.
+   ======================================================================== */
+
+:root {
+  /* Stage / neutrals */
+  --stage-top: #0e0d12;
+  --stage-bottom: #16131a;
+  --ink: #f4f1ea;            /* warm off-white, never pure #fff */
+  --ink-dim: #a8a2b2;
+  --ink-faint: #8e889b;      /* clears WCAG AA (~5.5:1) for small labels on the stage */
+  --surface-frost: rgba(20, 18, 26, 0.72);
+  --surface-raise: rgba(255, 255, 255, 0.04);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --plinth: rgba(255, 255, 255, 0.03);
+
+  /* Brand (used sparingly) */
+  --panini-red: #e2231a;
+  --plate-violet: #5b2a86;
+  --gold-foil: #e8c56b;
+
+  /* Active rarity foil — overwritten per card via JS (--foil / --sheen / --glow).
+     Defaults to the Group "pewter" tier. */
+  --foil: #8a93a1;
+  --sheen: #c9d2de;
+  --glow: rgba(160, 175, 195, 0.45);
+  --holo-h1: 210;
+  --holo-h2: 190;
+  --holo-h3: 230;
+
+  /* Typography */
+  --font-display: 'Anton', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --fs-display-xl: clamp(2rem, 1.2rem + 3.4vw, 3.05rem);
+  --fs-display-l: clamp(1.45rem, 1rem + 1.8vw, 1.95rem);
+  --fs-h2: 0.76rem;
+  --fs-body: 1rem;
+  --fs-small: 0.82rem;
+  --fs-mono: 0.875rem;
+  --fs-counter: 1.2rem;
+
+  /* Spacing + shape */
+  --gutter: clamp(16px, 1rem + 1.6vw, 28px);
+  --r-card: 18px;
+  --r-panel: 16px;
+  --r-chip: 999px;
+  --r-slot: 10px;
+  --r-control: 12px;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 0.18s;
+  --dur-med: 0.32s;
+
+  /* Card sizing */
+  --card-w: clamp(248px, 26vw, 348px);
+  --card-aspect: 1089 / 1445;
+
+  /* Z layers (the WebGL canvas toggles its own z in JS between back/front) */
+  --z-fx-back: 2;
+  --z-stage: 20;
+  --z-binder: 30;
+  --z-panel: 40;
+  --z-fx-front: 55;
+  --z-header: 60;
+  --z-toast: 80;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--stage-bottom);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden; /* the toy owns the viewport; inner regions scroll */
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold-foil);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Screen-reader-only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

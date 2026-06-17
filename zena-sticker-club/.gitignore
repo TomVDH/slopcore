@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+.DS_Store
+assets/cards/looxas.zip
+
+# test / preview artifacts
+.playwright-mcp
+zena-*.jpeg
+zena-*.png
+*.log
+
+# local session tooling
+.remember
