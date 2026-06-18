@@ -24,8 +24,9 @@ the rip is satisfying, the reveal earns a smile, and the album makes you want th
 
 Premium-but-playful. Three words: irreverent, crafted, collectible. The voice is
 affectionate mock-Panini: the joke is always on Marcus the over-eager journeyman, never
-the nations. The interface should feel like a jeweller's vitrine presenting a silly
-object with a straight face, not a casino trying to extract a coin.
+the nations. The interface is a dark gallery wall ("Wall Text") that hangs a silly object
+and takes it completely seriously — museum wall-label deadpan, not a casino trying to
+extract a coin.
 
 ## Anti-references
 
@@ -38,8 +39,9 @@ object with a straight face, not a casino trying to extract a coin.
 
 ## Design Principles
 
-- **The card is the only loud thing.** The stage stays dark and reverent so the saturated
-  red sticker is the single point of colour; rarity hues appear only at the moment of reveal.
+- **The card is the only loud thing.** The chrome stays quiet — a flat gallery wall (dark by
+  default, light variant available) — so the saturated red sticker is the single point of
+  colour; rarity hues appear only at the moment of reveal.
 - **Earn the reveal, then get out of the way.** One orchestrated unboxing moment carries the
   delight; everything after settles into a calm, legible resting state.
 - **The sidebar is a museum placard.** Every lore block must add something the card image
@@ -52,6 +54,6 @@ object with a straight face, not a casino trying to extract a coin.
 
 WCAG AA contrast throughout. First-class `prefers-reduced-motion` path (instant cross-fade,
 no particles, no tilt, no idle motion). Full keyboard operation (rip, re-roll, album roving
-focus, sidebar dismiss), visible gold focus rings, rich per-card alt text, and an `aria-live`
+focus, sidebar dismiss), visible ultramarine focus rings, rich per-card alt text, and an `aria-live`
 announcer on every pull. Rarity is never conveyed by colour alone (always the tier name +
 odds). A future "reduce glare" toggle is noted for photosensitivity.
