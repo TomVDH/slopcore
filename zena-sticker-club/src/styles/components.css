@@ -1,0 +1,114 @@
+/* ===========================================================================
+   Reveal-sidebar internals. Each block earns its place by adding lore the card
+   image cannot. Foil hue tints only the tier ribbon + accents.
+   ======================================================================== */
+
+.panel__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 22px var(--gutter) 34px;
+}
+.panel__inner section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.panel__inner p {
+  margin: 0;
+}
+
+.tier-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--foil) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foil) 40%, transparent);
+}
+.tier-ribbon__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.tier-ribbon__odds {
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+}
+
+.panel__head {
+  gap: 4px;
+}
+.panel__nation {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-display-xl);
+  line-height: 0.96;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.decoded__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.32rem;
+  letter-spacing: 0;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.decoded__say {
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.stint__body {
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  padding: 5px 10px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--hairline-strong);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+}
+
+.statplate__line {
+  font-size: 0.95rem;
+  color: var(--sheen);
+  letter-spacing: 0.02em;
+}
+.statplate__note {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.panel__progress {
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+}
+.panel__progress-text {
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+}

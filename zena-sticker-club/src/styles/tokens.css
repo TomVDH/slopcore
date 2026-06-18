@@ -1,0 +1,163 @@
+/* ===========================================================================
+   Design tokens + base. "Wall Text": a flat, lights-down gallery the red cards
+   hang on. One rationed ultramarine accent; a faint coordinate grid +
+   registration crosshairs are the signature. Dark is canonical; a light token
+   set lives under [data-theme='light'] (the bright Kunsthalle-wall variant).
+   Rarity foil hues still appear only post-reveal (--foil / --sheen / --glow).
+   ======================================================================== */
+
+:root {
+  /* Stage / neutrals — flat, no spotlight (the grid is the texture) */
+  --stage-top: #131419;
+  --stage-bottom: #131419;
+  --ink: #eceae2;            /* warm off-white, never pure #fff */
+  --ink-dim: #9c9a92;        /* secondary body (~6.5:1 on the field) */
+  --ink-faint: #8c8a82;      /* small labels — clears WCAG AA (~5.3:1) */
+  --surface-frost: #1a1b21;  /* opaque label/panel stock (no glass) */
+  --surface-raise: rgba(255, 255, 255, 0.03);
+  --hairline: #2a2b31;
+  --hairline-strong: #34353c;
+  --plinth: rgba(255, 255, 255, 0.02);
+  --grid-line: rgba(255, 255, 255, 0.05);
+
+  /* Accent — the one rationed colour (the only filled control + registration) */
+  --accent: #5b86ff;
+  --accent-ink: #ffffff;
+  /* Legacy name kept so existing rules pick up the accent without edits. */
+  --gold-foil: var(--accent);
+
+  /* Brand (the card's own red — chrome never fills a surface with it) */
+  --panini-red: #e2231a;
+  --plate-violet: #5b2a86;
+
+  /* Active rarity foil — overwritten per card via JS (--foil / --sheen / --glow).
+     Defaults to the Group "pewter" tier. */
+  --foil: #8a93a1;
+  --sheen: #c9d2de;
+  --glow: rgba(160, 175, 195, 0.45);
+  --holo-h1: 210;
+  --holo-h2: 190;
+  --holo-h3: 230;
+
+  /* Typography */
+  --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --fs-display-xl: clamp(2rem, 1.2rem + 3.4vw, 3.05rem);
+  --fs-display-l: clamp(1.45rem, 1rem + 1.8vw, 1.95rem);
+  --fs-h2: 0.76rem;
+  --fs-body: 1rem;
+  --fs-small: 0.82rem;
+  --fs-mono: 0.875rem;
+  --fs-counter: 1.4rem;
+
+  /* Spacing + shape — sharp, gallery-precise (the card keeps its own radius) */
+  --gutter: clamp(16px, 1rem + 1.6vw, 28px);
+  --r-card: 18px;
+  --r-panel: 2px;
+  --r-chip: 2px;
+  --r-slot: 2px;
+  --r-control: 2px;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 0.18s;
+  --dur-med: 0.32s;
+
+  /* Card sizing */
+  --card-w: clamp(248px, 26vw, 348px);
+  --card-aspect: 1089 / 1445;
+
+  /* Z layers (the WebGL canvas toggles its own z in JS between back/front) */
+  --z-fx-back: 2;
+  --z-stage: 20;
+  --z-binder: 30;
+  --z-panel: 40;
+  --z-fx-front: 55;
+  --z-header: 60;
+  --z-toast: 80;
+}
+
+/* ---- Wall Text, light variant (bright Kunsthalle wall) ---- */
+:root[data-theme='light'] {
+  --stage-top: #f4f2ec;
+  --stage-bottom: #f4f2ec;
+  --ink: #1a1a18;
+  --ink-dim: #4a4944;
+  --ink-faint: #767468;
+  --surface-frost: #ffffff;
+  --surface-raise: rgba(0, 0, 0, 0.025);
+  --hairline: #dedbd0;
+  --hairline-strong: #c9c5b8;
+  --plinth: rgba(0, 0, 0, 0.02);
+  --grid-line: #dedbd0;
+  --accent: #1f4fd8;
+  --accent-ink: #ffffff;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--stage-bottom);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden; /* the toy owns the viewport; inner regions scroll */
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Screen-reader-only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Mono micro-label (replaces the tracked-caps "eyebrow"): a gallery field label */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

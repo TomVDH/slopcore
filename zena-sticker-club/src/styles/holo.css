@@ -1,0 +1,422 @@
+/* ===========================================================================
+   Holographic foil card — a faithful port of the "Iridescent Card" reference,
+   adapted for our full-bleed PHOTO card (no engraving): the foil is masked to a
+   cursor SPOTLIGHT (+ edge-feather) so it brightens near the pointer and fades
+   at rest. Layer stack, blend modes, masks, gradients and tokens follow the
+   reference; values come from holoConfig.ts (tunable in /lab.html).
+
+   Per-frame vars (written by HoloController): --mx/--my (0..100), --rx/--ry/--rz
+   (deg ×1), --cs (scale), --active (0..1). Static params (applyHoloVars):
+   --iri --iri-scale --hue-range --spot --wash --holo-blend --spec-size --spec
+   --hotspot --glow --glow-color --noise --noise-op --depth --scale-hover.
+   The printed red Panini frame is part of the image and is never recolored.
+   ======================================================================== */
+
+.card {
+  position: absolute;
+  inset: 0;
+  perspective: 1400px;
+}
+
+/* Colored glow halo behind the card (ramps on hover). */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: -6%;
+  border-radius: calc(var(--r-card) + 6px);
+  background: radial-gradient(closest-side, var(--glow-color, #8fd4ff), transparent 72%);
+  filter: blur(34px);
+  opacity: calc(var(--glow, 0.65) * 0.5 * var(--active, 0));
+  transform: scale(0.92);
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.card__rotator {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-card);
+  transform-style: preserve-3d;
+  transform: translateY(calc(var(--ty, 0) * 1px)) rotateX(calc(var(--rx, 0) * 1deg))
+    rotateY(calc(var(--ry, 0) * 1deg)) rotateZ(calc(var(--rz, 0) * 1deg)) scale(var(--cs, 1));
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 0 calc(var(--reveal-glow, 0) * 1px) var(--glow);
+  background: #0e0e12;
+  transition: transform 0.05s linear;
+  will-change: transform;
+}
+
+/* Hairline rim. */
+.card__rotator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0.28));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* Base photo + placeholder (clipped to rounded corners by border-radius). */
+.card__lqip {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-size: cover;
+  background-position: center;
+  filter: blur(14px);
+  transform: scale(1.08);
+}
+.card__img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+.card__holo,
+.card__holo-wash,
+.card__glare,
+.card__glint,
+.card__noise,
+.card__vignette,
+.card__sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+/* 1 — Iridescent rainbow stripes, masked to the cursor spotlight + edge-feather. */
+.card__holo {
+  z-index: 3;
+  background-image: repeating-linear-gradient(
+    var(--holo-angle, 112deg),
+    hsl(350 92% 60%) calc(var(--iri-scale) * 0%),
+    hsl(16 92% 60%) calc(var(--iri-scale) * 0.09%),
+    hsl(46 90% 60%) calc(var(--iri-scale) * 0.18%),
+    hsl(110 78% 56%) calc(var(--iri-scale) * 0.28%),
+    hsl(165 84% 56%) calc(var(--iri-scale) * 0.37%),
+    hsl(192 92% 60%) calc(var(--iri-scale) * 0.46%),
+    hsl(222 94% 64%) calc(var(--iri-scale) * 0.55%),
+    hsl(262 90% 66%) calc(var(--iri-scale) * 0.64%),
+    hsl(300 88% 62%) calc(var(--iri-scale) * 0.73%),
+    hsl(332 92% 60%) calc(var(--iri-scale) * 0.84%),
+    hsl(350 92% 60%) calc(var(--iri-scale) * 1%)
+  );
+  background-size: 300% 300%;
+  background-position: calc(50% + (var(--mx, 50) - 50) * 0.9%) calc(50% + (var(--my, 50) - 50) * 0.9%);
+  -webkit-mask:
+    radial-gradient(circle calc(var(--spot) * 1px) at calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%), #000 0%, #000 38%, rgba(0, 0, 0, 0.5) 68%, rgba(0, 0, 0, 0) 100%),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask:
+    radial-gradient(circle calc(var(--spot) * 1px) at calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%), #000 0%, #000 38%, rgba(0, 0, 0, 0.5) 68%, rgba(0, 0, 0, 0) 100%),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
+  mix-blend-mode: var(--holo-blend, overlay);
+  filter: hue-rotate(calc((var(--mx, 50) - 50) * var(--hue-range) * 0.016deg)) saturate(1.45) contrast(1.05);
+  opacity: calc(var(--iri) * (0.4 + 0.6 * var(--active, 0)));
+  transform: translateZ(calc(var(--depth) * 0.45px));
+}
+
+/* 2 — Broad subtle full-card iridescent wash. */
+.card__holo-wash {
+  z-index: 3;
+  background-image: repeating-linear-gradient(
+    calc(var(--holo-angle, 112deg) + 60deg),
+    hsl(210 70% 64% / 0.5) calc(var(--iri-scale) * 0%),
+    hsl(280 64% 66% / 0.5) calc(var(--iri-scale) * 0.4%),
+    hsl(338 68% 64% / 0.5) calc(var(--iri-scale) * 0.8%),
+    hsl(40 64% 64% / 0.5) calc(var(--iri-scale) * 1.2%),
+    hsl(150 60% 62% / 0.5) calc(var(--iri-scale) * 1.6%),
+    hsl(210 70% 64% / 0.5) calc(var(--iri-scale) * 2%)
+  );
+  background-size: 300% 300%;
+  background-position: calc(50% + (var(--mx, 50) - 50) * -0.9%) calc(50% + (var(--my, 50) - 50) * 0.9%);
+  -webkit-mask: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
+  mix-blend-mode: soft-light;
+  filter: hue-rotate(calc((var(--my, 50) - 50) * var(--hue-range) * 0.014deg)) saturate(1.1);
+  opacity: calc(var(--wash) * var(--active, 0) * 0.55);
+  transform: translateZ(calc(var(--depth) * 0.3px));
+}
+
+/* 3 — Mouse-tracked specular glow (feathered so it never hard-cuts at the edge). */
+.card__glare {
+  z-index: 4;
+  background-image: radial-gradient(
+    circle calc(var(--spec-size) * 1px) at calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%),
+    rgba(255, 255, 255, var(--spec)) 0%,
+    rgba(255, 255, 255, calc(var(--spec) * 0.35)) 28%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  -webkit-mask: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-composite: source-in;
+  mask: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  mask-composite: intersect;
+  mix-blend-mode: soft-light;
+  opacity: calc(0.3 * var(--active, 0));
+  transform: translateZ(calc(var(--depth) * 0.7px));
+}
+
+/* 4 — Tight hot glint. */
+.card__glint {
+  z-index: 4;
+  background-image: radial-gradient(
+    circle calc(var(--spec-size) * 0.18px) at calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%),
+    rgba(255, 255, 255, calc(var(--spec) * 1.1)) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  -webkit-mask: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-composite: source-in;
+  mask: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  mask-composite: intersect;
+  mix-blend-mode: screen;
+  opacity: calc(var(--hotspot) * var(--active, 0) * 0.4);
+  transform: translateZ(calc(var(--depth) * 0.9px));
+}
+
+/* 5 — Tone-independent film grain (NORMAL blend so it reads on every tone). */
+.card__noise {
+  z-index: 5;
+  background-image: var(--noise);
+  background-size: 220px 220px;
+  mix-blend-mode: normal;
+  opacity: var(--noise-op);
+  transform: translateZ(calc(var(--depth) * 0.5px));
+}
+
+/* 6 — Edge darkening for depth. */
+.card__vignette {
+  z-index: 5;
+  background: radial-gradient(120% 120% at 50% 45%, transparent 58%, rgba(0, 0, 0, 0.4) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+}
+
+/* Reveal light-sweep — animated via background-position (--sweep-x) so it stays
+   clipped to the rounded layer and never needs overflow:hidden (which would
+   flatten the preserve-3d parallax). */
+.card__sweep {
+  z-index: 6;
+  background-image: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.6) 50%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: calc(var(--sweep-x, 200) * 1%) 0;
+  mix-blend-mode: overlay;
+  opacity: 0;
+}
+
+.card__new {
+  position: absolute;
+  z-index: 8;
+  top: 11px;
+  left: 11px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  background: var(--gold-foil);
+  color: #1a1508;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.07em;
+  transform: scale(var(--new-scale, 0)) translateZ(calc(var(--depth) * 1px));
+  transform-origin: left center;
+  box-shadow: 0 6px 20px rgba(232, 197, 107, 0.45);
+}
+.card[data-new='false'] .card__new {
+  display: none;
+}
+
+/* Keyboard focus: a gentle fixed tilt + a touch of activation so the foil shows. */
+.card.is-interactive:focus-visible {
+  --rx: 5;
+  --ry: -6;
+  --active: 0.5;
+  --mx: 60;
+  --my: 38;
+}
+
+/* ---- Foil-scope experiments (lab switch via data-foil; shipped = spotlight) ---- */
+.card[data-foil='luminance'] .card__holo {
+  -webkit-mask: var(--card-img) center / cover no-repeat,
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask: var(--card-img) center / cover no-repeat,
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-source-type: luminance;
+  mask-mode: luminance, alpha, alpha;
+  mask-composite: intersect;
+}
+.card[data-foil='both'] .card__holo {
+  -webkit-mask: var(--card-img) center / cover no-repeat,
+    radial-gradient(circle calc(var(--spot) * 1px) at calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%), #000 0%, #000 45%, rgba(0, 0, 0, 0.4) 75%, rgba(0, 0, 0, 0) 100%),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask: var(--card-img) center / cover no-repeat,
+    radial-gradient(circle calc(var(--spot) * 1px) at calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%), #000 0%, #000 45%, rgba(0, 0, 0, 0.4) 75%, rgba(0, 0, 0, 0) 100%),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-mode: luminance, alpha, alpha, alpha;
+  mask-composite: intersect;
+}
+
+/* ---- The foil pack (DOM base; WebGL shimmer composites over it) ---- */
+.pack {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-card);
+  background: linear-gradient(150deg, #262430 0%, #16141d 55%, #201d29 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  transform: translateY(calc(var(--pack-ty, 0) * 1px)) translateY(calc(var(--pack-float, 0) * 1px))
+    scale(var(--pack-s, 1)) rotate(calc(var(--pack-rot, 0) * 1deg));
+  transition: box-shadow 0.3s var(--ease-out-expo);
+}
+.pack:active {
+  cursor: grabbing;
+}
+.pack.is-hover {
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.62), 0 0 40px var(--glow, rgba(160, 175, 195, 0.3)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.pack__sheen {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 42%, rgba(205, 214, 230, 0.3) 50%, transparent 58%);
+  background-size: 250% 100%;
+  mix-blend-mode: screen;
+  animation: packSheen 3.6s linear infinite;
+}
+@keyframes packSheen {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -160% 0;
+  }
+}
+body.gl-on .pack__sheen {
+  display: none;
+}
+.pack__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+.pack__crest {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 12px;
+}
+.pack__crest .crest__mark {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  letter-spacing: 0.04em;
+  color: rgba(244, 241, 234, 0.92);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+.pack__crest .crest__sub {
+  font-size: 0.66rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.pack__year {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.12);
+}
+.pack__tab {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 30%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 6px, transparent 6px 12px);
+  opacity: 0.5;
+}
+.pack__tab-label {
+  position: absolute;
+  left: 50%;
+  top: calc(30% - 22px);
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  animation: tabPulse 1.6s ease-in-out infinite;
+}
+@keyframes tabPulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.92;
+  }
+}
+
+.stage__flash {
+  position: absolute;
+  inset: -12%;
+  z-index: var(--z-fx-front);
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.92), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pack__sheen {
+    animation: none;
+    opacity: 0.5;
+  }
+  .pack__tab-label {
+    animation: none;
+    opacity: 0.7;
+  }
+  .card__holo,
+  .card__holo-wash,
+  .card__glare,
+  .card__glint {
+    transition: opacity 0.2s linear;
+  }
+}

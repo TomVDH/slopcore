@@ -1,0 +1,128 @@
+/* Dev-only tuning shelf chrome (not shipped with the toy). */
+#lab {
+  display: grid;
+  grid-template-columns: 1fr clamp(300px, 26vw, 360px);
+  height: 100dvh;
+}
+
+.lab-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 50% at 50% 42%, rgba(255, 248, 235, 0.06), transparent 60%),
+    linear-gradient(180deg, var(--stage-top), var(--stage-bottom));
+}
+.lab-card-host {
+  position: relative;
+  width: var(--card-w);
+  aspect-ratio: var(--card-aspect);
+}
+.lab-flash {
+  position: absolute;
+  inset: -12%;
+  z-index: 40;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.92), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+.lab-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  font: 500 12px/1.4 var(--font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.lab-panel {
+  background: #0e0d13;
+  border-left: 1px solid var(--hairline);
+  padding: 16px 16px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lab-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.lab-section {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.lab-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.lab-row label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--ink-dim);
+}
+.lab-row label b {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  color: var(--ink);
+}
+.lab-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--gold-foil);
+}
+.lab-select {
+  background: #1a1922;
+  color: var(--ink);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 0.8rem;
+}
+.lab-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lab-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.15s, transform 0.15s;
+}
+.lab-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.lab-btn:active {
+  transform: scale(0.97);
+}
+.lab-btn--primary {
+  background: var(--ink);
+  color: #14121a;
+  border-color: transparent;
+  font-weight: 600;
+}
+.lab-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+}
