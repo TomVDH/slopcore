@@ -1,17 +1,16 @@
 import type { Card, RarityDef } from '@/domain/types';
 
 /**
- * The pluggable card-face seam. The holo/tilt machinery lives OUTSIDE the face
- * (in holo.ts + reveal.ts), operating on `el`, so it works identically for the
- * image face (V1) and the procedural face (future) without changes.
+ * The pluggable card-face seam. The holographic foil + tilt machinery lives
+ * OUTSIDE the face (in holo.ts / holo.css), operating on `el`, so it works
+ * identically for the image face (V1) and the procedural face (future). The
+ * foil is hover-driven (no per-face "ignite" step).
  */
 export interface CardFace {
   /** The `.card` root element (perspective wrapper). */
   readonly el: HTMLElement;
   /** Build + populate DOM into `host`, awaiting the hero decode. */
   mount(card: Card, host: HTMLElement): Promise<void>;
-  /** Fade holo + sparkle to their per-rarity resting intensity (post-reveal). */
-  igniteHolo(): void;
   destroy(): void;
 }
 
@@ -26,46 +25,49 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 export interface Overlays {
+  /** Iridescent rainbow stripes, masked to the cursor spotlight. */
+  holo: HTMLDivElement;
+  /** Broad subtle full-card wash. */
+  holoWash: HTMLDivElement;
+  /** Mouse-tracked white specular glow. */
   glare: HTMLDivElement;
-  /** Holographic rainbow foil (the main iridescence). */
-  shine: HTMLDivElement;
-  /** Fine glitter / spangle sparkle. */
-  glitter: HTMLDivElement;
+  /** Tight hot glint. */
+  glint: HTMLDivElement;
+  /** Tone-independent film grain. */
+  noise: HTMLDivElement;
+  /** Edge darkening. */
+  vignette: HTMLDivElement;
   /** Reveal light-sweep glint. */
   sweep: HTMLDivElement;
   badge: HTMLDivElement;
 }
 
-/** The shared glare/shine/glitter/sweep/NEW overlay stack used by every face. */
+/** The reference foil layer stack shared by every face (back → front). */
 export function buildOverlays(): Overlays {
+  const holo = el('div', 'card__holo');
+  const holoWash = el('div', 'card__holo-wash');
   const glare = el('div', 'card__glare');
-  const shine = el('div', 'card__shine');
-  const glitter = el('div', 'card__glitter');
+  const glint = el('div', 'card__glint');
+  const noise = el('div', 'card__noise');
+  const vignette = el('div', 'card__vignette');
   const sweep = el('div', 'card__sweep');
   const badge = el('div', 'card__new');
   badge.textContent = 'NEW';
-  for (const layer of [glare, shine, glitter, sweep]) layer.setAttribute('aria-hidden', 'true');
-  return { glare, shine, glitter, sweep, badge };
+  for (const layer of [holo, holoWash, glare, glint, noise, vignette, sweep]) {
+    layer.setAttribute('aria-hidden', 'true');
+  }
+  return { holo, holoWash, glare, glint, noise, vignette, sweep, badge };
 }
 
-export interface RarityIntensity {
-  holoMax: number;
-  sparkleMax: number;
-}
-
-/** Write the rarity-driven CSS vars and return the resting holo/glitter levels. */
-export function applyRarityVars(target: HTMLElement, rarity: RarityDef): RarityIntensity {
-  target.style.setProperty('--holo-h1', String(rarity.holoHues[0]));
-  target.style.setProperty('--holo-h2', String(rarity.holoHues[1]));
-  target.style.setProperty('--holo-h3', String(rarity.holoHues[2]));
-  target.style.setProperty('--holo-rot', `${rarity.holoRot}deg`);
+/**
+ * Write the rarity-driven CSS vars (foil/sheen/glow) used by the reveal rim
+ * flare, the particle burst tint, and the binder ring. The holographic foil
+ * itself is uniform across rarities (see holoConfig.ts).
+ */
+export function applyRarityVars(target: HTMLElement, rarity: RarityDef): void {
   target.style.setProperty('--foil', rarity.foil);
   target.style.setProperty('--sheen', rarity.sheen);
   target.style.setProperty('--glow', rarity.glow);
-  return {
-    holoMax: 0.55 + rarity.drama * 0.4,
-    sparkleMax: 0.35 + rarity.drama * 0.55,
-  };
 }
 
 /** Rich alt text describing the sticker for screen readers. */

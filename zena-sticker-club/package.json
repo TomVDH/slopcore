@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fontsource/anton": "^5.1.0",
+    "@fontsource/archivo": "^5.1.0",
     "@fontsource/hanken-grotesk": "^5.1.0",
     "@fontsource/space-mono": "^5.1.0",
     "gsap": "^3.13.0",

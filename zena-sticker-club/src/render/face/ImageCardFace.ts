@@ -1,10 +1,12 @@
 import type { Card } from '@/domain/types';
-import type { CardFace, RarityIntensity } from './CardFace';
+import type { CardFace } from './CardFace';
 import { altFor, applyRarityVars, buildOverlays, el } from './CardFace';
+import { HOLO_DEFAULTS, applyHoloVars } from '@/render/holoConfig';
 
 /**
- * V1 face: the player's printed PNG (AVIF/WebP via <picture>) under the shared
- * holo overlay stack. Full-bleed, crisp DOM; the red frame is part of the art.
+ * V1 face: the player's printed PNG (AVIF/WebP via <picture>) under the
+ * reference holographic foil stack. Full-bleed, crisp DOM; the red frame is
+ * part of the art and is never recolored.
  */
 export class ImageCardFace implements CardFace {
   readonly el: HTMLDivElement;
@@ -12,7 +14,6 @@ export class ImageCardFace implements CardFace {
   private readonly lqip: HTMLDivElement;
   private readonly source: HTMLSourceElement;
   private readonly img: HTMLImageElement;
-  private intensity: RarityIntensity = { holoMax: 0.5, sparkleMax: 0.4 };
 
   constructor() {
     this.el = el('div', 'card');
@@ -31,8 +32,19 @@ export class ImageCardFace implements CardFace {
     this.img.alt = '';
     picture.append(this.source, this.img);
 
-    const { glare, shine, glitter, sweep, badge } = buildOverlays();
-    this.rotator.append(this.lqip, picture, glare, shine, glitter, sweep, badge);
+    const o = buildOverlays();
+    this.rotator.append(
+      this.lqip,
+      picture,
+      o.holo,
+      o.holoWash,
+      o.glare,
+      o.glint,
+      o.noise,
+      o.vignette,
+      o.sweep,
+      o.badge,
+    );
     this.el.append(this.rotator);
   }
 
@@ -41,8 +53,11 @@ export class ImageCardFace implements CardFace {
     this.source.srcset = images.hero.avif;
     this.img.src = images.hero.webp;
     if (images.lqip) this.lqip.style.backgroundImage = `url("${images.lqip}")`;
+    // Same hero used as a luminance mask for the lab's "luminance" foil scope.
+    this.el.style.setProperty('--card-img', `url("${images.hero.webp}")`);
 
-    this.intensity = applyRarityVars(this.el, card.rarity);
+    applyRarityVars(this.el, card.rarity);
+    applyHoloVars(this.el, HOLO_DEFAULTS);
     this.el.setAttribute('aria-label', altFor(card));
 
     host.append(this.el);
@@ -52,11 +67,6 @@ export class ImageCardFace implements CardFace {
     } catch {
       // Decode can reject if not yet connected or unsupported; the LQIP covers it.
     }
-  }
-
-  igniteHolo(): void {
-    this.el.style.setProperty('--holo-opacity', this.intensity.holoMax.toFixed(3));
-    this.el.style.setProperty('--sparkle-opacity', this.intensity.sparkleMax.toFixed(3));
   }
 
   destroy(): void {

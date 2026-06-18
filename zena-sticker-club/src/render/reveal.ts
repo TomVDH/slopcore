@@ -46,9 +46,6 @@ export class RevealController {
         if (opts.isNew) gsap.set(el, { '--new-scale': 0 });
         const tl = gsap.timeline({ onComplete: done });
         tl.to(el, { opacity: 1, '--cs': 1, duration: 0.25, ease: 'power1.out' });
-        tl.call(() => {
-          if (opts.isActive()) face.igniteHolo();
-        });
         if (opts.isNew) tl.to(el, { '--new-scale': 1, duration: 0.2, ease: 'power2.out' }, '>-0.05');
         this.tl = tl;
         return;
@@ -56,10 +53,10 @@ export class RevealController {
 
       // --- Full motion. ---
       gsap.set(el, { opacity: 0, '--ty': 72, '--rx': 15, '--ry': 0, '--rz': -4, '--cs': 0.8, '--reveal-glow': 0 });
-      if (sweep) gsap.set(sweep, { xPercent: -130, opacity: 0 });
+      if (sweep) gsap.set(sweep, { '--sweep-x': 200, opacity: 0 });
       if (opts.isNew) gsap.set(el, { '--new-scale': 0 });
 
-      const glow = 16 + opts.drama * 44;
+      const glow = 8 + opts.drama * 22;
       const tl = gsap.timeline({ onComplete: done });
 
       // Bloom flash (covers the swap moment).
@@ -73,23 +70,14 @@ export class RevealController {
 
       // Rim glow flares to the tier hue, then settles back.
       tl.to(el, { '--reveal-glow': glow, duration: 0.45, ease: 'power3.out' }, 0.16)
-        .to(el, { '--reveal-glow': glow * 0.38, duration: 0.6, ease: 'power2.inOut' }, 0.62);
+        .to(el, { '--reveal-glow': glow * 0.12, duration: 0.6, ease: 'power2.inOut' }, 0.62);
 
       // Holographic light-sweep glint across the fresh foil.
       if (sweep) {
         tl.to(sweep, { opacity: 1, duration: 0.1 }, 0.34)
-          .to(sweep, { xPercent: 130, duration: 0.6, ease: 'power2.inOut' }, 0.34)
+          .to(sweep, { '--sweep-x': -120, duration: 0.6, ease: 'power2.inOut' }, 0.34)
           .to(sweep, { opacity: 0, duration: 0.2 }, 0.8);
       }
-
-      // Ignite the resting holo intensity at the apex.
-      tl.call(
-        () => {
-          if (opts.isActive()) face.igniteHolo();
-        },
-        [],
-        0.5,
-      );
 
       // NEW! badge pop (a single, restrained overshoot).
       if (opts.isNew) {

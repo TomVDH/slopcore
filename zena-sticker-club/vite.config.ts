@@ -16,6 +16,10 @@ export default defineConfig({
   build: {
     target: 'es2022',
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        lab: fileURLToPath(new URL('./lab.html', import.meta.url)),
+      },
       output: {
         manualChunks: {
           'vendor-three': ['three'],

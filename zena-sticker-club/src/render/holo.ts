@@ -1,134 +1,130 @@
 import type { MotionPrefs } from '@/ui/motionPrefs';
+import { HOLO_DEFAULTS, applyHoloVars } from '@/render/holoConfig';
+import type { HoloParams } from '@/render/holoConfig';
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
 /**
- * Pointer-tracking holographic tilt + iridescence. A single rAF loop damps
- * toward the latest pointer (no per-event DOM writes, no scroll listener) and
- * writes the unitless CSS vars the card reads, including the amplified
- * `--posx/--posy` that parallax the rainbow. When the pointer is idle it falls
- * into a slow auto-orbit so the foil keeps shimmering without a mouse / on
- * touch. Under reduced motion it stays flat with a faint static sheen.
+ * Holographic-foil controller — a faithful port of the reference rAF motion
+ * engine. Pointer is card-local (listens on the untransformed wrap so the tilt
+ * never makes the hit-area flicker); each frame eases current→target with
+ * framerate-independent exponential smoothing and writes the per-frame CSS vars.
+ * At rest the foil fades to ~`iri * 0.4`; on hover it brightens and the card
+ * tilts. Under reduced motion it holds a faint static sheen with no loop.
  */
 export class HoloController {
   private target: HTMLElement | null = null;
+  private wrap: HTMLElement | null = null;
   private raf = 0;
-  // Damped current values.
-  private mx = 50;
-  private my = 50;
-  private rx = 0;
-  private ry = 0;
-  private pfc = 0;
-  private posx = 50;
-  private posy = 50;
-  // Latest pointer targets.
-  private tMx = 50;
-  private tMy = 50;
-  private tRx = 0;
-  private tRy = 0;
-  private tPfc = 0.4;
-  private tPosx = 50;
-  private tPosy = 50;
-  private readonly maxTilt = 14;
-  private lastMove = 0;
-  private idlePhase = 0;
-  private hasPointer = false;
+  private last = 0;
+  private params: HoloParams;
 
-  constructor(private readonly motion: MotionPrefs) {}
+  // pointer targets and eased current values, all in [-0.5, 0.5] (active 0..1)
+  private tx = 0;
+  private ty = 0;
+  private tActive = 0;
+  private cx = 0;
+  private cy = 0;
+  private cActive = 0;
+
+  constructor(
+    private readonly motion: MotionPrefs,
+    params?: Partial<HoloParams>,
+  ) {
+    this.params = { ...HOLO_DEFAULTS, ...params };
+  }
 
   attach(el: HTMLElement): void {
     this.detach();
     this.target = el;
+    this.wrap = el.parentElement ?? el;
     el.classList.add('is-interactive');
     el.tabIndex = 0;
-    el.style.setProperty('--cs', '1');
+    applyHoloVars(el, this.params);
 
     if (this.motion.reduced) {
-      // Static, slightly off-centre iridescence so it still reads as "alive".
-      el.style.setProperty('--mx', '54');
-      el.style.setProperty('--my', '40');
-      el.style.setProperty('--posx', '60');
-      el.style.setProperty('--posy', '42');
-      el.style.setProperty('--pfc', '0.3');
+      // Faint static foil, no tilt, no loop.
+      const s = el.style;
+      s.setProperty('--rx', '0');
+      s.setProperty('--ry', '0');
+      s.setProperty('--cs', '1');
+      s.setProperty('--mx', '58');
+      s.setProperty('--my', '40');
+      s.setProperty('--hue', '180');
+      s.setProperty('--active', '0.45');
       return;
     }
 
-    this.hasPointer = false;
-    this.lastMove = performance.now();
-    window.addEventListener('pointermove', this.onMove, { passive: true });
-    el.addEventListener('pointerleave', this.onLeave);
+    this.cx = this.cy = this.cActive = 0;
+    this.tx = this.ty = this.tActive = 0;
+    this.write(0, 0, 0);
+    this.wrap.addEventListener('pointermove', this.onMove, { passive: true });
+    this.wrap.addEventListener('pointerleave', this.onLeave);
+    this.last = performance.now();
     this.raf = requestAnimationFrame(this.loop);
   }
 
   detach(): void {
-    if (this.target) {
-      this.target.classList.remove('is-interactive');
-      this.target.removeEventListener('pointerleave', this.onLeave);
-      this.target = null;
+    if (this.wrap) {
+      this.wrap.removeEventListener('pointermove', this.onMove);
+      this.wrap.removeEventListener('pointerleave', this.onLeave);
     }
-    window.removeEventListener('pointermove', this.onMove);
+    if (this.target) this.target.classList.remove('is-interactive');
+    this.target = null;
+    this.wrap = null;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
   }
 
+  /** Live-update foil params (used by the lab); re-applies the static CSS vars. */
+  setParams(patch: Partial<HoloParams>): void {
+    this.params = { ...this.params, ...patch };
+    if (this.target) applyHoloVars(this.target, this.params);
+  }
+
+  getParams(): HoloParams {
+    return { ...this.params };
+  }
+
   private onMove = (e: PointerEvent): void => {
-    if (!this.target) return;
-    const r = this.target.getBoundingClientRect();
+    if (!this.wrap) return;
+    const r = this.wrap.getBoundingClientRect();
     if (r.width === 0) return;
-    const px = (e.clientX - r.left) / r.width;
-    const py = (e.clientY - r.top) / r.height;
-    const cx = clamp(px - 0.5, -0.5, 0.5);
-    const cy = clamp(py - 0.5, -0.5, 0.5);
-    this.hasPointer = true;
-    this.lastMove = performance.now();
-    this.tMx = clamp(px, 0, 1) * 100;
-    this.tMy = clamp(py, 0, 1) * 100;
-    this.tRy = cx * 2 * this.maxTilt;
-    this.tRx = -cy * 2 * this.maxTilt;
-    this.tPfc = Math.min(1, Math.hypot(cx, cy) * 2);
-    this.tPosx = 50 + cx * 130;
-    this.tPosy = 50 + cy * 130;
+    this.tx = clamp((e.clientX - r.left) / r.width - 0.5, -0.5, 0.5);
+    this.ty = clamp((e.clientY - r.top) / r.height - 0.5, -0.5, 0.5);
+    this.tActive = 1;
   };
 
   private onLeave = (): void => {
-    this.hasPointer = false;
+    this.tx = 0;
+    this.ty = 0;
+    this.tActive = 0;
   };
 
-  private loop = (): void => {
+  private loop = (now: number): void => {
     if (!this.target) return;
-    const idle = !this.hasPointer || performance.now() - this.lastMove > 1600;
-    if (idle) {
-      // Gentle auto-orbit keeps the foil alive without a mouse / on touch.
-      this.idlePhase += 0.012;
-      const ox = Math.cos(this.idlePhase);
-      const oy = Math.sin(this.idlePhase * 1.3);
-      this.tMx = 50 + ox * 20;
-      this.tMy = 42 + oy * 16;
-      this.tRy = ox * 5;
-      this.tRx = -oy * 4;
-      this.tPfc = 0.4;
-      this.tPosx = 50 + ox * 40;
-      this.tPosy = 50 + oy * 34;
-    }
-
-    const k = idle ? 0.05 : 0.14;
-    this.rx += (this.tRx - this.rx) * k;
-    this.ry += (this.tRy - this.ry) * k;
-    this.pfc += (this.tPfc - this.pfc) * k;
-    this.mx += (this.tMx - this.mx) * k;
-    this.my += (this.tMy - this.my) * k;
-    this.posx += (this.tPosx - this.posx) * k;
-    this.posy += (this.tPosy - this.posy) * k;
-
-    const s = this.target.style;
-    s.setProperty('--rx', this.rx.toFixed(2));
-    s.setProperty('--ry', this.ry.toFixed(2));
-    s.setProperty('--mx', this.mx.toFixed(1));
-    s.setProperty('--my', this.my.toFixed(1));
-    s.setProperty('--posx', this.posx.toFixed(1));
-    s.setProperty('--posy', this.posy.toFixed(1));
-    s.setProperty('--pfc', this.pfc.toFixed(3));
-
+    const dt = Math.min(50, now - this.last) || 16;
+    this.last = now;
+    const base = clamp(this.params.smoothing, 0.02, 0.5);
+    const k = 1 - Math.pow(1 - base, dt / 16.67);
+    this.cx += (this.tx - this.cx) * k;
+    this.cy += (this.ty - this.cy) * k;
+    this.cActive += (this.tActive - this.cActive) * k * 0.7; // glow eases a touch slower
+    this.write(this.cx, this.cy, this.cActive);
     this.raf = requestAnimationFrame(this.loop);
   };
+
+  private write(px: number, py: number, active: number): void {
+    const el = this.target;
+    if (!el) return;
+    const tilt = this.params.tilt;
+    const s = el.style;
+    s.setProperty('--ry', (px * tilt).toFixed(3));
+    s.setProperty('--rx', (-py * tilt).toFixed(3));
+    s.setProperty('--mx', (px * 100 + 50).toFixed(2));
+    s.setProperty('--my', (py * 100 + 50).toFixed(2));
+    s.setProperty('--hue', (180 + px * 140).toFixed(1));
+    s.setProperty('--active', active.toFixed(4));
+    s.setProperty('--cs', (1 + (this.params.scaleHover - 1) * active).toFixed(4));
+  }
 }

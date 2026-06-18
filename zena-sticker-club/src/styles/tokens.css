@@ -1,26 +1,34 @@
 /* ===========================================================================
-   Design tokens + base. "Jeweller's vitrine": a dark, warm-charcoal stage so
-   the saturated red cards are the only loud thing on screen. One locked accent
-   per surface; rarity foil hues appear only post-reveal.
+   Design tokens + base. "Wall Text": a flat, lights-down gallery the red cards
+   hang on. One rationed ultramarine accent; a faint coordinate grid +
+   registration crosshairs are the signature. Dark is canonical; a light token
+   set lives under [data-theme='light'] (the bright Kunsthalle-wall variant).
+   Rarity foil hues still appear only post-reveal (--foil / --sheen / --glow).
    ======================================================================== */
 
 :root {
-  /* Stage / neutrals */
-  --stage-top: #0e0d12;
-  --stage-bottom: #16131a;
-  --ink: #f4f1ea;            /* warm off-white, never pure #fff */
-  --ink-dim: #a8a2b2;
-  --ink-faint: #8e889b;      /* clears WCAG AA (~5.5:1) for small labels on the stage */
-  --surface-frost: rgba(20, 18, 26, 0.72);
-  --surface-raise: rgba(255, 255, 255, 0.04);
-  --hairline: rgba(255, 255, 255, 0.09);
-  --hairline-strong: rgba(255, 255, 255, 0.16);
-  --plinth: rgba(255, 255, 255, 0.03);
+  /* Stage / neutrals — flat, no spotlight (the grid is the texture) */
+  --stage-top: #131419;
+  --stage-bottom: #131419;
+  --ink: #eceae2;            /* warm off-white, never pure #fff */
+  --ink-dim: #9c9a92;        /* secondary body (~6.5:1 on the field) */
+  --ink-faint: #8c8a82;      /* small labels — clears WCAG AA (~5.3:1) */
+  --surface-frost: #1a1b21;  /* opaque label/panel stock (no glass) */
+  --surface-raise: rgba(255, 255, 255, 0.03);
+  --hairline: #2a2b31;
+  --hairline-strong: #34353c;
+  --plinth: rgba(255, 255, 255, 0.02);
+  --grid-line: rgba(255, 255, 255, 0.05);
 
-  /* Brand (used sparingly) */
+  /* Accent — the one rationed colour (the only filled control + registration) */
+  --accent: #5b86ff;
+  --accent-ink: #ffffff;
+  /* Legacy name kept so existing rules pick up the accent without edits. */
+  --gold-foil: var(--accent);
+
+  /* Brand (the card's own red — chrome never fills a surface with it) */
   --panini-red: #e2231a;
   --plate-violet: #5b2a86;
-  --gold-foil: #e8c56b;
 
   /* Active rarity foil — overwritten per card via JS (--foil / --sheen / --glow).
      Defaults to the Group "pewter" tier. */
@@ -32,7 +40,7 @@
   --holo-h3: 230;
 
   /* Typography */
-  --font-display: 'Anton', 'Arial Narrow', system-ui, sans-serif;
+  --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
   --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
   --font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', monospace;
 
@@ -42,15 +50,15 @@
   --fs-body: 1rem;
   --fs-small: 0.82rem;
   --fs-mono: 0.875rem;
-  --fs-counter: 1.2rem;
+  --fs-counter: 1.4rem;
 
-  /* Spacing + shape */
+  /* Spacing + shape — sharp, gallery-precise (the card keeps its own radius) */
   --gutter: clamp(16px, 1rem + 1.6vw, 28px);
   --r-card: 18px;
-  --r-panel: 16px;
-  --r-chip: 999px;
-  --r-slot: 10px;
-  --r-control: 12px;
+  --r-panel: 2px;
+  --r-chip: 2px;
+  --r-slot: 2px;
+  --r-control: 2px;
 
   /* Motion */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -70,6 +78,23 @@
   --z-fx-front: 55;
   --z-header: 60;
   --z-toast: 80;
+}
+
+/* ---- Wall Text, light variant (bright Kunsthalle wall) ---- */
+:root[data-theme='light'] {
+  --stage-top: #f4f2ec;
+  --stage-bottom: #f4f2ec;
+  --ink: #1a1a18;
+  --ink-dim: #4a4944;
+  --ink-faint: #767468;
+  --surface-frost: #ffffff;
+  --surface-raise: rgba(0, 0, 0, 0.025);
+  --hairline: #dedbd0;
+  --hairline-strong: #c9c5b8;
+  --plinth: rgba(0, 0, 0, 0.02);
+  --grid-line: #dedbd0;
+  --accent: #1f4fd8;
+  --accent-ink: #ffffff;
 }
 
 *,
@@ -104,9 +129,9 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold-foil);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 /* Screen-reader-only utility */
@@ -122,11 +147,12 @@ button {
   border: 0;
 }
 
+/* Mono micro-label (replaces the tracked-caps "eyebrow"): a gallery field label */
 .eyebrow {
-  font-family: var(--font-body);
-  font-size: var(--fs-h2);
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
