@@ -2,6 +2,54 @@ import { gsap } from 'gsap';
 import type { CardFace } from '@/render/face/CardFace';
 import type { MotionPrefs } from '@/ui/motionPrefs';
 
+/** Reveal entrance style. 'rise' is the shipped rise+settle; 'spin' adds a
+ *  multi-rotation turntable that decelerates to face forward. */
+export type RevealStyle = 'rise' | 'spin';
+
+/**
+ * Tunable entrance parameters. The defaults reproduce the shipped reveal
+ * exactly, so omitting `params` (as production does) is a no-op. The dev-only
+ * Foil Lab overrides these live to dial in variations.
+ */
+export interface RevealParams {
+  style: RevealStyle;
+  /** Full 360° turns before facing forward (spin style only). */
+  spins: number;
+  spinAxis: 'y' | 'x';
+  /** Seconds for the spin to decelerate to forward-facing. */
+  spinDuration: number;
+  /** Start offset below the resting spot (px), rises to 0. */
+  riseDistance: number;
+  /** Overshoot factor of the rise (back.out amount; 1 = no overshoot). */
+  riseOvershoot: number;
+  /** Duration of the rise+settle (s). */
+  riseDuration: number;
+  /** Scale the card grows from. */
+  startScale: number;
+  /** Rim-glow flare peak = glowBase + drama * glowDramaScale. */
+  glowBase: number;
+  glowDramaScale: number;
+  /** Light-sweep glint traverse (s). */
+  sweepDuration: number;
+  /** Peak opacity of the bloom flash masking the pack→card swap. */
+  flashPeak: number;
+}
+
+export const REVEAL_DEFAULTS: RevealParams = {
+  style: 'rise',
+  spins: 3,
+  spinAxis: 'y',
+  spinDuration: 0.75,
+  riseDistance: 72,
+  riseOvershoot: 1.4,
+  riseDuration: 0.72,
+  startScale: 0.8,
+  glowBase: 8,
+  glowDramaScale: 22,
+  sweepDuration: 0.6,
+  flashPeak: 0.92,
+};
+
 export interface RevealOpts {
   /** 0..1 rarity drama; scales glow + sweep emphasis. */
   drama: number;
@@ -10,13 +58,17 @@ export interface RevealOpts {
   flash: HTMLElement;
   /** Guard so a stale timeline that finishes after a reset stays inert. */
   isActive: () => boolean;
+  /** Optional entrance tuning (Foil Lab). Merged over REVEAL_DEFAULTS. */
+  params?: Partial<RevealParams>;
 }
 
 /**
  * The card reveal: a confident rise + settle with a holographic light-sweep,
- * fronted by a bloom flash that masks the pack→card swap. (We use a rise/settle
- * rather than a literal 180° flip to avoid backface artifacts; it reads as an
- * earned reveal and is rock-solid across browsers.) Resolves when settled.
+ * fronted by a bloom flash that masks the pack→card swap. The default ('rise')
+ * uses a rise/settle rather than a literal 180° flip to avoid backface
+ * artifacts; the optional 'spin' style adds a fast, decelerating multi-turn
+ * rotation (the brief back-faces pass behind the extended bloom). Resolves when
+ * settled.
  */
 export class RevealController {
   private tl: gsap.core.Timeline | null = null;
@@ -31,6 +83,7 @@ export class RevealController {
     const sweep = el.querySelector<HTMLElement>('.card__sweep');
     el.dataset.new = String(opts.isNew);
     this.flash = opts.flash;
+    const p: RevealParams = { ...REVEAL_DEFAULTS, ...opts.params };
 
     return new Promise<void>((resolve) => {
       this.activeResolve = resolve;
@@ -40,9 +93,9 @@ export class RevealController {
         this.activeResolve = null;
         resolve();
       };
-      // --- Reduced motion: a calm cross-fade, no travel, no sweep. ---
+      // --- Reduced motion: a calm cross-fade, no travel, no sweep, no spin. ---
       if (this.motion.reduced) {
-        gsap.set(el, { opacity: 0, '--cs': 0.98, '--ty': 0, '--rx': 0 });
+        gsap.set(el, { opacity: 0, '--cs': 0.98, '--ty': 0, '--rx': 0, '--ry': 0 });
         if (opts.isNew) gsap.set(el, { '--new-scale': 0 });
         const tl = gsap.timeline({ onComplete: done });
         tl.to(el, { opacity: 1, '--cs': 1, duration: 0.25, ease: 'power1.out' });
@@ -52,21 +105,50 @@ export class RevealController {
       }
 
       // --- Full motion. ---
-      gsap.set(el, { opacity: 0, '--ty': 72, '--rx': 15, '--ry': 0, '--rz': -4, '--cs': 0.8, '--reveal-glow': 0 });
+      const isSpin = p.style === 'spin';
+      const turns = Math.max(0, Math.round(p.spins));
+      const spinVar = p.spinAxis === 'x' ? '--rx' : '--ry';
+      const spinOwnsRx = isSpin && p.spinAxis === 'x';
+
+      const start: gsap.TweenVars = {
+        opacity: 0,
+        '--ty': p.riseDistance,
+        '--rx': 15,
+        '--ry': 0,
+        '--rz': -4,
+        '--cs': p.startScale,
+        '--reveal-glow': 0,
+      };
+      if (isSpin) start[spinVar] = 360 * turns;
+      gsap.set(el, start);
       if (sweep) gsap.set(sweep, { '--sweep-x': 200, opacity: 0 });
       if (opts.isNew) gsap.set(el, { '--new-scale': 0 });
 
-      const glow = 8 + opts.drama * 22;
+      const glow = p.glowBase + opts.drama * p.glowDramaScale;
       const tl = gsap.timeline({ onComplete: done });
 
-      // Bloom flash (covers the swap moment).
-      tl.to(opts.flash, { opacity: 0.92, duration: 0.1, ease: 'power2.out' }, 0)
-        .to(opts.flash, { opacity: 0, duration: 0.34, ease: 'power2.in' }, 0.1);
+      // Bloom flash (covers the swap moment). When spinning, hold it longer so
+      // the brief mirrored back-faces pass behind the bloom.
+      const flashFade = isSpin ? Math.max(0.34, p.spinDuration * 0.7) : 0.34;
+      tl.to(opts.flash, { opacity: p.flashPeak, duration: 0.1, ease: 'power2.out' }, 0)
+        .to(opts.flash, { opacity: 0, duration: flashFade, ease: 'power2.in' }, 0.1);
 
       // Rise with one earned overshoot, then a clean expo settle (no jelly).
+      const rise: gsap.TweenVars = {
+        '--ty': 0,
+        '--cs': 1,
+        duration: p.riseDuration,
+        ease: `back.out(${p.riseOvershoot})`,
+      };
+      if (!spinOwnsRx) rise['--rx'] = 0;
       tl.to(el, { opacity: 1, duration: 0.18, ease: 'power1.out' }, 0.05)
-        .to(el, { '--ty': 0, '--rx': 0, '--cs': 1, duration: 0.72, ease: 'back.out(1.4)' }, 0.08)
+        .to(el, rise, 0.08)
         .to(el, { '--rz': 0, duration: 0.85, ease: 'expo.out' }, 0.2);
+
+      // Spin: decelerate the chosen axis from N full turns to forward-facing.
+      if (isSpin) {
+        tl.to(el, { [spinVar]: 0, duration: p.spinDuration, ease: 'power3.out' }, 0.06);
+      }
 
       // Rim glow flares to the tier hue, then settles back.
       tl.to(el, { '--reveal-glow': glow, duration: 0.45, ease: 'power3.out' }, 0.16)
@@ -75,8 +157,8 @@ export class RevealController {
       // Holographic light-sweep glint across the fresh foil.
       if (sweep) {
         tl.to(sweep, { opacity: 1, duration: 0.1 }, 0.34)
-          .to(sweep, { '--sweep-x': -120, duration: 0.6, ease: 'power2.inOut' }, 0.34)
-          .to(sweep, { opacity: 0, duration: 0.2 }, 0.8);
+          .to(sweep, { '--sweep-x': -120, duration: p.sweepDuration, ease: 'power2.inOut' }, 0.34)
+          .to(sweep, { opacity: 0, duration: 0.2 }, 0.34 + p.sweepDuration * 0.75);
       }
 
       // NEW! badge pop (a single, restrained overshoot).

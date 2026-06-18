@@ -21,7 +21,8 @@ import { makeCard } from '@/domain/card';
 import { RARITY, RARITY_ORDER } from '@/domain/rarity';
 import { MotionPrefs } from '@/ui/motionPrefs';
 import { HoloController } from '@/render/holo';
-import { RevealController } from '@/render/reveal';
+import { RevealController, REVEAL_DEFAULTS } from '@/render/reveal';
+import type { RevealParams, RevealStyle } from '@/render/reveal';
 import { createFace } from '@/render/face/faceFactory';
 import type { CardFace } from '@/render/face/CardFace';
 import { applyRarityVars, el } from '@/render/face/CardFace';
@@ -48,6 +49,10 @@ let nationIndex = Math.max(0, nations.findIndex((n) => n.code === 'ARG'));
 let tier: RarityTier = 'final';
 let isNew = true;
 let currentFace: CardFace | null = null;
+
+// Entrance / open-pack tuning (lab-only; production uses REVEAL_DEFAULTS).
+const revealParams: RevealParams = { ...REVEAL_DEFAULTS };
+let burstCount = 700;
 
 // ---- Stage ----
 const stage = el('div', 'lab-stage');
@@ -84,7 +89,7 @@ function replayReveal(): void {
   face.el.dataset.new = String(isNew);
   holo.detach();
   void reveal
-    .play(face, { drama: RARITY[tier].drama, isNew, flash, isActive: () => true })
+    .play(face, { drama: RARITY[tier].drama, isNew, flash, isActive: () => true, params: revealParams })
     .then(() => holo.attach(face.el));
 }
 
@@ -96,7 +101,7 @@ function fireBurst(): void {
     y: r.top + r.height / 2,
     colorA: RARITY[tier].sheen,
     colorB: RARITY[tier].foil,
-    count: window.innerWidth < 700 ? 300 : 700,
+    count: burstCount,
   });
 }
 
@@ -123,6 +128,37 @@ function slider(key: keyof HoloParams, label: string, min: number, max: number, 
   input.addEventListener('input', () => {
     const v = parseFloat(input.value);
     holo.setParams({ [key]: v } as Partial<HoloParams>);
+    val.textContent = `${v}${unit}`;
+  });
+  row.append(lab, input);
+  panel.append(row);
+}
+
+/** Like slider() but bound to arbitrary numeric state via get/set closures. */
+function sliderVal(
+  label: string,
+  min: number,
+  max: number,
+  step: number,
+  get: () => number,
+  set: (v: number) => void,
+  unit = '',
+): void {
+  const row = el('div', 'lab-row');
+  const lab = el('label');
+  const val = el('b');
+  const input = el('input');
+  input.type = 'range';
+  input.min = String(min);
+  input.max = String(max);
+  input.step = String(step);
+  const cur = get();
+  input.value = String(cur);
+  val.textContent = `${cur}${unit}`;
+  lab.append(document.createTextNode(label), val);
+  input.addEventListener('input', () => {
+    const v = parseFloat(input.value);
+    set(v);
     val.textContent = `${v}${unit}`;
   });
   row.append(lab, input);
@@ -184,6 +220,8 @@ function refreshNation(): void {
   nationVal.textContent = `${getNation(code()).country}`;
 }
 
+// ---- Card ----
+section('Card');
 buttonRow(
   button('‹ Prev', () => {
     nationIndex = (nationIndex - 1 + nations.length) % nations.length;
@@ -196,26 +234,20 @@ buttonRow(
     mountCard();
   }),
 );
-
 select('Rarity (rim/particles)', RARITY_ORDER, tier, (v) => {
   tier = v as RarityTier;
   if (currentFace) applyRarityVars(currentFace.el, RARITY[tier]);
-});
-select('Foil scope', ['spotlight', 'luminance', 'both'], HOLO_DEFAULTS.foilScope, (v) => {
-  holo.setParams({ foilScope: v as FoilScope });
 });
 toggle('Show NEW badge', isNew, (v) => {
   isNew = v;
   if (currentFace) currentFace.el.dataset.new = String(isNew);
 });
 
-section('Motion & depth');
-slider('tilt', 'Tilt', 0, 32, 1, '°');
-slider('scaleHover', 'Hover scale', 1, 1.16, 0.01);
-slider('depth', 'Parallax depth', 0, 100, 1);
-slider('smoothing', 'Smoothing', 0.03, 0.4, 0.01);
-
-section('Iridescence');
+// ---- Foil & iridescence ----
+section('Foil & iridescence');
+select('Foil scope', ['spotlight', 'luminance', 'both'], HOLO_DEFAULTS.foilScope, (v) => {
+  holo.setParams({ foilScope: v as FoilScope });
+});
 slider('iri', 'Foil intensity', 0, 1.6, 0.05);
 slider('iriScale', 'Band scale', 25, 160, 1, '%');
 slider('hueRange', 'Hue range', 0, 360, 1, '°');
@@ -223,26 +255,70 @@ slider('spot', 'Foil spread', 90, 520, 1, 'px');
 slider('wash', 'Full-card wash', 0, 1.5, 0.05);
 select('Blend mode', HOLO_BLEND_OPTIONS, HOLO_DEFAULTS.holoBlend, (v) => holo.setParams({ holoBlend: v }));
 
-section('Specular');
+// ---- Specular & edge ----
+section('Specular & edge');
 slider('specSize', 'Glow size', 80, 600, 1, 'px');
 slider('spec', 'Glow strength', 0, 1, 0.05);
 toggle('Hot glint', HOLO_DEFAULTS.hotspot, (v) => holo.setParams({ hotspot: v }));
-
-section('Edge & surface');
 slider('glow', 'Edge glow', 0, 1.6, 0.05);
 select('Glow colour', GLOW_COLOR_OPTIONS, HOLO_DEFAULTS.glowColor, (v) => holo.setParams({ glowColor: v }));
 slider('noiseOp', 'Grain', 0, 0.6, 0.02);
 slider('noiseScale', 'Grain scale', 20, 150, 1);
 
-section('Animation');
+// ---- Motion & depth (cursor parallax) ----
+section('Motion & depth');
+slider('tilt', 'Tilt', 0, 32, 1, '°');
+slider('scaleHover', 'Hover scale', 1, 1.16, 0.01);
+slider('depth', 'Parallax depth', 0, 100, 1);
+slider('smoothing', 'Smoothing', 0.03, 0.4, 0.01);
+
+// ---- Entrance / open-pack (the reveal + burst variations) ----
+section('Entrance / open-pack');
+select('Reveal style', ['rise', 'spin'], revealParams.style, (v) => {
+  revealParams.style = v as RevealStyle;
+});
+sliderVal('Spins', 1, 5, 1, () => revealParams.spins, (v) => {
+  revealParams.spins = v;
+});
+select('Spin axis', ['y', 'x'], revealParams.spinAxis, (v) => {
+  revealParams.spinAxis = v as 'y' | 'x';
+});
+sliderVal('Spin duration', 0.4, 1.5, 0.05, () => revealParams.spinDuration, (v) => {
+  revealParams.spinDuration = v;
+}, 's');
+sliderVal('Rise duration', 0.2, 1.5, 0.02, () => revealParams.riseDuration, (v) => {
+  revealParams.riseDuration = v;
+}, 's');
+sliderVal('Rise overshoot', 1, 3, 0.1, () => revealParams.riseOvershoot, (v) => {
+  revealParams.riseOvershoot = v;
+});
+sliderVal('Rise distance', 0, 200, 4, () => revealParams.riseDistance, (v) => {
+  revealParams.riseDistance = v;
+}, 'px');
+sliderVal('Light-sweep', 0.2, 1.5, 0.05, () => revealParams.sweepDuration, (v) => {
+  revealParams.sweepDuration = v;
+}, 's');
+sliderVal('Flash peak', 0, 1, 0.02, () => revealParams.flashPeak, (v) => {
+  revealParams.flashPeak = v;
+});
+sliderVal('Rim glow base', 0, 30, 1, () => revealParams.glowBase, (v) => {
+  revealParams.glowBase = v;
+});
+sliderVal('Rim glow ×drama', 0, 60, 1, () => revealParams.glowDramaScale, (v) => {
+  revealParams.glowDramaScale = v;
+});
+sliderVal('Burst count', 0, 900, 10, () => burstCount, (v) => {
+  burstCount = v;
+});
 buttonRow(button('Replay reveal', replayReveal, true), button('Burst', fireBurst));
 
+// ---- Export ----
 section('Export');
 buttonRow(
   button('Copy settings', () => {
-    const out = JSON.stringify(holo.getParams(), null, 2);
+    const out = JSON.stringify({ holo: holo.getParams(), reveal: revealParams, burstCount }, null, 2);
     void navigator.clipboard?.writeText(out);
-    console.info('[lab] current holo params:\n' + out);
+    console.info('[lab] current settings:\n' + out);
   }),
   button('Reset to defaults', () => window.location.reload()),
 );
