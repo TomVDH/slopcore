@@ -1,4 +1,22 @@
 /* Dev-only tuning shelf chrome (not shipped with the toy). */
+
+/* The full-viewport WebGL accent layer must be taken out of flow. For the app
+   this rule lives in layout.css, but the lab only imports tokens/holo/lab css —
+   so without it the canvas sits in normal flow and shoves #lab a whole viewport
+   down (blank shelf). */
+#fx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx-back);
+  pointer-events: none;
+}
+#fx-layer canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 #lab {
   display: grid;
   grid-template-columns: 1fr clamp(300px, 26vw, 360px);
