@@ -72,7 +72,12 @@
   background-size: cover;
   background-position: center;
   filter: blur(14px);
-  transform: scale(1.08);
+  transform: scale(1);
+  /* Clip the blurred placeholder to the card box so its printed red-frame edge
+     can't bleed outward past the rounded corners. The rotator stays
+     overflow:visible for parallax, so the placeholder must clip itself — this
+     is what keeps the revealed cards solid (no red halo). */
+  clip-path: inset(0 round var(--r-card));
 }
 .card__img {
   position: absolute;
