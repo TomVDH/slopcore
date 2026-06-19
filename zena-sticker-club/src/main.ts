@@ -126,7 +126,7 @@ let firstLoad = true;
 // Helpers
 // --------------------------------------------------------------------------
 function particleCount(drama: number): number {
-  const base = Math.round(150 + drama * 650);
+  const base = Math.round(150 + drama * 750);
   return window.innerWidth < 700 ? Math.round(base * 0.5) : base;
 }
 

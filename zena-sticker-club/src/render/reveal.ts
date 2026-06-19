@@ -2,9 +2,17 @@ import { gsap } from 'gsap';
 import type { CardFace } from '@/render/face/CardFace';
 import type { MotionPrefs } from '@/ui/motionPrefs';
 
-/** Reveal entrance style. 'rise' is the shipped rise+settle; 'spin' adds a
- *  multi-rotation turntable that decelerates to face forward. */
-export type RevealStyle = 'rise' | 'spin';
+/**
+ * Reveal entrance style (dialled in via the Foil Lab; production defaults to
+ * 'rise'):
+ *  - rise — the shipped rise + settle from below
+ *  - spin — multi-turn turntable (Y by default) decelerating to face forward
+ *  - flip — forward tumble on the X axis
+ *  - drop — falls in from above and slams to rest with a damped bounce
+ *  - zoom — punches in oversized and decelerates to rest
+ *  - deal — slides/arcs in from the side like a dealt card, leveling as it lands
+ */
+export type RevealStyle = 'rise' | 'spin' | 'flip' | 'drop' | 'zoom' | 'deal';
 
 /**
  * Tunable entrance parameters. The defaults reproduce the shipped reveal
@@ -36,18 +44,18 @@ export interface RevealParams {
 }
 
 export const REVEAL_DEFAULTS: RevealParams = {
-  style: 'rise',
-  spins: 3,
+  style: 'spin',
+  spins: 5,
   spinAxis: 'y',
-  spinDuration: 0.75,
+  spinDuration: 1.4,
   riseDistance: 72,
-  riseOvershoot: 1.4,
-  riseDuration: 0.72,
+  riseOvershoot: 1.9,
+  riseDuration: 1.5,
   startScale: 0.8,
-  glowBase: 8,
+  glowBase: 30,
   glowDramaScale: 22,
-  sweepDuration: 0.6,
-  flashPeak: 0.92,
+  sweepDuration: 1.5,
+  flashPeak: 0.08,
 };
 
 export interface RevealOpts {
@@ -95,7 +103,7 @@ export class RevealController {
       };
       // --- Reduced motion: a calm cross-fade, no travel, no sweep, no spin. ---
       if (this.motion.reduced) {
-        gsap.set(el, { opacity: 0, '--cs': 0.98, '--ty': 0, '--rx': 0, '--ry': 0 });
+        gsap.set(el, { opacity: 0, x: 0, y: 0, '--cs': 0.98, '--ty': 0, '--rx': 0, '--ry': 0 });
         if (opts.isNew) gsap.set(el, { '--new-scale': 0 });
         const tl = gsap.timeline({ onComplete: done });
         tl.to(el, { opacity: 1, '--cs': 1, duration: 0.25, ease: 'power1.out' });
@@ -104,22 +112,101 @@ export class RevealController {
         return;
       }
 
-      // --- Full motion. ---
-      const isSpin = p.style === 'spin';
+      // --- Full motion. Each style defines its own start pose + entrance
+      // tween(s); the shared beats (flash, rim glow, light-sweep, NEW badge)
+      // layer on top and the settled end state is always identical. ---
       const turns = Math.max(0, Math.round(p.spins));
-      const spinVar = p.spinAxis === 'x' ? '--rx' : '--ry';
-      const spinOwnsRx = isSpin && p.spinAxis === 'x';
+      const settle = `back.out(${p.riseOvershoot})`;
 
+      // Base pose = the settled end state; each style overrides its start.
       const start: gsap.TweenVars = {
         opacity: 0,
-        '--ty': p.riseDistance,
-        '--rx': 15,
+        x: 0,
+        y: 0,
+        '--ty': 0,
+        '--rx': 0,
         '--ry': 0,
-        '--rz': -4,
-        '--cs': p.startScale,
+        '--rz': 0,
+        '--cs': 1,
         '--reveal-glow': 0,
       };
-      if (isSpin) start[spinVar] = 360 * turns;
+      let entrance: (tl: gsap.core.Timeline) => void;
+      let flashFade = 0.34;
+
+      switch (p.style) {
+        case 'spin':
+        case 'flip': {
+          // spin = turntable (Y by default); flip = forward tumble (locked X).
+          const axisVar = p.style === 'flip' || p.spinAxis === 'x' ? '--rx' : '--ry';
+          start['--ty'] = p.riseDistance;
+          start['--cs'] = p.startScale;
+          start[axisVar] = 360 * turns;
+          if (axisVar === '--ry') start['--rx'] = 15; // keep the lean for Y-spin
+          flashFade = Math.max(0.34, p.spinDuration * 0.7);
+          entrance = (tl) => {
+            const rise: gsap.TweenVars = { '--ty': 0, '--cs': 1, duration: p.riseDuration, ease: settle };
+            if (axisVar === '--ry') rise['--rx'] = 0;
+            tl.to(el, rise, 0.08);
+            tl.to(el, { [axisVar]: 0, duration: p.spinDuration, ease: 'power3.out' }, 0.06);
+          };
+          break;
+        }
+        case 'drop': {
+          // Falls in from above and slams to rest with a damped bounce.
+          start['--ty'] = -(p.riseDistance * 2.2);
+          start['--cs'] = 1.06;
+          flashFade = 0.28;
+          entrance = (tl) => {
+            tl.to(
+              el,
+              {
+                '--ty': 0,
+                '--cs': 1,
+                duration: Math.max(0.4, p.riseDuration),
+                ease: `back.out(${Math.max(1.8, p.riseOvershoot + 0.6)})`,
+              },
+              0.06,
+            );
+          };
+          break;
+        }
+        case 'zoom': {
+          // Punches in oversized and decelerates to rest.
+          start['--cs'] = 1.55;
+          entrance = (tl) => {
+            tl.to(el, { '--cs': 1, duration: p.riseDuration, ease: settle }, 0.06);
+          };
+          break;
+        }
+        case 'deal': {
+          // Slides/arcs in from the side like a dealt card, leveling as it lands.
+          start.x = -240;
+          start['--ty'] = 28;
+          start['--rz'] = -8;
+          start['--cs'] = 0.96;
+          entrance = (tl) => {
+            tl.to(
+              el,
+              { x: 0, '--ty': 0, '--rz': 0, '--cs': 1, duration: Math.max(0.5, p.riseDuration), ease: 'power3.out' },
+              0.06,
+            );
+          };
+          break;
+        }
+        case 'rise':
+        default: {
+          start['--ty'] = p.riseDistance;
+          start['--rx'] = 15;
+          start['--rz'] = -4;
+          start['--cs'] = p.startScale;
+          entrance = (tl) => {
+            tl.to(el, { '--ty': 0, '--rx': 0, '--cs': 1, duration: p.riseDuration, ease: settle }, 0.08);
+            tl.to(el, { '--rz': 0, duration: 0.85, ease: 'expo.out' }, 0.2);
+          };
+          break;
+        }
+      }
+
       gsap.set(el, start);
       if (sweep) gsap.set(sweep, { '--sweep-x': 200, opacity: 0 });
       if (opts.isNew) gsap.set(el, { '--new-scale': 0 });
@@ -127,28 +214,14 @@ export class RevealController {
       const glow = p.glowBase + opts.drama * p.glowDramaScale;
       const tl = gsap.timeline({ onComplete: done });
 
-      // Bloom flash (covers the swap moment). When spinning, hold it longer so
-      // the brief mirrored back-faces pass behind the bloom.
-      const flashFade = isSpin ? Math.max(0.34, p.spinDuration * 0.7) : 0.34;
+      // Bloom flash (covers the swap moment; held longer for spin/flip so the
+      // brief mirrored back-faces pass behind the bloom).
       tl.to(opts.flash, { opacity: p.flashPeak, duration: 0.1, ease: 'power2.out' }, 0)
         .to(opts.flash, { opacity: 0, duration: flashFade, ease: 'power2.in' }, 0.1);
 
-      // Rise with one earned overshoot, then a clean expo settle (no jelly).
-      const rise: gsap.TweenVars = {
-        '--ty': 0,
-        '--cs': 1,
-        duration: p.riseDuration,
-        ease: `back.out(${p.riseOvershoot})`,
-      };
-      if (!spinOwnsRx) rise['--rx'] = 0;
-      tl.to(el, { opacity: 1, duration: 0.18, ease: 'power1.out' }, 0.05)
-        .to(el, rise, 0.08)
-        .to(el, { '--rz': 0, duration: 0.85, ease: 'expo.out' }, 0.2);
-
-      // Spin: decelerate the chosen axis from N full turns to forward-facing.
-      if (isSpin) {
-        tl.to(el, { [spinVar]: 0, duration: p.spinDuration, ease: 'power3.out' }, 0.06);
-      }
+      // Fade in, then run the chosen style's entrance.
+      tl.to(el, { opacity: 1, duration: 0.18, ease: 'power1.out' }, 0.05);
+      entrance(tl);
 
       // Rim glow flares to the tier hue, then settles back.
       tl.to(el, { '--reveal-glow': glow, duration: 0.45, ease: 'power3.out' }, 0.16)
