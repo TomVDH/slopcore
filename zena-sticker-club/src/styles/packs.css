@@ -1,0 +1,110 @@
+/* ===========================================================================
+   Unopened-pack design variants. Pure paint overrides keyed off a `data-pack`
+   attribute on the .pack root — the base look + ALL gesture/transform wiring
+   stays in the (off-limits) holo.css .pack block; these only restyle colour,
+   sheen, grain, crest, year + tear cue. `data-pack` absent (or 'gallery') = the
+   shipped dark-foil baseline. The others are deliberately LOUD + varied — a real
+   sticker pack, not four shades of premium black. Lab-iterable.
+   ======================================================================== */
+
+/* ---- Classic — bold cobalt Panini wrapper with a gold flash badge ---- */
+.pack[data-pack='classic'] {
+  background: linear-gradient(165deg, #3360e6 0%, #1f44b8 60%, #18338f 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 32px 64px rgba(16, 36, 110, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+.pack[data-pack='classic'] .pack__sheen {
+  background: linear-gradient(115deg, transparent 43%, rgba(255, 255, 255, 0.5) 50%, transparent 57%);
+}
+.pack[data-pack='classic'] .pack__grain {
+  opacity: 0.14;
+}
+.pack[data-pack='classic'] .crest__mark {
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.22), 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.pack[data-pack='classic'] .crest__sub {
+  color: rgba(255, 255, 255, 0.85);
+}
+.pack[data-pack='classic'] .pack__year {
+  top: 12px;
+  right: 12px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffd24a;
+  color: #18338f;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.pack[data-pack='classic'] .pack__tab {
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 7px, transparent 7px 12px);
+  opacity: 0.85;
+}
+.pack[data-pack='classic'] .pack__tab-label {
+  color: #fff;
+}
+
+/* ---- Holo — bright iridescent mylar foil ---- */
+.pack[data-pack='holo'] {
+  background: linear-gradient(135deg, #ffb3d9 0%, #b9d4ff 30%, #b3ffd9 55%, #fff0b3 78%, #e0b8ff 100%);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.pack[data-pack='holo'] .pack__sheen {
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.7) 50%, transparent 65%);
+  animation-duration: 2.8s;
+}
+.pack[data-pack='holo'] .pack__grain {
+  opacity: 0.18;
+}
+.pack[data-pack='holo'] .crest__mark {
+  color: #221c2e;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.pack[data-pack='holo'] .crest__sub {
+  color: rgba(34, 28, 46, 0.7);
+}
+.pack[data-pack='holo'] .pack__year {
+  color: rgba(34, 28, 46, 0.35);
+}
+.pack[data-pack='holo'] .pack__tab {
+  background: repeating-linear-gradient(90deg, rgba(34, 28, 46, 0.45) 0 6px, transparent 6px 12px);
+  opacity: 0.7;
+}
+.pack[data-pack='holo'] .pack__tab-label {
+  color: rgba(34, 28, 46, 0.75);
+}
+
+/* ---- Kraft — warm paper sleeve, ink-stamped ---- */
+.pack[data-pack='kraft'] {
+  background: linear-gradient(160deg, #d2b888 0%, #c0a36e 60%, #b0925f 100%);
+  border-color: rgba(74, 54, 28, 0.4);
+  box-shadow: 0 22px 44px rgba(40, 28, 12, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.pack[data-pack='kraft'] .pack__sheen {
+  opacity: 0.06;
+}
+.pack[data-pack='kraft'] .pack__grain {
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+.pack[data-pack='kraft'] .crest__mark {
+  color: #3a2c18;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.pack[data-pack='kraft'] .crest__sub {
+  color: rgba(58, 44, 24, 0.72);
+}
+.pack[data-pack='kraft'] .pack__year {
+  color: rgba(58, 44, 24, 0.32);
+}
+.pack[data-pack='kraft'] .pack__tab {
+  background: repeating-linear-gradient(90deg, rgba(58, 44, 24, 0.5) 0 5px, transparent 5px 10px);
+  opacity: 0.7;
+}
+.pack[data-pack='kraft'] .pack__tab-label {
+  color: rgba(58, 44, 24, 0.75);
+}

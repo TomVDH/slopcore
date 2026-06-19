@@ -11,9 +11,12 @@ import '@fontsource/hanken-grotesk/400.css';
 import '@fontsource/hanken-grotesk/600.css';
 import '@fontsource/space-mono/400.css';
 
+import { gsap } from 'gsap';
+
 import '@/styles/tokens.css';
 import '@/styles/holo.css';
 import '@/styles/lab.css';
+import '@/styles/packs.css';
 
 import type { CountryCode, RarityTier } from '@/domain/types';
 import { allNations, getNation } from '@/domain/nations';
@@ -21,6 +24,7 @@ import { getImages } from '@/assets/images';
 import { makeCard } from '@/domain/card';
 import { RARITY, RARITY_ORDER } from '@/domain/rarity';
 import { MotionPrefs } from '@/ui/motionPrefs';
+import { PackView } from '@/ui/pack';
 import { HoloController } from '@/render/holo';
 import { RevealController, REVEAL_DEFAULTS } from '@/render/reveal';
 import type { RevealParams, RevealStyle } from '@/render/reveal';
@@ -66,6 +70,72 @@ stage.append(host, flash, caption);
 const panel = el('aside', 'lab-panel');
 labRoot.append(stage, panel);
 
+// ---- Unopened pack + full-open transition (lab preview of the rip→reveal) ----
+let packStyle = 'gallery';
+let packExitFade = 0.3;
+let preRevealGap = 0;
+const labPack = new PackView(
+  {
+    onArm: () => {},
+    onProgress: (p) => foil?.setTear(p),
+    onComplete: () => labFullOpen(),
+    onHover: (e) => foil?.setEnergy(e),
+  },
+  motion,
+);
+labPack.el.dataset.pack = packStyle;
+labPack.el.style.zIndex = '30';
+labPack.el.style.opacity = '0';
+
+/** Show/hide the unopened pack over the card to inspect a design. */
+function showPack(v: boolean): void {
+  labPack.el.style.opacity = v ? '1' : '0';
+  // Hide the card entirely while the pack is up, so its drop-shadow / rim-glow
+  // doesn't bleed around the pack edges.
+  if (currentFace) currentFace.el.style.opacity = v ? '0' : '1';
+  if (v) {
+    gsap.set(labPack.el, { '--pack-ty': 0, '--pack-s': 1, '--pack-rot': 0 });
+    labPack.enable();
+    foil?.attachPack(labPack.el, '#c9d2de', '#8a93a1');
+  } else {
+    labPack.disable();
+    foil?.hidePack();
+  }
+}
+
+/** The pack has torn open — replicate the toy's runReveal handoff: burst, pack
+ *  fade-out, an optional beat, then the card reveal. */
+function labFullOpen(): void {
+  if (!currentFace) return;
+  const face = currentFace;
+  if (foil) {
+    const r = host.getBoundingClientRect();
+    foil.hidePack();
+    foil.burst({
+      x: r.left + r.width / 2,
+      y: r.top + r.height / 2,
+      colorA: RARITY[tier].sheen,
+      colorB: RARITY[tier].foil,
+      count: burstCount,
+    });
+  }
+  gsap.to(labPack.el, { opacity: 0, '--pack-s': 1.12, duration: packExitFade, ease: 'power2.in' });
+  holo.detach();
+  face.el.dataset.new = String(isNew);
+  gsap.delayedCall(preRevealGap / 1000, () => {
+    void reveal
+      .play(face, { drama: RARITY[tier].drama, isNew, flash, isActive: () => true, params: revealParams })
+      .then(() => holo.attach(face.el));
+  });
+}
+
+/** Show the pack, then tear it (reuses the real PackView gesture). */
+function replayFullOpen(): void {
+  if (!currentFace) return;
+  showPack(true);
+  labPack.rip();
+}
+
 // The control group (a collapsible <details>) that the helpers append into.
 // section() opens a new group; controls before the first section go on the panel.
 let currentGroup: HTMLElement = panel;
@@ -90,6 +160,7 @@ function mountCard(): void {
     applyRarityVars(face.el, RARITY[tier]);
     holo.attach(face.el);
   });
+  host.append(labPack.el); // keep the pack overlaid (replaceChildren removed it)
 }
 
 function replayReveal(): void {
@@ -427,6 +498,21 @@ sliderVal('Burst count', 0, 900, 10, () => burstCount, (v) => {
 }, '', 'number of particles in the celebratory burst');
 burstOnEdit();
 buttonRow(button('Burst', fireBurst));
+
+// ---- Unopened pack + open ----
+section('Unopened pack');
+select('Pack style', ['gallery', 'classic', 'holo', 'kraft'], packStyle, (v) => {
+  packStyle = v;
+  labPack.el.dataset.pack = v;
+}, 'design of the sealed foil pack');
+toggle('Show pack', false, showPack, 'overlay the unopened pack on the card to inspect its design');
+sliderVal('Pre-reveal gap', 0, 600, 10, () => preRevealGap, (v) => {
+  preRevealGap = v;
+}, 'ms', 'beat between the pack tearing open and the card rising');
+sliderVal('Pack exit fade', 0.1, 0.8, 0.02, () => packExitFade, (v) => {
+  packExitFade = v;
+}, 's', 'how fast the torn pack fades as the card takes over');
+buttonRow(button('Replay full open', replayFullOpen, true));
 
 // ---- Export ----
 section('Export');
