@@ -1,6 +1,6 @@
 import type { Card } from '@/domain/types';
 import type { CardFace } from './CardFace';
-import { altFor, applyRarityVars, buildOverlays, el } from './CardFace';
+import { altFor, applyRarityVars, buildBack, buildOverlays, el } from './CardFace';
 import { HOLO_DEFAULTS, applyHoloVars } from '@/render/holoConfig';
 
 /**
@@ -33,7 +33,9 @@ export class ImageCardFace implements CardFace {
     picture.append(this.source, this.img);
 
     const o = buildOverlays();
+    const back = buildBack();
     this.rotator.append(
+      back,
       this.lqip,
       picture,
       o.holo,
