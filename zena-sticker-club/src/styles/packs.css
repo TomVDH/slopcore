@@ -108,3 +108,120 @@
 .pack[data-pack='kraft'] .pack__tab-label {
   color: rgba(58, 44, 24, 0.75);
 }
+
+/* ---- Riso — overprinted fluoro-pink + electric-blue zine, off-register ---- */
+.pack[data-pack='riso'] {
+  background:
+    radial-gradient(120% 90% at 78% 8%, rgba(255, 64, 145, 0.92) 0%, rgba(255, 64, 145, 0) 46%),
+    radial-gradient(120% 95% at 18% 92%, rgba(22, 92, 255, 0.92) 0%, rgba(22, 92, 255, 0) 48%),
+    linear-gradient(135deg, #f4ede0 0%, #efe6d4 100%);
+  border-color: rgba(20, 18, 16, 0.55);
+  box-shadow:
+    0 28px 56px rgba(120, 20, 70, 0.32),
+    4px 0 0 rgba(255, 64, 145, 0.5) inset,
+    -4px 0 0 rgba(22, 92, 255, 0.5) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+/* sheen → a roaming halftone-dot ink screen that drifts (the overprint texture) */
+.pack[data-pack='riso'] .pack__sheen {
+  inset: -20%;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(255, 64, 145, 0.85) 1.4px, transparent 1.8px),
+    radial-gradient(circle at 50% 50%, rgba(22, 92, 255, 0.8) 1.4px, transparent 1.8px);
+  background-size: 9px 9px, 9px 9px;
+  background-position: 0 0, 3px 4px;
+  animation: risoDrift 5s steps(6) infinite;
+}
+@keyframes risoDrift {
+  0% { background-position: 0 0, 3px 4px; }
+  100% { background-position: 9px 9px, 12px 13px; }
+}
+/* grain → cranked-up ink noise, multiplied like cheap recycled stock */
+.pack[data-pack='riso'] .pack__grain {
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+}
+/* a thick off-register ink frame: pink ghost + blue ghost, intentionally misaligned */
+.pack[data-pack='riso']::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 3px solid #ff4091;
+  border-radius: calc(var(--r-card) - 8px);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}
+.pack[data-pack='riso']::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  transform: translate(3px, -3px);
+  border: 3px solid #165cff;
+  border-radius: calc(var(--r-card) - 8px);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}
+.pack[data-pack='riso'] .pack__crest {
+  z-index: 2;
+}
+/* the headline overprinted: ink-black plate, with pink + blue mis-registered ghosts */
+.pack[data-pack='riso'] .crest__mark {
+  color: #14110e;
+  text-shadow:
+    2px -2px 0 rgba(255, 64, 145, 0.9),
+    -2px 2px 0 rgba(22, 92, 255, 0.9);
+  animation: risoShift 3.4s steps(4) infinite;
+}
+@keyframes risoShift {
+  0%, 100% { text-shadow: 2px -2px 0 rgba(255, 64, 145, 0.9), -2px 2px 0 rgba(22, 92, 255, 0.9); }
+  50% { text-shadow: 3px -1px 0 rgba(255, 64, 145, 0.9), -1px 3px 0 rgba(22, 92, 255, 0.9); }
+}
+.pack[data-pack='riso'] .crest__sub {
+  color: #14110e;
+  background: #ff4091;
+  padding: 3px 9px;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(22, 92, 255, 0.85);
+  mix-blend-mode: multiply;
+}
+/* year → a hand-stamped fluoro ink blob, knocked askew */
+.pack[data-pack='riso'] .pack__year {
+  top: 12px;
+  right: 14px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #f4ede0;
+  background: #165cff;
+  border-radius: 49% 51% 52% 48% / 48% 52% 48% 52%;
+  transform: rotate(-9deg);
+  box-shadow: 3px 3px 0 rgba(255, 64, 145, 0.85);
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
+/* tear strip → a perforated zine edge in overprinted ink */
+.pack[data-pack='riso'] .pack__tab {
+  height: 4px;
+  background:
+    repeating-linear-gradient(90deg, #14110e 0 7px, transparent 7px 14px),
+    repeating-linear-gradient(90deg, transparent 0 3px, #ff4091 3px 10px, transparent 10px 14px);
+  opacity: 0.9;
+  z-index: 2;
+}
+.pack[data-pack='riso'] .pack__tab-label {
+  color: #f4ede0;
+  background: #14110e;
+  padding: 2px 7px;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(255, 64, 145, 0.9);
+  z-index: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pack[data-pack='riso'] .pack__sheen { animation: none; }
+  .pack[data-pack='riso'] .crest__mark { animation: none; }
+}
