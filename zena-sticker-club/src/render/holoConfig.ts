@@ -52,21 +52,21 @@ export const HOLO_DEFAULTS: HoloParams = {
   tilt: 16,
   scaleHover: 1.11,
   depth: 57,
-  smoothing: 0.09,
+  smoothing: 0.29,
   iri: 0.35,
   iriScale: 39,
   hueRange: 264,
   spot: 468,
   wash: 0.15,
-  holoBlend: 'overlay',
-  specSize: 320,
+  holoBlend: 'color-dodge',
+  specSize: 595,
   spec: 0.55,
   hotspot: true,
-  glow: 0.65,
-  glowColor: '#8fd4ff',
+  glow: 1.6,
+  glowColor: '#ff9ed1',
   noiseOp: 0.2,
   noiseScale: 85,
-  foilScope: 'spotlight',
+  foilScope: 'luminance',
 };
 
 export const HOLO_BLEND_OPTIONS = ['color-dodge', 'screen', 'hard-light', 'overlay', 'plus-lighter'];
@@ -109,7 +109,7 @@ export function applyHoloVars(el: HTMLElement, p: HoloParams): void {
   s.setProperty('--spec-size', String(p.specSize));
   s.setProperty('--spec', String(p.spec));
   s.setProperty('--hotspot', p.hotspot ? '1' : '0');
-  s.setProperty('--glow', String(p.glow));
+  s.setProperty('--edge-glow', String(p.glow));
   s.setProperty('--glow-color', p.glowColor);
   s.setProperty('--noise-op', String(p.noiseOp));
   s.setProperty('--noise', buildNoiseURI(p.noiseScale));

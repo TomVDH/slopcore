@@ -5,14 +5,18 @@
  * of the shipped toy. "Copy settings" dumps the current values for baking into
  * HOLO_DEFAULTS.
  */
-import '@fontsource/anton';
+import '@fontsource/archivo/700.css';
+import '@fontsource/archivo/800.css';
 import '@fontsource/hanken-grotesk/400.css';
 import '@fontsource/hanken-grotesk/600.css';
 import '@fontsource/space-mono/400.css';
 
+import { gsap } from 'gsap';
+
 import '@/styles/tokens.css';
 import '@/styles/holo.css';
 import '@/styles/lab.css';
+import '@/styles/packs.css';
 
 import type { CountryCode, RarityTier } from '@/domain/types';
 import { allNations, getNation } from '@/domain/nations';
@@ -20,8 +24,10 @@ import { getImages } from '@/assets/images';
 import { makeCard } from '@/domain/card';
 import { RARITY, RARITY_ORDER } from '@/domain/rarity';
 import { MotionPrefs } from '@/ui/motionPrefs';
+import { PackView } from '@/ui/pack';
 import { HoloController } from '@/render/holo';
-import { RevealController } from '@/render/reveal';
+import { RevealController, REVEAL_DEFAULTS } from '@/render/reveal';
+import type { RevealParams, RevealStyle } from '@/render/reveal';
 import { createFace } from '@/render/face/faceFactory';
 import type { CardFace } from '@/render/face/CardFace';
 import { applyRarityVars, el } from '@/render/face/CardFace';
@@ -49,6 +55,10 @@ let tier: RarityTier = 'final';
 let isNew = true;
 let currentFace: CardFace | null = null;
 
+// Entrance / open-pack tuning (lab-only; production uses REVEAL_DEFAULTS).
+const revealParams: RevealParams = { ...REVEAL_DEFAULTS };
+let burstCount = 900;
+
 // ---- Stage ----
 const stage = el('div', 'lab-stage');
 const host = el('div', 'lab-card-host');
@@ -59,6 +69,80 @@ stage.append(host, flash, caption);
 
 const panel = el('aside', 'lab-panel');
 labRoot.append(stage, panel);
+
+// ---- Unopened pack + full-open transition (lab preview of the rip→reveal) ----
+let packStyle = 'gallery';
+let packExitFade = 0.3;
+let preRevealGap = 0;
+const labPack = new PackView(
+  {
+    onArm: () => {},
+    onProgress: (p) => foil?.setTear(p),
+    onComplete: () => labFullOpen(),
+    onHover: (e) => foil?.setEnergy(e),
+  },
+  motion,
+);
+labPack.el.dataset.pack = packStyle;
+labPack.el.style.zIndex = '30';
+labPack.el.style.opacity = '0';
+
+/** Show/hide the unopened pack over the card to inspect a design. */
+function showPack(v: boolean): void {
+  labPack.el.style.opacity = v ? '1' : '0';
+  // Hide the card entirely while the pack is up, so its drop-shadow / rim-glow
+  // doesn't bleed around the pack edges.
+  if (currentFace) currentFace.el.style.opacity = v ? '0' : '1';
+  if (v) {
+    gsap.set(labPack.el, { '--pack-ty': 0, '--pack-s': 1, '--pack-rot': 0 });
+    labPack.enable();
+    foil?.attachPack(labPack.el, '#c9d2de', '#8a93a1');
+  } else {
+    labPack.disable();
+    foil?.hidePack();
+  }
+}
+
+/** The pack has torn open — replicate the toy's runReveal handoff: burst, pack
+ *  fade-out, an optional beat, then the card reveal. */
+function labFullOpen(): void {
+  if (!currentFace) return;
+  const face = currentFace;
+  if (foil) {
+    const r = host.getBoundingClientRect();
+    foil.hidePack();
+    foil.burst({
+      x: r.left + r.width / 2,
+      y: r.top + r.height / 2,
+      colorA: RARITY[tier].sheen,
+      colorB: RARITY[tier].foil,
+      count: burstCount,
+    });
+  }
+  gsap.to(labPack.el, { opacity: 0, '--pack-s': 1.12, duration: packExitFade, ease: 'power2.in' });
+  holo.detach();
+  face.el.dataset.new = String(isNew);
+  gsap.delayedCall(preRevealGap / 1000, () => {
+    void reveal
+      .play(face, { drama: RARITY[tier].drama, isNew, flash, isActive: () => true, params: revealParams })
+      .then(() => holo.attach(face.el));
+  });
+}
+
+/** Show the pack, then tear it (reuses the real PackView gesture). */
+function replayFullOpen(): void {
+  if (!currentFace) return;
+  showPack(true);
+  labPack.rip();
+}
+
+// The control group (a collapsible <details>) that the helpers append into.
+// section() opens a new group; controls before the first section go on the panel.
+let currentGroup: HTMLElement = panel;
+
+// Entrance controls that only apply to certain reveal styles. Shown/hidden when
+// the master "Reveal style" changes (scopeLast tags the row just appended).
+const styleScoped: { el: HTMLElement; styles: RevealStyle[] }[] = [];
 
 function code(): CountryCode {
   return nations[nationIndex]!.code;
@@ -76,6 +160,7 @@ function mountCard(): void {
     applyRarityVars(face.el, RARITY[tier]);
     holo.attach(face.el);
   });
+  host.append(labPack.el); // keep the pack overlaid (replaceChildren removed it)
 }
 
 function replayReveal(): void {
@@ -84,7 +169,7 @@ function replayReveal(): void {
   face.el.dataset.new = String(isNew);
   holo.detach();
   void reveal
-    .play(face, { drama: RARITY[tier].drama, isNew, flash, isActive: () => true })
+    .play(face, { drama: RARITY[tier].drama, isNew, flash, isActive: () => true, params: revealParams })
     .then(() => holo.attach(face.el));
 }
 
@@ -96,18 +181,26 @@ function fireBurst(): void {
     y: r.top + r.height / 2,
     colorA: RARITY[tier].sheen,
     colorB: RARITY[tier].foil,
-    count: window.innerWidth < 700 ? 300 : 700,
+    count: burstCount,
   });
 }
 
 // ---- Controls ----
-function section(text: string): void {
-  const s = el('div', 'lab-section');
-  s.textContent = text;
-  panel.append(s);
+/** Open a collapsible control group; subsequent controls append into its body.
+ *  The <details> stays a plain block (it mis-lays-out its revealed content as a
+ *  flex container); a real .lab-group-body div owns the flex column + gap. */
+function section(text: string, open = false): void {
+  const details = el('details', 'lab-group');
+  details.open = open;
+  const summary = el('summary', 'lab-section');
+  summary.textContent = text;
+  const body = el('div', 'lab-group-body');
+  details.append(summary, body);
+  panel.append(details);
+  currentGroup = body;
 }
 
-function slider(key: keyof HoloParams, label: string, min: number, max: number, step: number, unit = ''): void {
+function slider(key: keyof HoloParams, label: string, min: number, max: number, step: number, unit = '', desc = ''): void {
   const row = el('div', 'lab-row');
   const lab = el('label');
   const val = el('b');
@@ -125,11 +218,47 @@ function slider(key: keyof HoloParams, label: string, min: number, max: number, 
     holo.setParams({ [key]: v } as Partial<HoloParams>);
     val.textContent = `${v}${unit}`;
   });
-  row.append(lab, input);
-  panel.append(row);
+  row.append(lab);
+  if (desc) row.append(descEl(desc));
+  row.append(input);
+  currentGroup.append(row);
 }
 
-function select(label: string, options: readonly string[], current: string, onChange: (v: string) => void): void {
+/** Like slider() but bound to arbitrary numeric state via get/set closures. */
+function sliderVal(
+  label: string,
+  min: number,
+  max: number,
+  step: number,
+  get: () => number,
+  set: (v: number) => void,
+  unit = '',
+  desc = '',
+): void {
+  const row = el('div', 'lab-row');
+  const lab = el('label');
+  const val = el('b');
+  const input = el('input');
+  input.type = 'range';
+  input.min = String(min);
+  input.max = String(max);
+  input.step = String(step);
+  const cur = get();
+  input.value = String(cur);
+  val.textContent = `${cur}${unit}`;
+  lab.append(document.createTextNode(label), val);
+  input.addEventListener('input', () => {
+    const v = parseFloat(input.value);
+    set(v);
+    val.textContent = `${v}${unit}`;
+  });
+  row.append(lab);
+  if (desc) row.append(descEl(desc));
+  row.append(input);
+  currentGroup.append(row);
+}
+
+function select(label: string, options: readonly string[], current: string, onChange: (v: string) => void, desc = ''): void {
   const row = el('div', 'lab-row');
   const lab = el('label');
   lab.textContent = label;
@@ -142,18 +271,23 @@ function select(label: string, options: readonly string[], current: string, onCh
     sel.append(opt);
   }
   sel.addEventListener('change', () => onChange(sel.value));
-  row.append(lab, sel);
-  panel.append(row);
+  row.append(lab);
+  if (desc) row.append(descEl(desc));
+  row.append(sel);
+  currentGroup.append(row);
 }
 
-function toggle(label: string, current: boolean, onChange: (v: boolean) => void): void {
+function toggle(label: string, current: boolean, onChange: (v: boolean) => void, desc = ''): void {
+  const wrap = el('div', 'lab-row');
   const row = el('label', 'lab-toggle');
   const input = el('input');
   input.type = 'checkbox';
   input.checked = current;
   input.addEventListener('change', () => onChange(input.checked));
   row.append(document.createTextNode(label), input);
-  panel.append(row);
+  wrap.append(row);
+  if (desc) wrap.append(descEl(desc));
+  currentGroup.append(wrap);
 }
 
 function button(label: string, onClick: () => void, primary = false): HTMLButtonElement {
@@ -167,7 +301,53 @@ function button(label: string, onClick: () => void, primary = false): HTMLButton
 function buttonRow(...buttons: HTMLButtonElement[]): void {
   const row = el('div', 'lab-btns');
   row.append(...buttons);
-  panel.append(row);
+  currentGroup.append(row);
+}
+
+/** Tag the control row just appended as applying only to certain reveal styles. */
+function scopeLast(styles: RevealStyle[]): void {
+  const last = currentGroup.lastElementChild as HTMLElement | null;
+  if (last) styleScoped.push({ el: last, styles });
+}
+
+/** Show only the entrance controls relevant to the selected reveal style. */
+function refreshStyleControls(): void {
+  for (const entry of styleScoped) {
+    entry.el.style.display = entry.styles.includes(revealParams.style) ? '' : 'none';
+  }
+}
+
+// Auto-replay so entrance-effect edits preview themselves (the holo controls
+// already apply live; the reveal params only show during a reveal).
+let replayTimer = 0;
+function autoReplay(): void {
+  window.clearTimeout(replayTimer);
+  replayTimer = window.setTimeout(replayReveal, 110);
+}
+/** Replay the reveal when the just-appended control is committed. Fires on
+ *  'change' (slider release / select pick), NOT 'input', so dragging a slider
+ *  replays once on release rather than on every tick. */
+function replayOnEdit(): void {
+  const input = currentGroup.lastElementChild?.querySelector('input, select');
+  input?.addEventListener('change', autoReplay);
+}
+
+// Re-fire the particle burst (debounced) when its count is committed, so the
+// new density previews itself the same way reveal edits do.
+let burstTimer = 0;
+function burstOnEdit(): void {
+  const input = currentGroup.lastElementChild?.querySelector('input, select');
+  input?.addEventListener('change', () => {
+    window.clearTimeout(burstTimer);
+    burstTimer = window.setTimeout(fireBurst, 110);
+  });
+}
+
+/** A small muted description line rendered under a control's label. */
+function descEl(text: string): HTMLElement {
+  const d = el('div', 'lab-desc');
+  d.textContent = text;
+  return d;
 }
 
 const title = el('div', 'lab-title');
@@ -184,6 +364,8 @@ function refreshNation(): void {
   nationVal.textContent = `${getNation(code()).country}`;
 }
 
+// ---- Card ----
+section('Card', true);
 buttonRow(
   button('‹ Prev', () => {
     nationIndex = (nationIndex - 1 + nations.length) % nations.length;
@@ -196,56 +378,189 @@ buttonRow(
     mountCard();
   }),
 );
-
-select('Rarity (rim/particles)', RARITY_ORDER, tier, (v) => {
-  tier = v as RarityTier;
-  if (currentFace) applyRarityVars(currentFace.el, RARITY[tier]);
-});
-select('Foil scope', ['spotlight', 'luminance', 'both'], HOLO_DEFAULTS.foilScope, (v) => {
-  holo.setParams({ foilScope: v as FoilScope });
-});
+select(
+  'Rarity (rim/particles)',
+  RARITY_ORDER,
+  tier,
+  (v) => {
+    tier = v as RarityTier;
+    if (currentFace) applyRarityVars(currentFace.el, RARITY[tier]);
+  },
+  'tier driving the rim-glow colour, reveal drama, and burst',
+);
+replayOnEdit();
+buttonRow(button('Replay reveal', replayReveal, true));
 toggle('Show NEW badge', isNew, (v) => {
   isNew = v;
   if (currentFace) currentFace.el.dataset.new = String(isNew);
-});
+}, 'show the NEW! flag and its pop on the reveal');
+toggle('Show back (inspect)', false, (v) => {
+  if (!currentFace) return;
+  if (v) {
+    holo.detach();
+    currentFace.el.style.setProperty('--ry', '180');
+  } else {
+    currentFace.el.style.setProperty('--ry', '0');
+    holo.attach(currentFace.el);
+  }
+}, 'flip the card to inspect its ZENA FC back');
 
+// ---- Foil & iridescence ----
+section('Foil & iridescence');
+select('Foil scope', ['spotlight', 'luminance', 'both'], HOLO_DEFAULTS.foilScope, (v) => {
+  holo.setParams({ foilScope: v as FoilScope });
+}, 'where the foil shows: cursor spotlight, image highlights, or both');
+slider('iri', 'Foil intensity', 0, 1.6, 0.05, '', 'overall strength of the iridescent foil');
+slider('iriScale', 'Band scale', 25, 160, 1, '%', 'width of the rainbow bands');
+slider('hueRange', 'Hue range', 0, 360, 1, '°', 'how far the colour shifts across the foil');
+slider('spot', 'Foil spread', 90, 520, 1, 'px', 'radius of the foil spotlight around the cursor');
+slider('wash', 'Full-card wash', 0, 1.5, 0.05, '', 'faint foil tint over the whole card at rest');
+select('Blend mode', HOLO_BLEND_OPTIONS, HOLO_DEFAULTS.holoBlend, (v) => holo.setParams({ holoBlend: v }), 'how the foil blends onto the card art');
+
+// ---- Specular & edge ----
+section('Specular & edge');
+slider('specSize', 'Glow size', 80, 600, 1, 'px', 'radius of the white specular highlight — shows on hover');
+slider('spec', 'Glow strength', 0, 1, 0.05, '', 'brightness of the specular highlight — shows on hover');
+toggle('Hot glint', HOLO_DEFAULTS.hotspot, (v) => holo.setParams({ hotspot: v }), 'a tight hot spark at the highlight centre — shows on hover');
+slider('glow', 'Edge glow', 0, 1.6, 0.05, '', 'glow along the card edges — shows on hover');
+select('Glow colour', GLOW_COLOR_OPTIONS, HOLO_DEFAULTS.glowColor, (v) => holo.setParams({ glowColor: v }), 'tint of the edge / hover glow');
+slider('noiseOp', 'Grain', 0, 0.6, 0.02, '', 'amount of film grain over the card');
+slider('noiseScale', 'Grain scale', 20, 150, 1, '', 'size of the film-grain speckles');
+
+// ---- Motion & depth (cursor parallax) ----
 section('Motion & depth');
-slider('tilt', 'Tilt', 0, 32, 1, '°');
-slider('scaleHover', 'Hover scale', 1, 1.16, 0.01);
-slider('depth', 'Parallax depth', 0, 100, 1);
-slider('smoothing', 'Smoothing', 0.03, 0.4, 0.01);
+slider('tilt', 'Tilt', 0, 32, 1, '°', 'how far the card tilts toward the cursor');
+slider('scaleHover', 'Hover scale', 1, 1.16, 0.01, '', 'how much the card grows on hover');
+slider('depth', 'Parallax depth', 0, 100, 1, '', 'depth of the layered parallax on tilt');
+slider('smoothing', 'Smoothing', 0.03, 0.4, 0.01, '', 'how quickly the tilt eases toward the cursor');
 
-section('Iridescence');
-slider('iri', 'Foil intensity', 0, 1.6, 0.05);
-slider('iriScale', 'Band scale', 25, 160, 1, '%');
-slider('hueRange', 'Hue range', 0, 360, 1, '°');
-slider('spot', 'Foil spread', 90, 520, 1, 'px');
-slider('wash', 'Full-card wash', 0, 1.5, 0.05);
-select('Blend mode', HOLO_BLEND_OPTIONS, HOLO_DEFAULTS.holoBlend, (v) => holo.setParams({ holoBlend: v }));
+// ---- Entrance / open-pack (the reveal + burst variations) ----
+section('Entrance / open-pack', true);
+select(
+  'Reveal style',
+  ['rise', 'spin', 'flip', 'drop', 'zoom', 'deal'],
+  revealParams.style,
+  (v) => {
+    revealParams.style = v as RevealStyle;
+    refreshStyleControls();
+  },
+  'the entrance animation the card plays when revealed',
+);
+replayOnEdit();
+buttonRow(button('Replay reveal', replayReveal, true));
+sliderVal('Spins', 1, 5, 1, () => revealParams.spins, (v) => {
+  revealParams.spins = v;
+}, '', 'full turns before the card faces forward');
+scopeLast(['spin', 'flip']);
+replayOnEdit();
+select('Spin axis', ['y', 'x'], revealParams.spinAxis, (v) => {
+  revealParams.spinAxis = v as 'y' | 'x';
+}, 'spin axis — Y is a turntable, X is a tumble');
+scopeLast(['spin']);
+replayOnEdit();
+sliderVal('Spin duration', 0.4, 1.5, 0.05, () => revealParams.spinDuration, (v) => {
+  revealParams.spinDuration = v;
+}, 's', 'time for the spin to decelerate to forward-facing');
+scopeLast(['spin', 'flip']);
+replayOnEdit();
+sliderVal('Rise duration', 0.2, 1.5, 0.02, () => revealParams.riseDuration, (v) => {
+  revealParams.riseDuration = v;
+}, 's', 'time for the card to rise and settle into place');
+replayOnEdit();
+sliderVal('Rise overshoot', 1, 3, 0.1, () => revealParams.riseOvershoot, (v) => {
+  revealParams.riseOvershoot = v;
+}, '', 'springiness of the settle (1 = none)');
+scopeLast(['rise', 'spin', 'flip', 'drop', 'zoom']);
+replayOnEdit();
+sliderVal('Rise distance', 0, 200, 4, () => revealParams.riseDistance, (v) => {
+  revealParams.riseDistance = v;
+}, 'px', 'how far below its resting spot the card starts');
+scopeLast(['rise', 'spin', 'flip', 'drop']);
+replayOnEdit();
+sliderVal('Light-sweep', 0.2, 1.5, 0.05, () => revealParams.sweepDuration, (v) => {
+  revealParams.sweepDuration = v;
+}, 's', 'how long the holographic glint takes to cross the card');
+replayOnEdit();
+sliderVal('Flash peak', 0, 1, 0.02, () => revealParams.flashPeak, (v) => {
+  revealParams.flashPeak = v;
+}, '', 'brightness of the white bloom masking the pack→card swap');
+replayOnEdit();
+sliderVal('Rim glow base', 0, 30, 1, () => revealParams.glowBase, (v) => {
+  revealParams.glowBase = v;
+}, '', 'baseline rim-glow flare on every reveal');
+replayOnEdit();
+sliderVal('Rim glow ×drama', 0, 60, 1, () => revealParams.glowDramaScale, (v) => {
+  revealParams.glowDramaScale = v;
+}, '', 'extra rim-glow flare added for rarer cards');
+replayOnEdit();
+sliderVal('Burst count', 0, 900, 10, () => burstCount, (v) => {
+  burstCount = v;
+}, '', 'number of particles in the celebratory burst');
+burstOnEdit();
+buttonRow(button('Burst', fireBurst));
 
-section('Specular');
-slider('specSize', 'Glow size', 80, 600, 1, 'px');
-slider('spec', 'Glow strength', 0, 1, 0.05);
-toggle('Hot glint', HOLO_DEFAULTS.hotspot, (v) => holo.setParams({ hotspot: v }));
+// ---- Unopened pack + open ----
+section('Unopened pack');
+select('Pack style', ['gallery', 'classic', 'holo', 'kraft'], packStyle, (v) => {
+  packStyle = v;
+  labPack.el.dataset.pack = v;
+}, 'design of the sealed foil pack');
+toggle('Show pack', false, showPack, 'overlay the unopened pack on the card to inspect its design');
+sliderVal('Pre-reveal gap', 0, 600, 10, () => preRevealGap, (v) => {
+  preRevealGap = v;
+}, 'ms', 'beat between the pack tearing open and the card rising');
+sliderVal('Pack exit fade', 0.1, 0.8, 0.02, () => packExitFade, (v) => {
+  packExitFade = v;
+}, 's', 'how fast the torn pack fades as the card takes over');
+buttonRow(button('Replay full open', replayFullOpen, true));
 
-section('Edge & surface');
-slider('glow', 'Edge glow', 0, 1.6, 0.05);
-select('Glow colour', GLOW_COLOR_OPTIONS, HOLO_DEFAULTS.glowColor, (v) => holo.setParams({ glowColor: v }));
-slider('noiseOp', 'Grain', 0, 0.6, 0.02);
-slider('noiseScale', 'Grain scale', 20, 150, 1);
-
-section('Animation');
-buttonRow(button('Replay reveal', replayReveal, true), button('Burst', fireBurst));
-
+// ---- Export ----
 section('Export');
+let exportFormat: 'json' | 'yaml' = 'json';
+const exportArea = el('textarea', 'lab-export');
+exportArea.readOnly = true;
+exportArea.spellcheck = false;
+
+function settingsObject(): Record<string, unknown> {
+  return { reveal: { ...revealParams }, burstCount, holo: holo.getParams() };
+}
+function toYaml(obj: Record<string, unknown>, indent = 0): string {
+  const pad = '  '.repeat(indent);
+  const leaf = (v: unknown): string => (typeof v === 'string' ? JSON.stringify(v) : String(v));
+  const lines: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      lines.push(`${pad}${k}:`, toYaml(v as Record<string, unknown>, indent + 1));
+    } else {
+      lines.push(`${pad}${k}: ${leaf(v)}`);
+    }
+  }
+  return lines.join('\n');
+}
+function regenExport(): void {
+  const o = settingsObject();
+  exportArea.value = exportFormat === 'yaml' ? toYaml(o) : JSON.stringify(o, null, 2);
+}
+
+select('Format', ['json', 'yaml'], exportFormat, (v) => {
+  exportFormat = v as 'json' | 'yaml';
+  regenExport();
+}, 'copy the dialled-in settings as JSON or YAML');
+currentGroup.append(exportArea);
 buttonRow(
-  button('Copy settings', () => {
-    const out = JSON.stringify(holo.getParams(), null, 2);
-    void navigator.clipboard?.writeText(out);
-    console.info('[lab] current holo params:\n' + out);
-  }),
+  button('Refresh', regenExport),
+  button(
+    'Copy',
+    () => {
+      regenExport();
+      void navigator.clipboard?.writeText(exportArea.value);
+    },
+    true,
+  ),
   button('Reset to defaults', () => window.location.reload()),
 );
+regenExport();
 
+refreshStyleControls();
 refreshNation();
 mountCard();

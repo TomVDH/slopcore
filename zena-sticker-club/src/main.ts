@@ -14,6 +14,8 @@ import '@fontsource/space-mono/700.css';
 import '@/styles/tokens.css';
 import '@/styles/layout.css';
 import '@/styles/holo.css';
+import '@/styles/packs.css';
+import '@/styles/backs.css';
 import '@/styles/components.css';
 
 import { AppMachine } from '@/app/machine';
@@ -86,6 +88,7 @@ const pack = new PackView(
   },
   motion,
 );
+pack.el.dataset.pack = 'memphis'; // shipped pack skin
 plinth.append(pack.el, cardHost, flash);
 
 const cta = el('div', 'stage__cta');
@@ -126,7 +129,7 @@ let firstLoad = true;
 // Helpers
 // --------------------------------------------------------------------------
 function particleCount(drama: number): number {
-  const base = Math.round(150 + drama * 650);
+  const base = Math.round(150 + drama * 750);
   return window.innerWidth < 700 ? Math.round(base * 0.5) : base;
 }
 
@@ -180,14 +183,37 @@ interface RevealInfo {
   isNew: boolean;
 }
 
-function finalize(card: Card, info: RevealInfo, token: number, review: boolean): void {
+async function finalize(card: Card, info: RevealInfo, token: number, review: boolean): Promise<void> {
   if (token !== machine.token) return;
-  // Only measure the hero rect when the binder fly will actually use it.
+  // Measure the hero rect up front: opening the placard nudges the stage, so we
+  // need the card's resting rect before that happens.
   const heroRect = !review && !motion.reduced ? currentFace?.el.getBoundingClientRect() : undefined;
   if (currentFace) holo.attach(currentFace.el);
+  skip.classList.remove('is-shown');
 
   const order = collection.acquisitionOrder();
   const squadNo = Math.max(1, order.indexOf(card.code) + 1);
+
+  // --- Beat 1: the card travels into its album slot, as its own moment. The
+  // placard waits until it has landed. (Reduced motion / collapsed rail resolve
+  // instantly, so the placard follows immediately in those cases.) ---
+  if (!review) {
+    header.setProgress(collection.uniqueOwned(), TOTAL_NATIONS);
+    const label = card.rarity.label;
+    if (info.isNew) {
+      announcer.say(`New sticker: ${card.def.country}, ${label}. First copy.`);
+      showToast(`NEW · ${card.def.country}`, true);
+    } else {
+      announcer.say(`Duplicate: ${card.def.country}, ${label}. You now have ${info.count} copies.`);
+      showToast(`Got it already · copy ${info.count}`, false);
+    }
+    await binder.fileCard(card.code, info.isNew, info.count, heroRect);
+    if (token !== machine.token) return; // a re-roll superseded us mid-beat
+  } else {
+    announcer.say(`Viewing ${card.def.country}, ${card.rarity.label}.`);
+  }
+
+  // --- Beat 2: the museum placard slides in with the lore. ---
   panel.render(card, {
     count: info.count,
     oddsLabel: tierOddsLabel(pullTable, card.def.rarity),
@@ -199,24 +225,8 @@ function finalize(card: Card, info: RevealInfo, token: number, review: boolean):
   app.dataset.panel = 'open';
   panel.playIn(motion.reduced);
 
-  if (!review) {
-    binder.fileCard(card.code, info.isNew, info.count, heroRect);
-    header.setProgress(collection.uniqueOwned(), TOTAL_NATIONS);
-    const label = card.rarity.label;
-    if (info.isNew) {
-      announcer.say(`New sticker: ${card.def.country}, ${label}. First copy.`);
-      showToast(`NEW · ${card.def.country}`, true);
-    } else {
-      announcer.say(`Duplicate: ${card.def.country}, ${label}. You now have ${info.count} copies.`);
-      showToast(`Got it already · copy ${info.count}`, false);
-    }
-  } else {
-    announcer.say(`Viewing ${card.def.country}, ${card.rarity.label}.`);
-  }
-
   btnRip.hidden = true;
   btnReroll.hidden = false;
-  skip.classList.remove('is-shown');
 }
 
 async function reviewCard(code: CountryCode): Promise<void> {
@@ -231,6 +241,7 @@ async function reviewCard(code: CountryCode): Promise<void> {
   const face = createFace('image');
   currentFace = face;
   await face.mount(card, cardHost);
+  face.el.querySelector('.card__back')?.setAttribute('data-back', 'prism'); // shipped back skin
   if (token !== machine.token) {
     face.destroy();
     return;
@@ -241,7 +252,7 @@ async function reviewCard(code: CountryCode): Promise<void> {
     flash,
     isActive: () => token === machine.token,
   });
-  finalize(card, { count: collection.count(code), isNew: false }, token, true);
+  await finalize(card, { count: collection.count(code), isNew: false }, token, true);
 }
 
 // --------------------------------------------------------------------------
@@ -321,6 +332,7 @@ async function runReveal(
   const face = createFace('image');
   currentFace = face;
   await face.mount(card, cardHost);
+  face.el.querySelector('.card__back')?.setAttribute('data-back', 'prism'); // shipped back skin
   if (token !== machine.token) {
     face.destroy();
     return;
@@ -332,7 +344,8 @@ async function runReveal(
     isActive: () => token === machine.token,
   });
   if (token !== machine.token) return;
-  finalize(card, { count, isNew }, token, false);
+  await finalize(card, { count, isNew }, token, false);
+  if (token !== machine.token) return;
   machine.send({ type: 'REVEAL_DONE' });
 }
 

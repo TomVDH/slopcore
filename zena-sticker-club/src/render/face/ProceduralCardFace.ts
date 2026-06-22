@@ -1,7 +1,7 @@
 import type { Card } from '@/domain/types';
 import { CLUB, STAT_LINE } from '@/domain/types';
 import type { CardFace } from './CardFace';
-import { altFor, applyRarityVars, buildOverlays, el } from './CardFace';
+import { altFor, applyRarityVars, buildBack, buildOverlays, el } from './CardFace';
 import { HOLO_DEFAULTS, applyHoloVars } from '@/render/holoConfig';
 
 /**
@@ -102,7 +102,8 @@ export class ProceduralCardFace implements CardFace {
     frame.append(year, this.flag, this.country, plate);
 
     const o = buildOverlays();
-    this.rotator.append(frame, o.holo, o.holoWash, o.glare, o.glint, o.noise, o.vignette, o.sweep, o.badge);
+    const back = buildBack();
+    this.rotator.append(back, frame, o.holo, o.holoWash, o.glare, o.glint, o.noise, o.vignette, o.sweep, o.badge);
     this.el.append(this.rotator);
   }
 

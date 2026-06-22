@@ -1,0 +1,98 @@
+/* ===========================================================================
+   Pack & Back Shelf (/shelf.html) — dev-only design-gallery chrome. A quiet
+   Wall-Text frame so the loud pack + card-back designs pop against it.
+   ======================================================================== */
+#shelf {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(24px, 4vh, 48px);
+  padding: clamp(28px, 5vh, 64px) 32px 56px;
+  background:
+    repeating-linear-gradient(0deg, var(--grid-line) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 40px),
+    var(--stage-bottom);
+  overflow-y: auto;
+}
+
+.shelf-header {
+  text-align: center;
+}
+.shelf-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-display-l);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.shelf-header p {
+  margin: 8px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.shelf-bays {
+  display: flex;
+  gap: clamp(28px, 5vw, 72px);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+.shelf-bay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.shelf-stage {
+  position: relative;
+  width: var(--card-w);
+  aspect-ratio: var(--card-aspect);
+  perspective: 1400px;
+}
+.shelf-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.shelf-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.shelf-select {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  text-transform: capitalize;
+  background: var(--surface-frost);
+  color: var(--ink);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-control);
+  padding: 9px 14px;
+  cursor: pointer;
+  min-width: 148px;
+}
+.shelf-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--surface-frost);
+  color: var(--ink);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-control);
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+}
+.shelf-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

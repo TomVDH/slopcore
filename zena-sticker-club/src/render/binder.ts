@@ -95,11 +95,14 @@ export class BinderView {
     this.titleCount = titleCount;
   }
 
-  /** Fill the slot for a freshly pulled card; fly a clone into it, pop, highlight. */
-  fileCard(code: CountryCode, isNew: boolean, count: number, fromRect?: DOMRect): void {
+  /** Fill the slot for a freshly pulled card; fly a clone into it, pop, highlight.
+   *  Resolves once the card has landed in its slot (or instantly for the
+   *  reduced-motion / collapsed-rail fallback), so the caller can sequence the
+   *  placard as the next beat. */
+  fileCard(code: CountryCode, isNew: boolean, count: number, fromRect?: DOMRect): Promise<void> {
     this.clearNew();
     const refs = this.slots.get(code);
-    if (!refs) return;
+    if (!refs) return Promise.resolve();
 
     if (!refs.loaded) {
       refs.img.src = getImages(code).thumb.webp;
@@ -123,12 +126,12 @@ export class BinderView {
       refs.targetTimeout = undefined;
     }, 1600);
 
-    if (fromRect && !this.motion.reduced) {
-      this.flyTo(code, fromRect);
-    } else {
-      this.popSlot(code);
-    }
     this.refreshCount();
+    if (fromRect && !this.motion.reduced) {
+      return this.flyTo(code, fromRect);
+    }
+    this.popSlot(code);
+    return Promise.resolve();
   }
 
   private popSlot(code: CountryCode): void {
@@ -142,14 +145,15 @@ export class BinderView {
     );
   }
 
-  /** Fly a thumb clone from the revealed-card rect into the album slot (FLIP-style). */
-  private flyTo(code: CountryCode, fromRect: DOMRect): void {
+  /** Fly a thumb clone from the revealed-card rect into the album slot (FLIP-style).
+   *  Resolves when the clone lands. */
+  private flyTo(code: CountryCode, fromRect: DOMRect): Promise<void> {
     const refs = this.slots.get(code);
-    if (!refs) return;
+    if (!refs) return Promise.resolve();
     const slotRect = refs.button.getBoundingClientRect();
     if (slotRect.width === 0) {
       this.popSlot(code);
-      return;
+      return Promise.resolve();
     }
     // Lock the rail so a stray scroll/flick can't shift the target mid-flight.
     this.rail.style.pointerEvents = 'none';
@@ -170,28 +174,31 @@ export class BinderView {
       boxShadow: '0 24px 60px rgba(0, 0, 0, 0.55)',
     });
     document.body.append(clone);
-    gsap.fromTo(
-      clone,
-      {
-        x: fromRect.left - slotRect.left,
-        y: fromRect.top - slotRect.top,
-        scaleX: fromRect.width / slotRect.width,
-        scaleY: fromRect.height / slotRect.height,
-      },
-      {
-        x: 0,
-        y: 0,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 0.62,
-        ease: 'power3.inOut',
-        onComplete: () => {
-          clone.remove();
-          this.rail.style.pointerEvents = '';
-          this.popSlot(code);
+    return new Promise<void>((resolve) => {
+      gsap.fromTo(
+        clone,
+        {
+          x: fromRect.left - slotRect.left,
+          y: fromRect.top - slotRect.top,
+          scaleX: fromRect.width / slotRect.width,
+          scaleY: fromRect.height / slotRect.height,
         },
-      },
-    );
+        {
+          x: 0,
+          y: 0,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 0.62,
+          ease: 'power3.inOut',
+          onComplete: () => {
+            clone.remove();
+            this.rail.style.pointerEvents = '';
+            this.popSlot(code);
+            resolve();
+          },
+        },
+      );
+    });
   }
 
   /** Demote any NEW flag (called when the next pack is opened). */

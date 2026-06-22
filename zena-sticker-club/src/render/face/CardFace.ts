@@ -60,6 +60,27 @@ export function buildOverlays(): Overlays {
 }
 
 /**
+ * The card's true back — a ZENA FC crest panel on dark stock. Lives on the
+ * rotator rotated 180°; with `backface-visibility: hidden` on the front layers
+ * (holo.css) it only shows when the card flips/spins past 90°, instead of the
+ * mirrored front.
+ */
+export function buildBack(): HTMLDivElement {
+  const back = el('div', 'card__back');
+  back.setAttribute('aria-hidden', 'true');
+  const year = el('div', 'card__back-year');
+  year.textContent = '26';
+  const crest = el('div', 'card__back-crest');
+  const mark = el('div', 'card__back-mark');
+  mark.textContent = 'ZENA FC';
+  const sub = el('div', 'card__back-sub');
+  sub.textContent = "Sticker Club '26";
+  crest.append(mark, sub);
+  back.append(year, crest);
+  return back;
+}
+
+/**
  * Write the rarity-driven CSS vars (foil/sheen/glow) used by the reveal rim
  * flare, the particle burst tint, and the binder ring. The holographic foil
  * itself is uniform across rarities (see holoConfig.ts).

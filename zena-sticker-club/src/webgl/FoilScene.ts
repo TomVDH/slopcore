@@ -2,6 +2,43 @@ import * as THREE from 'three';
 
 const MAX_PARTICLES = 900;
 
+/** Live-tunable foil-shimmer parameters (dialled in on the Pack Motion Lab). */
+export interface ShimmerParams {
+  /** Highlight band density across the pack. */
+  sweepFreq: number;
+  /** How fast the highlight travels. */
+  sweepSpeed: number;
+  /** Highlight tightness (higher = a thinner, sharper streak). */
+  sweepSharp: number;
+  /** Highlight brightness. */
+  sweepGain: number;
+  /** Resting metal brightness. */
+  baseBright: number;
+  /** Micro-sparkle amount. */
+  spark: number;
+  /** Sparkle twinkle rate. */
+  sparkleSpeed: number;
+  /** Thin-film iridescent tint inside the highlight. */
+  tint: number;
+  /** Brushed-grain contribution to the base. */
+  grain: number;
+  /** Strength of the second, cross-diagonal highlight. */
+  band2: number;
+}
+
+export const SHIMMER_DEFAULTS: ShimmerParams = {
+  sweepFreq: 4, // a couple of wide bands, not a field of streaks
+  sweepSpeed: 0.6,
+  sweepSharp: 3.5, // clean, soft-edged band
+  sweepGain: 1.35, // bright glint
+  baseBright: 0, // NO metal wash over the printed pack art
+  spark: 0.9, // sparse, subtle
+  sparkleSpeed: 5,
+  tint: 0.3,
+  grain: 0.25, // only affects the (off-by-default) base
+  band2: 0.45,
+};
+
 const SHIMMER_VERT = /* glsl */ `
   varying vec2 vUv;
   void main() {
@@ -16,7 +53,10 @@ const SHIMMER_VERT = /* glsl */ `
 const SHIMMER_FRAG = /* glsl */ `
   precision highp float;
   uniform float uTime, uTear, uEnergy, uSeed;
-  uniform vec2 uPointer;
+  uniform float uSweepFreq, uSweepSpeed, uSweepSharp, uSweepGain, uBaseBright;
+  uniform float uSpark, uSparkleSpeed, uTint, uGrain, uBand2;
+  uniform vec2 uPointer, uSize;
+  uniform float uRadius;
   uniform vec3 uColorA, uColorB;
   varying vec2 vUv;
 
@@ -31,28 +71,44 @@ const SHIMMER_FRAG = /* glsl */ `
 
   void main() {
     vec2 uv = vUv;
-    // Brushed anisotropy: noise strongly stretched along one axis.
-    float grain  = noise(uv * vec2(2.0, 30.0) + vec2(uSeed, uTime * 0.05) + uPointer * 0.06);
-    float grain2 = noise(uv * vec2(42.0, 2.0) - uTime * 0.03);
 
-    // Base metallic gradient between the two neutral foil tones.
-    vec3 base = mix(uColorA, uColorB, clamp(uv.y * 0.6 + grain * 0.4, 0.0, 1.0));
+    // Smooth low-frequency wobble for the highlight path — keeps the band
+    // coherent. (Feeding the FINE brushed noise into the sweep is what shattered
+    // it into vertical streaks.)
+    float wob = noise(uv * 2.4 + vec2(uSeed, uTime * 0.08));
+    // Isotropic fine fleck noise, used ONLY for sparse sparkle (no streaks).
+    float fleck = noise(uv * 46.0 - uTime * 0.04);
 
-    // Sharp diagonal highlight that travels (faster + brighter on hover).
+    // Time-only sweep: pointer + energy must NOT feed the phase, or moving the
+    // mouse (or hovering) would teleport the highlight — that is the pause/stutter.
+    float t = uTime * uSweepSpeed;
+
+    // Primary travelling highlight: a clean soft band.
     float sweepPos = (uv.x + uv.y) * 0.5;
-    float band = sin(sweepPos * 9.0 - uTime * (0.55 + uEnergy * 1.0) + grain * 1.4);
-    float sweep = pow(smoothstep(0.45, 1.0, band), 3.0);
+    float band1 = sin(sweepPos * uSweepFreq - t + wob * 0.6) * 0.5 + 0.5;
+    float sweep = pow(smoothstep(0.55, 1.0, band1), uSweepSharp);
 
-    // Faint thin-film tint, only inside the highlight (a hint of life, not rainbow).
-    float phase = fract(grain * 0.5 + dot(uPointer, vec2(0.4, 0.25)) + uTime * 0.05);
+    // Second, slower highlight crossing the other diagonal.
+    float sweepPos2 = (uv.x - uv.y) * 0.5;
+    float band2v = sin(sweepPos2 * (uSweepFreq * 0.7) + t * 0.7 + wob * 0.5) * 0.5 + 0.5;
+    sweep += pow(smoothstep(0.6, 1.0, band2v), uSweepSharp + 1.0) * uBand2;
+
+    // Optional faint metal base (0 by default, so printed packs stay clean).
+    vec3 base = mix(uColorA, uColorB, clamp(uv.y * 0.6 + wob * uGrain, 0.0, 1.0));
+
+    // Thin-film tint inside the highlight (a hint of life, not rainbow).
+    float phase = fract(wob * 0.5 + uTime * 0.05);
     vec3 tint = 0.5 + 0.5 * cos(6.28318 * (phase + vec3(0.0, 0.33, 0.67)));
 
-    float spark = pow(grain2, 8.0) * 1.3;
+    // Sparse twinkling sparkle.
+    float twinkle = 0.6 + 0.4 * sin(uTime * uSparkleSpeed + fleck * 30.0);
+    float spark = pow(fleck, 9.0) * uSpark * twinkle;
 
-    vec3 col = base * (0.28 + uEnergy * 0.3)
-             + sweep * mix(vec3(1.0), tint, 0.35) * 1.1
+    // Energy (hover) only BRIGHTENS the glint — it never shifts the phase.
+    vec3 col = base * (uBaseBright + uEnergy * 0.3)
+             + sweep * mix(vec3(1.0), tint, uTint) * (uSweepGain + uEnergy * 0.4)
              + vec3(spark);
-    float a = sweep * 0.7 + spark * 0.45 + grain * 0.05;
+    float a = sweep * 0.85 + spark * 0.5;
 
     // Jagged tear dissolve: a diagonal front advances as uTear rises.
     float front = uv.x * 0.5 + uv.y * 0.5;
@@ -62,7 +118,14 @@ const SHIMMER_FRAG = /* glsl */ `
 
     // Branchless reveal mask (avoids discard, which stalls early-Z on tile GPUs).
     float mask = uTear > 0.0001 ? step(uTear - 0.04, front) : 1.0;
-    gl_FragColor = vec4(col * mask, a * mask);
+
+    // Clip to the pack's rounded-rect so the additive light matches its corners.
+    vec2 halfSize = uSize * 0.5;
+    vec2 q = abs(uv * uSize - halfSize) - (halfSize - vec2(uRadius));
+    float rdist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRadius;
+    float roundMask = 1.0 - smoothstep(0.0, 1.5, rdist);
+
+    gl_FragColor = vec4(col * mask, a * mask * roundMask);
   }
 `;
 
@@ -131,7 +194,7 @@ export class FoilScene {
 
   private mode: 'off' | 'idle' | 'burst' = 'off';
   private raf = 0;
-  private idleAccum = 0;
+  private energyTarget = 0;
   private burstElapsed = 0;
   private burstDuration = 0;
   private packRect: DOMRect | null = null;
@@ -163,6 +226,18 @@ export class FoilScene {
         uPointer: { value: new THREE.Vector2(0, 0) },
         uColorA: { value: new THREE.Color('#c9d2de') },
         uColorB: { value: new THREE.Color('#8a93a1') },
+        uSize: { value: new THREE.Vector2(1, 1) },
+        uRadius: { value: 18 },
+        uSweepFreq: { value: SHIMMER_DEFAULTS.sweepFreq },
+        uSweepSpeed: { value: SHIMMER_DEFAULTS.sweepSpeed },
+        uSweepSharp: { value: SHIMMER_DEFAULTS.sweepSharp },
+        uSweepGain: { value: SHIMMER_DEFAULTS.sweepGain },
+        uBaseBright: { value: SHIMMER_DEFAULTS.baseBright },
+        uSpark: { value: SHIMMER_DEFAULTS.spark },
+        uSparkleSpeed: { value: SHIMMER_DEFAULTS.sparkleSpeed },
+        uTint: { value: SHIMMER_DEFAULTS.tint },
+        uGrain: { value: SHIMMER_DEFAULTS.grain },
+        uBand2: { value: SHIMMER_DEFAULTS.band2 },
       },
     });
     this.shimmer = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.shimmerMat);
@@ -213,6 +288,7 @@ export class FoilScene {
     (this.shimmerMat.uniforms.uColorA!.value as THREE.Color).set(colorA);
     (this.shimmerMat.uniforms.uColorB!.value as THREE.Color).set(colorB);
     this.shimmerMat.uniforms.uTear!.value = 0;
+    this.shimmerMat.uniforms.uRadius!.value = parseFloat(getComputedStyle(packEl).borderTopLeftRadius) || 18;
     this.positionShimmer();
     this.shimmer.visible = true;
     this.mode = 'idle';
@@ -227,7 +303,26 @@ export class FoilScene {
   }
 
   setEnergy(e: number): void {
-    this.shimmerMat.uniforms.uEnergy!.value = e;
+    // Smoothed toward in the loop, so a hover (energy 0->1) brightens gently
+    // instead of popping.
+    this.energyTarget = e;
+    this.ensureLoop();
+  }
+
+  /** Live-tune the shimmer shader (Pack Motion Lab). */
+  setShimmer(p: Partial<ShimmerParams>): void {
+    const u = this.shimmerMat.uniforms;
+    if (p.sweepFreq !== undefined) u.uSweepFreq!.value = p.sweepFreq;
+    if (p.sweepSpeed !== undefined) u.uSweepSpeed!.value = p.sweepSpeed;
+    if (p.sweepSharp !== undefined) u.uSweepSharp!.value = p.sweepSharp;
+    if (p.sweepGain !== undefined) u.uSweepGain!.value = p.sweepGain;
+    if (p.baseBright !== undefined) u.uBaseBright!.value = p.baseBright;
+    if (p.spark !== undefined) u.uSpark!.value = p.spark;
+    if (p.sparkleSpeed !== undefined) u.uSparkleSpeed!.value = p.sparkleSpeed;
+    if (p.tint !== undefined) u.uTint!.value = p.tint;
+    if (p.grain !== undefined) u.uGrain!.value = p.grain;
+    if (p.band2 !== undefined) u.uBand2!.value = p.band2;
+    this.ensureLoop();
   }
 
   hidePack(): void {
@@ -294,6 +389,7 @@ export class FoilScene {
     const r = this.packEl.getBoundingClientRect();
     this.packRect = r;
     const rot = parseFloat(this.packEl.style.getPropertyValue('--pack-rot')) || 0;
+    (this.shimmerMat.uniforms.uSize!.value as THREE.Vector2).set(r.width, r.height);
     this.shimmer.scale.set(r.width, r.height, 1);
     this.shimmer.position.set(
       r.left + r.width / 2 - window.innerWidth / 2,
@@ -336,14 +432,12 @@ export class FoilScene {
     const dt = Math.min(0.05, this.clock.getDelta());
 
     if (this.mode === 'idle') {
-      this.idleAccum += dt;
-      // throttle idle shimmer to ~30fps
-      if (this.idleAccum >= 1 / 30) {
-        this.positionShimmer(); // follow the pack's float / tear each rendered frame
-        this.shimmerMat.uniforms.uTime!.value += this.idleAccum;
-        this.renderer.render(this.scene, this.camera);
-        this.idleAccum = 0;
-      }
+      // Full-rate idle render so the foil sweep reads silky, not steppy.
+      this.positionShimmer(); // follow the pack's float / tear each frame
+      const u = this.shimmerMat.uniforms;
+      u.uEnergy!.value += (this.energyTarget - (u.uEnergy!.value as number)) * Math.min(1, dt * 8);
+      u.uTime!.value += dt;
+      this.renderer.render(this.scene, this.camera);
       this.raf = requestAnimationFrame(this.tick);
       return;
     }

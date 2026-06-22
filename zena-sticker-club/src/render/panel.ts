@@ -27,7 +27,6 @@ export class PanelView {
   private readonly bioEl: HTMLElement;
   private readonly chips: HTMLElement;
   private readonly statEl: HTMLElement;
-  private readonly progressEl: HTMLElement;
 
   constructor(private readonly root: HTMLElement) {
     root.dataset.state = 'closed';
@@ -46,35 +45,22 @@ export class PanelView {
     const decoded = el('section', 'decoded');
     this.nameEl = el('p', 'decoded__name');
     this.sayEl = el('p', 'decoded__say');
-    decoded.append(this.label('The Name'), this.nameEl, this.sayEl);
+    decoded.append(this.nameEl, this.sayEl);
 
     const stint = el('section', 'stint');
     this.bioEl = el('p', 'stint__body');
-    stint.append(this.label("Marcus's Stint"), this.bioEl);
+    stint.append(this.bioEl);
 
     const dossier = el('section', 'dossier');
     this.chips = el('div', 'chips');
-    dossier.append(this.label('Kit & Clues'), this.chips);
+    dossier.append(this.chips);
 
     const stats = el('section', 'statplate');
     this.statEl = el('p', 'statplate__line mono');
-    const decode = el('p', 'statplate__note');
-    decode.textContent =
-      'Born 8-1-1845, the era of football’s first written rules. Height and weight are, like the caps, self-reported.';
-    stats.append(this.label('Scouting Data'), this.statEl, decode);
+    stats.append(this.statEl);
 
-    const progress = el('section', 'panel__progress');
-    this.progressEl = el('p', 'panel__progress-text');
-    progress.append(this.progressEl);
-
-    inner.append(ribbon, head, decoded, stint, dossier, stats, progress);
+    inner.append(ribbon, head, decoded, stint, dossier, stats);
     root.replaceChildren(inner);
-  }
-
-  private label(text: string): HTMLElement {
-    const h = el('h2', 'eyebrow');
-    h.textContent = text;
-    return h;
   }
 
   render(card: Card, info: PanelInfo): void {
@@ -98,10 +84,6 @@ export class PanelView {
         return chip;
       }),
     );
-
-    const copies =
-      info.count > 1 ? ` You now hold ${info.count} copies of this sticker.` : '';
-    this.progressEl.textContent = `Sticker ${info.owned} of ${info.total} collected.${copies}`;
 
     this.root.scrollTop = 0;
   }

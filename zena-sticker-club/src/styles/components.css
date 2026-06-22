@@ -97,18 +97,3 @@
   color: var(--sheen);
   letter-spacing: 0.02em;
 }
-.statplate__note {
-  color: var(--ink-faint);
-  font-size: 0.8rem;
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
-.panel__progress {
-  border-top: 1px solid var(--hairline);
-  padding-top: 16px;
-}
-.panel__progress-text {
-  color: var(--ink-dim);
-  font-size: 0.85rem;
-}
