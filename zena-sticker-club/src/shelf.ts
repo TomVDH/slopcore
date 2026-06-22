@@ -31,8 +31,18 @@ import { applyRarityVars, el } from '@/render/face/CardFace';
 const root = document.getElementById('shelf')!;
 const motion = new MotionPrefs();
 
-const PACK_STYLES = ['gallery', 'classic', 'holo', 'kraft', 'riso', 'neon', 'comic', 'chrome', 'vapor', 'candy'];
-const BACK_STYLES = ['default', 'neon', 'comic', 'chrome', 'holo', 'vapor'];
+const PACK_STYLES = [
+  'flux', 'mono', 'sash', 'prism', 'seal', 'split',
+  'gallery', 'classic', 'holo', 'kraft', 'riso', 'neon', 'comic', 'chrome', 'vapor', 'candy',
+  'acid', 'memphis', 'baroque', 'optical', 'lava',
+  'gold', 'pitch', 'tournament',
+];
+const BACK_STYLES = [
+  'flux', 'mono', 'sash', 'prism', 'seal', 'split',
+  'default', 'neon', 'comic', 'chrome', 'holo', 'vapor',
+  'acid', 'memphis', 'baroque', 'optical', 'lava',
+  'gold', 'pitch', 'tournament',
+];
 
 function select(styles: string[], current: string, onChange: (v: string) => void): HTMLSelectElement {
   const s = el('select', 'shelf-select');

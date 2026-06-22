@@ -14,6 +14,8 @@ import '@fontsource/space-mono/700.css';
 import '@/styles/tokens.css';
 import '@/styles/layout.css';
 import '@/styles/holo.css';
+import '@/styles/packs.css';
+import '@/styles/backs.css';
 import '@/styles/components.css';
 
 import { AppMachine } from '@/app/machine';
@@ -86,6 +88,7 @@ const pack = new PackView(
   },
   motion,
 );
+pack.el.dataset.pack = 'memphis'; // shipped pack skin
 plinth.append(pack.el, cardHost, flash);
 
 const cta = el('div', 'stage__cta');
@@ -238,6 +241,7 @@ async function reviewCard(code: CountryCode): Promise<void> {
   const face = createFace('image');
   currentFace = face;
   await face.mount(card, cardHost);
+  face.el.querySelector('.card__back')?.setAttribute('data-back', 'prism'); // shipped back skin
   if (token !== machine.token) {
     face.destroy();
     return;
@@ -328,6 +332,7 @@ async function runReveal(
   const face = createFace('image');
   currentFace = face;
   await face.mount(card, cardHost);
+  face.el.querySelector('.card__back')?.setAttribute('data-back', 'prism'); // shipped back skin
   if (token !== machine.token) {
     face.destroy();
     return;
