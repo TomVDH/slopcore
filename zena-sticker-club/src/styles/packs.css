@@ -225,3 +225,213 @@
   .pack[data-pack='riso'] .pack__sheen { animation: none; }
   .pack[data-pack='riso'] .crest__mark { animation: none; }
 }
+
+/* ---- Neon — arcade cabinet: pink + cyan glow on black, scanlines ---- */
+.pack[data-pack='neon'] {
+  background: radial-gradient(120% 80% at 50% 120%, #2a0a52 0%, #0a0418 68%);
+  border-color: rgba(255, 60, 200, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 240, 255, 0.4),
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 50px rgba(255, 40, 180, 0.28);
+}
+.pack[data-pack='neon'] .pack__sheen {
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  background: repeating-linear-gradient(0deg, rgba(0, 240, 255, 0.07) 0 1px, transparent 1px 4px);
+  animation: neonFlicker 4s steps(1) infinite;
+}
+@keyframes neonFlicker {
+  0%, 92%, 100% { opacity: 0.5; }
+  94% { opacity: 0.28; }
+  96% { opacity: 0.62; }
+}
+.pack[data-pack='neon'] .pack__grain { opacity: 0.2; }
+.pack[data-pack='neon'] .crest__mark {
+  color: #fff;
+  text-shadow: 0 0 4px #fff, 0 0 12px #ff2fb6, 0 0 26px #ff2fb6, 0 0 44px #ff2fb6;
+}
+.pack[data-pack='neon'] .crest__sub {
+  color: #43f6ff;
+  letter-spacing: 0.42em;
+  text-shadow: 0 0 8px #00e0ff, 0 0 18px #00e0ff;
+}
+.pack[data-pack='neon'] .pack__year {
+  color: #43f6ff;
+  text-shadow: 0 0 10px #00e0ff, 0 0 26px #00e0ff;
+}
+.pack[data-pack='neon'] .pack__tab {
+  background: repeating-linear-gradient(90deg, #ff2fb6 0 8px, transparent 8px 14px);
+  opacity: 0.95;
+  box-shadow: 0 0 10px #ff2fb6;
+}
+.pack[data-pack='neon'] .pack__tab-label {
+  color: #ff7ad4;
+  text-shadow: 0 0 8px #ff2fb6;
+}
+
+/* ---- Comic — Ben-Day pop: bold yellow, red frame, halftone, kapow ---- */
+.pack[data-pack='comic'] {
+  background: #ffd23f;
+  border: 3px solid #15110a;
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.4), inset 0 0 0 6px #ff2e4d;
+}
+.pack[data-pack='comic'] .pack__sheen {
+  inset: 0;
+  mix-blend-mode: normal;
+  opacity: 0.5;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.16) 1.4px, transparent 1.7px);
+  background-size: 12px 12px;
+  animation: none;
+}
+.pack[data-pack='comic'] .pack__grain { opacity: 0; }
+.pack[data-pack='comic'] .crest__mark {
+  color: #1462ff;
+  font-style: italic;
+  -webkit-text-stroke: 2px #15110a;
+  text-shadow: 3px 3px 0 #15110a;
+}
+.pack[data-pack='comic'] .crest__sub {
+  color: #15110a;
+  background: #fff;
+  padding: 2px 9px;
+  border: 2px solid #15110a;
+}
+.pack[data-pack='comic'] .pack__year {
+  top: 10px;
+  right: 10px;
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #ff2e4d;
+  border: 3px solid #15110a;
+  border-radius: 50%;
+  transform: rotate(-12deg);
+  text-shadow: 1.5px 1.5px 0 #15110a;
+}
+.pack[data-pack='comic'] .pack__tab {
+  height: 3px;
+  background: repeating-linear-gradient(90deg, #15110a 0 8px, transparent 8px 16px);
+  opacity: 1;
+}
+.pack[data-pack='comic'] .pack__tab-label {
+  color: #15110a;
+  font-weight: 700;
+}
+
+/* ---- Chrome — Y2K liquid metal, embossed steel lettering ---- */
+.pack[data-pack='chrome'] {
+  background: linear-gradient(
+    160deg,
+    #eef3f9 0%,
+    #9aa9bd 18%,
+    #46525f 38%,
+    #cdd6e2 52%,
+    #6b7787 70%,
+    #aeb9c8 86%,
+    #e4ebf3 100%
+  );
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.5),
+    inset 0 2px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+.pack[data-pack='chrome'] .pack__sheen {
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.9) 50%, transparent 62%);
+  animation-duration: 3s;
+}
+.pack[data-pack='chrome'] .pack__grain { opacity: 0.1; }
+.pack[data-pack='chrome'] .crest__mark {
+  color: #2b3340;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85), 0 -1px 1px rgba(0, 0, 0, 0.35);
+}
+.pack[data-pack='chrome'] .crest__sub { color: #3a4250; }
+.pack[data-pack='chrome'] .pack__year {
+  color: rgba(40, 48, 60, 0.45);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.pack[data-pack='chrome'] .pack__tab {
+  background: repeating-linear-gradient(90deg, rgba(40, 48, 60, 0.5) 0 7px, transparent 7px 12px);
+  opacity: 0.75;
+}
+.pack[data-pack='chrome'] .pack__tab-label { color: #2b3340; }
+
+/* ---- Vapor — synthwave sunset + cyan horizon grid, chromatic type ---- */
+.pack[data-pack='vapor'] {
+  background: linear-gradient(180deg, #2b1055 0%, #7b2d8e 40%, #ff5e8a 70%, #ffd56b 100%);
+  border-color: rgba(0, 255, 231, 0.5);
+  box-shadow: 0 24px 56px rgba(40, 8, 80, 0.6), 0 0 30px rgba(255, 94, 138, 0.25);
+}
+.pack[data-pack='vapor'] .pack__sheen {
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 255, 231, 0.35) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(0deg, rgba(0, 255, 231, 0.22) 0 1px, transparent 1px 18px);
+  -webkit-mask-image: linear-gradient(180deg, transparent 55%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 55%, #000 100%);
+  animation: none;
+}
+.pack[data-pack='vapor'] .pack__grain { opacity: 0.15; }
+.pack[data-pack='vapor'] .crest__mark {
+  color: #fff;
+  font-style: italic;
+  text-shadow: 2px 2px 0 #00ffe7, 4px 4px 0 #ff2fb6;
+}
+.pack[data-pack='vapor'] .crest__sub { color: #00ffe7; letter-spacing: 0.42em; }
+.pack[data-pack='vapor'] .pack__year {
+  color: rgba(255, 255, 255, 0.85);
+  font-style: italic;
+  text-shadow: 2px 2px 0 #ff2fb6;
+}
+.pack[data-pack='vapor'] .pack__tab {
+  background: repeating-linear-gradient(90deg, #00ffe7 0 8px, transparent 8px 14px);
+  opacity: 0.85;
+}
+.pack[data-pack='vapor'] .pack__tab-label { color: #00ffe7; }
+
+/* ---- Candy — bubblegum wrapper: glossy hot-pink, white waves ---- */
+.pack[data-pack='candy'] {
+  background: linear-gradient(160deg, #ff8fc7 0%, #ff5ea8 50%, #ff86c8 100%);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 24px 48px rgba(220, 40, 120, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.7);
+}
+.pack[data-pack='candy'] .pack__sheen {
+  background: repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.32) 0 14px, transparent 14px 38px);
+  opacity: 0.7;
+  animation-duration: 5s;
+}
+.pack[data-pack='candy'] .pack__grain { opacity: 0.08; }
+.pack[data-pack='candy'] .crest__mark {
+  color: #fff;
+  text-shadow: 0 2px 0 #e23a86, 0 4px 10px rgba(180, 20, 90, 0.4);
+}
+.pack[data-pack='candy'] .crest__sub { color: #fff0f8; }
+.pack[data-pack='candy'] .pack__year {
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #6be0ff;
+  color: #fff;
+  border: 2px solid #fff;
+  text-shadow: 0 1px 2px rgba(0, 80, 120, 0.4);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+.pack[data-pack='candy'] .pack__tab {
+  background: repeating-linear-gradient(90deg, #fff 0 7px, transparent 7px 13px);
+  opacity: 0.85;
+}
+.pack[data-pack='candy'] .pack__tab-label { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pack[data-pack='neon'] .pack__sheen { animation: none; }
+}
