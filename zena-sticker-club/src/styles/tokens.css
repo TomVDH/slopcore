@@ -13,7 +13,7 @@
   --stage-bottom: #f4ead2;
   --ink: #211c16;            /* warm near-black — high contrast on cream */
   --ink-dim: #524a3b;        /* secondary body (~7:1) */
-  --ink-faint: #6e6451;      /* small labels — clears WCAG AA (~4.6:1) */
+  --ink-faint: #5e5544;      /* small labels — comfortably clears WCAG AA */
   --surface-frost: #fffdf6;  /* bright opaque panel/label stock */
   --surface-raise: rgba(0, 0, 0, 0.04);
   --hairline: #e7dcc1;
@@ -154,12 +154,12 @@ button {
 
 /* Mono micro-label (replaces the tracked-caps "eyebrow"): a gallery field label */
 .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 400;
-  letter-spacing: 0.12em;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-dim);
 }
 
 .mono {

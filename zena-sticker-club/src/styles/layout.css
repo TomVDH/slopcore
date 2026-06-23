@@ -75,11 +75,12 @@
   color: var(--ink);
 }
 .wordmark__sub {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.22em;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-dim);
 }
 
 .header__meter {
@@ -356,6 +357,23 @@
   transform: rotate(var(--slot-tilt, 0deg));
   transition: transform var(--dur-fast) var(--ease-overshoot), border-color var(--dur-fast),
     box-shadow var(--dur-fast);
+}
+/* empty pockets cycle the club palette — a cheerful row of slots to fill */
+.slot:nth-child(4n + 1) {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--hairline-strong));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface-frost));
+}
+.slot:nth-child(4n + 2) {
+  border-color: color-mix(in srgb, var(--joy-teal) 55%, var(--hairline-strong));
+  background: color-mix(in srgb, var(--joy-teal) 10%, var(--surface-frost));
+}
+.slot:nth-child(4n + 3) {
+  border-color: color-mix(in srgb, var(--joy-blue) 50%, var(--hairline-strong));
+  background: color-mix(in srgb, var(--joy-blue) 9%, var(--surface-frost));
+}
+.slot:nth-child(4n) {
+  border-color: color-mix(in srgb, var(--joy-yellow) 60%, var(--hairline-strong));
+  background: color-mix(in srgb, var(--joy-yellow) 12%, var(--surface-frost));
 }
 .slot:hover {
   transform: translateY(-3px) scale(1.04) rotate(-2deg);

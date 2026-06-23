@@ -83,12 +83,13 @@
   gap: 8px;
 }
 .chip {
-  padding: 5px 10px;
+  padding: 5px 12px;
   border-radius: var(--r-chip);
   border: 1px solid var(--hairline-strong);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0;
   color: var(--ink-dim);
 }
 
