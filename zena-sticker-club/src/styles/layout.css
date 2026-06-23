@@ -21,24 +21,17 @@
 }
 
 #app::before {
-  /* flat gallery field — no spotlight, no gradient theatrics */
+  /* flat sunny field — uniform bright cream, no vignette darkening */
   content: '';
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: var(--stage-bottom);
+  background: var(--stage-top);
 }
 
 #app::after {
-  /* the signature: a faint coordinate-registration grid across the wall */
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 56px),
-    repeating-linear-gradient(0deg, var(--grid-line) 0 1px, transparent 1px 44px);
+  /* pattern removed — the field stays clean (the confetti read too busy) */
+  content: none;
 }
 
 #fx-layer {
@@ -165,27 +158,10 @@
   transform: translateX(0);
   transition: transform 0.5s var(--ease-out-expo);
 }
+/* Registration crosshairs removed — the playground field needs no tech marks. */
 .stage__plinth::before,
 .stage__plinth::after {
-  /* registration crosshairs (the Wall Text signature) at the card corners */
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-  z-index: 1;
-}
-.stage__plinth::before {
-  top: -14px;
-  left: -14px;
-  border-top: 1.5px solid var(--accent);
-  border-left: 1.5px solid var(--accent);
-}
-.stage__plinth::after {
-  bottom: -14px;
-  right: -14px;
-  border-bottom: 1.5px solid var(--accent);
-  border-right: 1.5px solid var(--accent);
+  content: none;
 }
 #app[data-panel='open'] .stage__plinth {
   transform: translateX(calc(var(--panel-w) / -2));
@@ -219,16 +195,25 @@
 .btn--primary {
   background: var(--accent);
   color: var(--accent-ink);
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  /* chunky toy button — a solid "thickness" underneath that squishes on press */
+  box-shadow:
+    0 5px 0 color-mix(in srgb, var(--accent) 62%, #000),
+    0 12px 22px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .btn--primary:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.08);
+  transform: translateY(-3px) scale(1.04) rotate(-1deg);
+  box-shadow:
+    0 8px 0 color-mix(in srgb, var(--accent) 62%, #000),
+    0 16px 30px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 .btn--primary:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(3px) scale(0.97);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--accent) 62%, #000),
+    0 4px 10px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .btn--ghost {
   border: 1px solid var(--ink);
@@ -410,7 +395,7 @@
   background: rgba(0, 0, 0, 0.6);
   font-family: var(--font-mono);
   font-size: 0.6rem;
-  color: var(--ink);
+  color: #fff;
 }
 .slot__new {
   position: absolute;
@@ -453,7 +438,7 @@
   font-size: var(--fs-small);
   letter-spacing: 0.02em;
   color: var(--ink);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 26px rgba(150, 110, 40, 0.18);
 }
 .toast--new {
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);

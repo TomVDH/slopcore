@@ -486,7 +486,7 @@
 .pack[data-pack='memphis'] {
   background: #f3ece0;
   border-color: #1a1814;
-  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.32), inset 0 0 0 4px #ffd23f;
+  box-shadow: 0 14px 30px rgba(150, 110, 40, 0.18), inset 0 0 0 4px #ffd23f;
 }
 .pack[data-pack='memphis']::before {
   content: '';

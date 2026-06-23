@@ -7,24 +7,29 @@
    ======================================================================== */
 
 :root {
-  /* Stage / neutrals — flat, no spotlight (the grid is the texture) */
-  --stage-top: #131419;
-  --stage-bottom: #131419;
-  --ink: #eceae2;            /* warm off-white, never pure #fff */
-  --ink-dim: #9c9a92;        /* secondary body (~6.5:1 on the field) */
-  --ink-faint: #8c8a82;      /* small labels — clears WCAG AA (~5.3:1) */
-  --surface-frost: #1a1b21;  /* opaque label/panel stock (no glass) */
-  --surface-raise: rgba(255, 255, 255, 0.03);
-  --hairline: #2a2b31;
-  --hairline-strong: #34353c;
-  --plinth: rgba(255, 255, 255, 0.02);
-  --grid-line: rgba(255, 255, 255, 0.05);
+  /* Sticker-club playground — a sunny album page the cards party on. Bright,
+     round, loud. (Replaces the dark "Wall Text" gallery chrome.) */
+  --stage-top: #fbf3df;
+  --stage-bottom: #f4ead2;
+  --ink: #211c16;            /* warm near-black — high contrast on cream */
+  --ink-dim: #524a3b;        /* secondary body (~7:1) */
+  --ink-faint: #6e6451;      /* small labels — clears WCAG AA (~4.6:1) */
+  --surface-frost: #fffdf6;  /* bright opaque panel/label stock */
+  --surface-raise: rgba(0, 0, 0, 0.04);
+  --hairline: #e7dcc1;
+  --hairline-strong: #d6c8a6;
+  --plinth: rgba(0, 0, 0, 0.03);
+  --grid-line: rgba(0, 0, 0, 0.05); /* legacy; the field uses confetti now */
 
-  /* Accent — the one rationed colour (the only filled control + registration) */
-  --accent: #5b86ff;
-  --accent-ink: #ffffff;
+  /* Playful accents — the memphis palette. Coral is primary; the others pep up
+     badges + confetti. Dark ink sits on the coral fills (AA + sticker-punchy). */
+  --accent: #ff3d6e;
+  --accent-ink: #1a1206;
   /* Legacy name kept so existing rules pick up the accent without edits. */
   --gold-foil: var(--accent);
+  --joy-teal: #16c7b4;
+  --joy-blue: #2f6bff;
+  --joy-yellow: #ffd23f;
 
   /* Brand (the card's own red — chrome never fills a surface with it) */
   --panini-red: #e2231a;
@@ -52,19 +57,19 @@
   --fs-mono: 0.875rem;
   --fs-counter: 1.4rem;
 
-  /* Spacing + shape — sharp, gallery-precise (the card keeps its own radius) */
+  /* Spacing + shape — chunky + ROUND (boing). The card keeps its own radius. */
   --gutter: clamp(16px, 1rem + 1.6vw, 28px);
   --r-card: 18px;
-  --r-panel: 2px;
-  --r-chip: 2px;
-  --r-slot: 2px;
-  --r-control: 2px;
+  --r-panel: 24px;
+  --r-chip: 999px;
+  --r-slot: 12px;
+  --r-control: 999px;
 
-  /* Motion */
+  /* Motion — springy. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --dur-fast: 0.18s;
-  --dur-med: 0.32s;
+  --ease-overshoot: cubic-bezier(0.34, 1.8, 0.5, 1);
+  --dur-fast: 0.2s;
+  --dur-med: 0.36s;
 
   /* Card sizing */
   --card-w: clamp(248px, 26vw, 348px);
