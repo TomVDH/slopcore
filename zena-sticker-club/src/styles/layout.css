@@ -284,8 +284,9 @@
   z-index: var(--z-binder);
   height: var(--binder-h);
   flex: none;
-  background: var(--plinth);
-  border-top: 1px solid var(--hairline);
+  background: var(--surface-frost);
+  border-top: 2px dashed var(--hairline-strong); /* album-page perforation */
+  box-shadow: 0 -8px 22px rgba(150, 110, 40, 0.07);
   transition: height var(--dur-med) var(--ease-out-expo);
   overflow: hidden;
 }
@@ -308,14 +309,28 @@
 .binder__title b {
   font-family: var(--font-display);
   letter-spacing: 0.01em;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 1rem;
 }
 .binder__title .mono {
-  color: var(--ink-dim);
+  color: var(--accent);
+  font-weight: 700;
 }
 .binder__collapse {
-  font-size: var(--fs-small);
-  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  transition: color var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast) var(--ease-overshoot);
+}
+.binder__collapse:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 .binder__rail {
   display: flex;
@@ -335,17 +350,21 @@
   aspect-ratio: var(--card-aspect);
   border-radius: var(--r-slot);
   scroll-snap-align: center;
-  background: var(--surface-raise);
-  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-frost));
+  border: 2px dashed var(--hairline-strong); /* empty = a pocket waiting to be filled */
   overflow: hidden;
-  transition: transform var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast);
+  transform: rotate(var(--slot-tilt, 0deg));
+  transition: transform var(--dur-fast) var(--ease-overshoot), border-color var(--dur-fast),
+    box-shadow var(--dur-fast);
 }
 .slot:hover {
-  transform: translateY(-2px);
-  border-color: var(--ink-faint);
+  transform: translateY(-3px) scale(1.04) rotate(-2deg);
+  border-color: var(--accent);
+  box-shadow: 0 8px 16px rgba(150, 110, 40, 0.2);
+  z-index: 2;
 }
 .slot:active {
-  transform: translateY(-1px) scale(0.99);
+  transform: translateY(-1px) scale(1.01);
 }
 .slot__ghost {
   position: absolute;
@@ -376,7 +395,17 @@
 .slot[data-state='dupe'] {
   border-style: solid;
   border-color: color-mix(in srgb, var(--slot-foil, var(--foil)) 70%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--slot-foil, var(--foil)) 30%, transparent);
+  box-shadow: 0 5px 13px rgba(150, 110, 40, 0.16),
+    0 0 0 1px color-mix(in srgb, var(--slot-foil, var(--foil)) 30%, transparent);
+}
+/* collected stickers sit a touch askew, like they were pressed into the album */
+.slot[data-state='got']:nth-child(odd),
+.slot[data-state='dupe']:nth-child(odd) {
+  --slot-tilt: -2deg;
+}
+.slot[data-state='got']:nth-child(even),
+.slot[data-state='dupe']:nth-child(even) {
+  --slot-tilt: 2deg;
 }
 .slot[data-state='got'] .slot__img,
 .slot[data-state='dupe'] .slot__img {
@@ -399,16 +428,18 @@
 }
 .slot__new {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  padding: 1px 5px;
-  border-radius: 2px;
+  top: 4px;
+  left: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
   background: var(--accent);
   color: var(--accent-ink);
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 0.05em;
+  transform: rotate(-8deg);
+  box-shadow: 0 2px 5px rgba(150, 110, 40, 0.3);
 }
 .slot[data-new='false'] .slot__new {
   display: none;
