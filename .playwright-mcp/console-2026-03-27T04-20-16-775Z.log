@@ -1,4 +1,0 @@
-[      67ms] SyntaxError: Failed to execute 'addColorStop' on 'CanvasGradient': The value provided ('#f0f40') could not be parsed as a color.
-    at http://localhost:8123/previews/16-signs-logos-v3.html:268:9
-    at Array.forEach (<anonymous>)
-    at http://localhost:8123/previews/16-signs-logos-v3.html:96:7
