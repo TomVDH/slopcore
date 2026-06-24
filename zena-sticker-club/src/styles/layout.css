@@ -355,38 +355,43 @@
   aspect-ratio: var(--card-aspect);
   border-radius: var(--r-slot);
   scroll-snap-align: center;
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface-frost));
-  border: 2px dashed var(--hairline-strong); /* empty = a pocket waiting to be filled */
+  background: color-mix(in srgb, var(--ink) 3%, var(--surface-frost));
+  border: 2px dashed var(--hairline-strong); /* empty = a calm pocket waiting to be filled */
   overflow: hidden;
-  transform: rotate(var(--slot-tilt, 0deg));
-  transition: transform var(--dur-fast) var(--ease-overshoot), border-color var(--dur-fast),
+  transition: transform var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast),
     box-shadow var(--dur-fast);
 }
-/* empty pockets cycle the club palette — a cheerful row of slots to fill */
-.slot:nth-child(4n + 1) {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--hairline-strong));
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface-frost));
-}
-.slot:nth-child(4n + 2) {
-  border-color: color-mix(in srgb, var(--joy-teal) 55%, var(--hairline-strong));
-  background: color-mix(in srgb, var(--joy-teal) 10%, var(--surface-frost));
-}
-.slot:nth-child(4n + 3) {
-  border-color: color-mix(in srgb, var(--joy-blue) 50%, var(--hairline-strong));
-  background: color-mix(in srgb, var(--joy-blue) 9%, var(--surface-frost));
-}
-.slot:nth-child(4n) {
-  border-color: color-mix(in srgb, var(--joy-yellow) 60%, var(--hairline-strong));
-  background: color-mix(in srgb, var(--joy-yellow) 12%, var(--surface-frost));
-}
 .slot:hover {
-  transform: translateY(-3px) scale(1.04) rotate(-2deg);
+  transform: translateY(-4px) scale(1.04);
   border-color: var(--accent);
-  box-shadow: 0 8px 16px rgba(150, 110, 40, 0.2);
+  box-shadow: 0 8px 16px rgba(150, 110, 40, 0.18);
   z-index: 2;
 }
 .slot:active {
   transform: translateY(-1px) scale(1.01);
+}
+/* Splash of overdrive: a quiet foil glint sweeps a collected sticker on hover. */
+.slot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.55) 50%, transparent 62%);
+  opacity: 0;
+}
+.slot[data-state='got']:hover::after,
+.slot[data-state='dupe']:hover::after {
+  animation: slotSheen 0.7s var(--ease-out-expo);
+}
+@keyframes slotSheen {
+  0% { transform: translateX(-110%); opacity: 0; }
+  22% { opacity: 1; }
+  100% { transform: translateX(110%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slot[data-state='got']:hover::after,
+  .slot[data-state='dupe']:hover::after { animation: none; }
 }
 .slot__ghost {
   position: absolute;
@@ -417,17 +422,8 @@
 .slot[data-state='dupe'] {
   border-style: solid;
   border-color: color-mix(in srgb, var(--slot-foil, var(--foil)) 70%, transparent);
-  box-shadow: 0 5px 13px rgba(150, 110, 40, 0.16),
+  box-shadow: 0 4px 12px rgba(150, 110, 40, 0.14),
     0 0 0 1px color-mix(in srgb, var(--slot-foil, var(--foil)) 30%, transparent);
-}
-/* collected stickers sit a touch askew, like they were pressed into the album */
-.slot[data-state='got']:nth-child(odd),
-.slot[data-state='dupe']:nth-child(odd) {
-  --slot-tilt: -2deg;
-}
-.slot[data-state='got']:nth-child(even),
-.slot[data-state='dupe']:nth-child(even) {
-  --slot-tilt: 2deg;
 }
 .slot[data-state='got'] .slot__img,
 .slot[data-state='dupe'] .slot__img {
@@ -460,7 +456,6 @@
   font-weight: 800;
   font-size: 0.55rem;
   letter-spacing: 0.05em;
-  transform: rotate(-8deg);
   box-shadow: 0 2px 5px rgba(150, 110, 40, 0.3);
 }
 .slot[data-new='false'] .slot__new {
