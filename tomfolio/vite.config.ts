@@ -27,6 +27,7 @@ export default defineConfig({
         ube: entry("./directions/ube.html"),
         sepia: entry("./directions/sepia.html"),
         fresco: entry("./directions/fresco.html"),
+        letterpress: entry("./sandbox/letterpress.html"),
       },
     },
   },
