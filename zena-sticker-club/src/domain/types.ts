@@ -24,6 +24,18 @@ export type CountryCode = (typeof ALL_CODES)[number];
 
 export const TOTAL_NATIONS = ALL_CODES.length; // 48
 
+/** Album-rail display codes — proper 3-letter (FIFA-style) abbreviations. */
+export const CODE_ABBR: Record<CountryCode, string> = {
+  ALGR: 'ALG', ARG: 'ARG', AUS: 'AUS', AUSTR: 'AUT', BEL: 'BEL', BHGZ: 'BIH',
+  BR: 'BRA', CAN: 'CAN', CBPV: 'CPV', CH: 'SUI', COL: 'COL', CRC: 'CUW',
+  CRT: 'CRO', CZ: 'CZE', DRC: 'COD', ECU: 'ECU', EGY: 'EGY', ESP: 'ESP',
+  FRA: 'FRA', GER: 'GER', GHN: 'GHA', HAIT: 'HAI', IRA: 'IRN', IRQ: 'IRQ',
+  IVRC: 'CIV', JP: 'JPN', JRDN: 'JOR', MEX: 'MEX', MOR: 'MAR', NL: 'NED',
+  NRW: 'NOR', NZ: 'NZL', PGY: 'PAR', PNM: 'PAN', PRTG: 'POR', QAT: 'QAT',
+  SARB: 'KSA', SCOT: 'SCO', SGL: 'SEN', SK: 'KOR', SWE: 'SWE', TNS: 'TUN',
+  TUR: 'TUR', UGY: 'URU', UK: 'ENG', USA: 'USA', UZB: 'UZB', ZA: 'RSA',
+};
+
 /** Real football confederations, used as collectible texture in the sidebar. */
 export type Confederation = 'UEFA' | 'CONMEBOL' | 'CONCACAF' | 'CAF' | 'AFC' | 'OFC';
 

@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import type { CountryCode } from '@/domain/types';
+import { CODE_ABBR } from '@/domain/types';
 import { allNations, getNation } from '@/domain/nations';
 import { getImages } from '@/assets/images';
 import { RARITY } from '@/domain/rarity';
@@ -67,11 +68,9 @@ export class BinderView {
       button.style.setProperty('--slot-foil', RARITY[def.rarity].foil);
 
       const ghost = el('span', 'slot__ghost');
-      const flag = el('span', 'flag');
-      flag.textContent = def.flagEmoji;
-      const code = el('span');
-      code.textContent = def.code;
-      ghost.append(flag, code);
+      const code = el('span', 'slot__code');
+      code.textContent = CODE_ABBR[def.code];
+      ghost.append(code);
 
       const img = el('img', 'slot__img');
       img.loading = 'lazy';
