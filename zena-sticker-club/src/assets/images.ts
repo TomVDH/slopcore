@@ -42,6 +42,14 @@ const lqipMap = import.meta.glob<string>('/assets/cards/*.png', {
   import: 'default',
 });
 
+/** The shared ZENA Sweepstakes card back — one asset, WebP-transcoded to card width. */
+const cardBackMap = import.meta.glob<string>('/assets/card-back.png', {
+  eager: true,
+  query: { format: 'webp', w: '900', quality: '82' },
+  import: 'default',
+});
+export const CARD_BACK_ART: string = Object.values(cardBackMap)[0] ?? '';
+
 function codeFromPath(path: string): string {
   const match = /\/([^/]+)\.png$/.exec(path);
   return match ? match[1]! : '';

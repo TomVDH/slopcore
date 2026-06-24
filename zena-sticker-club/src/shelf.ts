@@ -19,7 +19,7 @@ import '@/styles/backs.css';
 import '@/styles/shelf.css';
 
 import { getNation } from '@/domain/nations';
-import { getImages } from '@/assets/images';
+import { getImages, CARD_BACK_ART } from '@/assets/images';
 import { makeCard } from '@/domain/card';
 import { RARITY } from '@/domain/rarity';
 import { MotionPrefs } from '@/ui/motionPrefs';
@@ -30,6 +30,7 @@ import { applyRarityVars, el } from '@/render/face/CardFace';
 
 const root = document.getElementById('shelf')!;
 const motion = new MotionPrefs();
+document.documentElement.style.setProperty('--card-back-art', `url("${CARD_BACK_ART}")`);
 
 const PACK_STYLES = [
   'flux', 'mono', 'sash', 'prism', 'seal', 'split',
@@ -38,6 +39,7 @@ const PACK_STYLES = [
   'gold', 'pitch', 'tournament',
 ];
 const BACK_STYLES = [
+  'keyart',
   'flux', 'mono', 'sash', 'prism', 'seal', 'split',
   'default', 'neon', 'comic', 'chrome', 'holo', 'vapor',
   'acid', 'memphis', 'baroque', 'optical', 'lava',
@@ -107,10 +109,10 @@ face = createFace('image');
 void face.mount(card, backStage);
 applyRarityVars(face.el, RARITY.final);
 backEl = face.el.querySelector<HTMLElement>('.card__back');
-if (backEl) backEl.dataset.back = 'neon';
+if (backEl) backEl.dataset.back = 'keyart';
 gsap.set(face.el, { '--ry': 180 }); // show the back at rest
 const backControls = el('div', 'shelf-controls');
-const backSelect = select(BACK_STYLES, 'neon', (v) => {
+const backSelect = select(BACK_STYLES, 'keyart', (v) => {
   if (backEl) backEl.dataset.back = v === 'default' ? '' : v;
 });
 const flipBtn = el('button', 'shelf-btn');

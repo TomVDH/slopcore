@@ -22,7 +22,7 @@ import { AppMachine } from '@/app/machine';
 import { CollectionState } from '@/collection/collection';
 import { buildPullTable, classify, drawCode, tierOddsLabel } from '@/collection/pull';
 import { createRng } from '@/assets/rng';
-import { getImages, hasImages } from '@/assets/images';
+import { getImages, hasImages, CARD_BACK_ART } from '@/assets/images';
 import { Preloader } from '@/assets/preloader';
 import { allNations, getNation, invariants } from '@/domain/nations';
 import { makeCard } from '@/domain/card';
@@ -67,6 +67,9 @@ const machine = new AppMachine();
 const useGl = glReady() && !motion.reduced;
 const foil: FoilScene | null = useGl ? new FoilScene(fxLayer) : null;
 if (foil) document.body.classList.add('gl-on');
+
+// The shared key-art card back (used by every card's reverse).
+document.documentElement.style.setProperty('--card-back-art', `url("${CARD_BACK_ART}")`);
 
 if (import.meta.env.DEV) invariants(hasImages);
 
@@ -241,7 +244,7 @@ async function reviewCard(code: CountryCode): Promise<void> {
   const face = createFace('image');
   currentFace = face;
   await face.mount(card, cardHost);
-  face.el.querySelector('.card__back')?.setAttribute('data-back', 'prism'); // shipped back skin
+  face.el.querySelector('.card__back')?.setAttribute('data-back', 'keyart'); // shipped back skin
   if (token !== machine.token) {
     face.destroy();
     return;
@@ -332,7 +335,7 @@ async function runReveal(
   const face = createFace('image');
   currentFace = face;
   await face.mount(card, cardHost);
-  face.el.querySelector('.card__back')?.setAttribute('data-back', 'prism'); // shipped back skin
+  face.el.querySelector('.card__back')?.setAttribute('data-back', 'keyart'); // shipped back skin
   if (token !== machine.token) {
     face.destroy();
     return;

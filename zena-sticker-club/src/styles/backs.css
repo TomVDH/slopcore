@@ -331,6 +331,14 @@
 }
 .card__back[data-back='tournament'] .card__back-sub { color: rgba(244, 208, 106, 0.9); }
 
+/* ---- Key art — the shipped full-bleed ZENA Sweepstakes card back (image) ---- */
+.card__back[data-back='keyart'] {
+  background: var(--card-back-art, radial-gradient(125% 92% at 50% 0%, #20222c, #0c0c10 62%)) center / cover no-repeat;
+}
+.card__back[data-back='keyart']::before { content: none; }
+.card__back[data-back='keyart'] .card__back-year,
+.card__back[data-back='keyart'] .card__back-crest { display: none; }
+
 /* ===========================================================================
    WILD backs — recomposed to match the wild packs (layout, not just palette).
    ======================================================================== */
