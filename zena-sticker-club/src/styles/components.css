@@ -1,13 +1,16 @@
 /* ===========================================================================
-   Reveal-sidebar internals. Each block earns its place by adding lore the card
-   image cannot. Foil hue tints only the tier ribbon + accents.
+   Reveal-sidebar internals — "Scout's Scrapbook". Marcus's dossier pasted onto
+   a paper page: a washi-tape tier label, a rubber-stamped nation, stuck-on
+   sticker chips (askew, matching the album), and a torn ticket-stub stat line.
+   The lore itself stays clean ink-on-paper and fully readable. Foil hue tints
+   only the tier tape.
    ======================================================================== */
 
 .panel__inner {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 22px var(--gutter) 34px;
+  gap: 22px;
+  padding: 28px var(--gutter) 44px;
 }
 .panel__inner section {
   display: flex;
@@ -19,42 +22,51 @@
   margin: 0;
 }
 
+/* ---- Tier label — a strip of washi tape pressed onto the page at an angle ---- */
 .tier-ribbon {
-  display: flex;
+  align-self: flex-start;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 9px 12px;
-  border-radius: var(--r-control);
-  background: color-mix(in srgb, var(--foil) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--foil) 40%, transparent);
+  padding: 7px 18px;
+  transform: rotate(-1.8deg);
+  background: color-mix(in srgb, var(--foil) 30%, #fffdf8);
+  border: none;
+  border-radius: 1px;
+  box-shadow: 0 2px 7px rgba(90, 70, 40, 0.18);
+  /* soft translucent ends so it reads as a torn piece of tape */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7px, #000 calc(100% - 7px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7px, #000 calc(100% - 7px), transparent 100%);
 }
 .tier-ribbon__label {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.98rem;
+  font-weight: 800;
+  font-size: 0.92rem;
   letter-spacing: 0.01em;
   color: var(--ink);
 }
 .tier-ribbon__odds {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--ink-dim);
 }
 
+/* ---- Header — filed-note eyebrow + rubber-stamped nation ---- */
 .panel__head {
-  gap: 4px;
+  gap: 6px;
 }
 .panel__nation {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: var(--fs-display-xl);
-  line-height: 0.96;
-  letter-spacing: -0.01em;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
   color: var(--ink);
   text-wrap: balance;
+  transform: rotate(-0.8deg); /* pasted-in, a touch askew */
 }
 
+/* ---- Decoded alias + etymology ---- */
 .decoded__name {
   font-family: var(--font-display);
   font-weight: 700;
@@ -65,36 +77,63 @@
 }
 .decoded__say {
   color: var(--ink-dim);
-  font-size: 0.9rem;
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
-.stint__body {
-  color: var(--ink);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.55;
   text-wrap: pretty;
 }
 
+/* ---- The stint — the main lore, clean ink on paper ---- */
+.stint__body {
+  color: var(--ink);
+  font-size: 0.97rem;
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+/* ---- Props — little stickers slapped on the page, each at its own angle ---- */
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 13px;
+  padding-top: 2px;
 }
 .chip {
-  padding: 5px 12px;
-  border-radius: var(--r-chip);
-  border: 1px solid var(--hairline-strong);
+  padding: 7px 13px;
+  border-radius: 8px;
+  background: #fff;
+  border: 2px solid var(--ink);
   font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 0.78rem;
+  font-weight: 600;
+  font-size: 0.8rem;
   letter-spacing: 0;
-  color: var(--ink-dim);
+  color: var(--ink);
+  box-shadow: 2px 3px 0 rgba(90, 70, 40, 0.2);
+}
+.chip:nth-child(3n + 1) {
+  transform: rotate(-3deg);
+  background: color-mix(in srgb, var(--joy-yellow) 24%, #fff);
+}
+.chip:nth-child(3n + 2) {
+  transform: rotate(2.4deg);
+  background: color-mix(in srgb, var(--joy-teal) 20%, #fff);
+}
+.chip:nth-child(3n) {
+  transform: rotate(-1.4deg);
+  background: color-mix(in srgb, var(--accent) 16%, #fff);
 }
 
+/* ---- Stat line — a torn ticket stub with a perforated edge ---- */
 .statplate__line {
-  font-size: 0.95rem;
-  color: var(--sheen);
+  align-self: flex-start;
+  display: inline-block;
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
   letter-spacing: 0.02em;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px dashed var(--hairline-strong);
+  border-radius: 5px;
+  transform: rotate(0.6deg);
+  box-shadow: 1px 2px 0 rgba(90, 70, 40, 0.16);
 }

@@ -268,8 +268,12 @@
   z-index: var(--z-panel);
   display: flex;
   flex-direction: column;
-  background: var(--surface-frost);
-  border-left: 1px solid var(--hairline);
+  /* warm scrapbook paper with a faint speckle + a page-edge gutter shadow */
+  background-color: #faf2df;
+  background-image: radial-gradient(rgba(120, 90, 40, 0.05) 1px, transparent 1.6px);
+  background-size: 17px 17px;
+  border-left: 1px solid var(--hairline-strong);
+  box-shadow: inset 7px 0 18px -12px rgba(90, 70, 40, 0.3);
   transform: translateX(101%);
   transition: transform 0.5s var(--ease-out-expo);
   overflow-y: auto;
