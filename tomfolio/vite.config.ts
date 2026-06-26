@@ -1,9 +1,38 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 const entry = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
+/**
+ * Dev-only landing override. When TOMFOLIO_LANDING is set, the dev server
+ * redirects the bare "/" to that path so a fresh serve opens there instead
+ * of the shader hero. Used by the `dev:claude` script (the Claude preview
+ * serve config) so spinning up does not start on the fbm "lava" hero. Only
+ * bare "/" is redirected: the hero stays reachable at /index.html, and a
+ * plain `npm run dev` leaves the env unset and opens the real homepage.
+ */
+function devLanding(): Plugin {
+  const target = process.env.TOMFOLIO_LANDING;
+  return {
+    name: "tomfolio-dev-landing",
+    apply: "serve",
+    configureServer(server) {
+      if (!target) return;
+      server.middlewares.use((req, res, next) => {
+        if (req.url === "/") {
+          res.statusCode = 302;
+          res.setHeader("Location", target);
+          res.end();
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [devLanding()],
   build: {
     target: "es2022",
     rollupOptions: {
