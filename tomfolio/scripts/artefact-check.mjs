@@ -25,24 +25,31 @@ async function run(label, { url, shot, w = 1440, h = 900, nogl = false }) {
     if (m.type() === "error") errors.push(m.text());
   });
   await page.goto(url, { waitUntil: "networkidle" });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1600); // let the portrait load and the form tween settle
 
   const p = await page.evaluate(() => {
     const cv = document.getElementById("gl");
     const r = cv ? cv.getBoundingClientRect() : null;
+    const frame = document.querySelector(".art-frame");
+    const fr = frame ? frame.getBoundingClientRect() : null;
     return {
       canvases: document.querySelectorAll("canvas").length,
       canvasMounted: !!cv && cv.width > 8 && cv.height > 8,
-      anchoredBL: !!r && r.left < 2 && Math.abs(r.bottom - window.innerHeight) < 2,
+      anchoredBL:
+        !!r && Math.abs(r.left - 10) < 3 && Math.abs(window.innerHeight - r.bottom - 10) < 3,
+      frameInset: !!fr && Math.abs(fr.left - 10) < 2 && Math.abs(fr.top - 10) < 2,
+      menuItems: document.querySelectorAll(".art-link").length,
       noScroll: document.documentElement.scrollHeight <= window.innerHeight + 1,
       noGl: document.body.classList.contains("no-gl"),
-      bg: getComputedStyle(document.body).backgroundColor,
+      bg: frame ? getComputedStyle(frame).backgroundColor : "",
     };
   });
 
   const checks = [
     ["one viewport (no scroll)", p.noScroll],
-    ["ground gray-purple", p.bg === "rgb(65, 60, 80)"],
+    ["frame inset 10px", p.frameInset],
+    ["ground deep gray-purple", p.bg === "rgb(42, 38, 54)"],
+    ["menu present", p.menuItems >= 3],
   ];
   if (nogl) {
     checks.push(["0 canvases", p.canvases === 0], ["no-gl class", p.noGl]);

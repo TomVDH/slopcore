@@ -18,6 +18,8 @@ export interface GlScene {
   renderOnce(): void;
   /** Set any shader uniform by name (number, or [x, y] for a vec2). */
   setParam(name: string, value: number | [number, number]): void;
+  /** Set the image to dither (img / canvas / bitmap), or null to clear it. */
+  setImage(source: TexImageSource | null): void;
 }
 
 export function initScene(
@@ -63,6 +65,15 @@ export function initScene(
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
+  // A 1x1 mid-grey stand-in so uImage is always a valid sampler.
+  const placeholder = new THREE.DataTexture(
+    new Uint8Array([128, 128, 128, 255]),
+    1,
+    1,
+    THREE.RGBAFormat,
+  );
+  placeholder.needsUpdate = true;
+
   const uniforms = {
     uRes: {
       value: new THREE.Vector2(first.w * pixelRatio, first.h * pixelRatio),
@@ -90,6 +101,9 @@ export function initScene(
     uCrossOn: { value: 1 },
     uCrossSize: { value: 0.075 },
     uCrossPos: { value: new THREE.Vector2(0.62, 0.58) },
+    uImage: { value: placeholder as THREE.Texture },
+    uImageOn: { value: 0 },
+    uImageRes: { value: new THREE.Vector2(1, 1) },
   };
 
   const material = new THREE.ShaderMaterial({
@@ -210,6 +224,38 @@ export function initScene(
         u.value = value;
       }
       // Static frames (reduced / ?still) need a manual re-render to update.
+      if (reducedMotion) render(20.0);
+    },
+    setImage(source: TexImageSource | null) {
+      // Free the previous upload (never the shared placeholder) so repeated
+      // image swaps do not leak GPU textures.
+      const prev = uniforms.uImage.value as THREE.Texture;
+      if (prev && prev !== placeholder) prev.dispose();
+      if (!source) {
+        uniforms.uImage.value = placeholder;
+        uniforms.uImageRes.value.set(1, 1);
+      } else {
+        const tex = new THREE.Texture(source);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.needsUpdate = true;
+        const s = source as {
+          naturalWidth?: number;
+          videoWidth?: number;
+          width?: number;
+          naturalHeight?: number;
+          videoHeight?: number;
+          height?: number;
+        };
+        uniforms.uImage.value = tex;
+        uniforms.uImageRes.value.set(
+          s.naturalWidth || s.videoWidth || s.width || 1,
+          s.naturalHeight || s.videoHeight || s.height || 1,
+        );
+      }
       if (reducedMotion) render(20.0);
     },
   };

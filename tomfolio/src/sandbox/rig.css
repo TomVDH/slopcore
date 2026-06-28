@@ -72,6 +72,12 @@ body.rig {
   height: 100%;
 }
 
+/* While dragging an image over the plate, show a drop target. */
+.rig-plate.is-drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+
 /* Registration crosshairs pinned to the plate corners; one in the accent. */
 .reg {
   position: absolute;
@@ -146,7 +152,8 @@ body.rig {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 8px 10px;
+  flex-wrap: wrap;
   padding: 11px 14px;
   border-bottom: 1px solid var(--line);
 }
@@ -159,6 +166,8 @@ body.rig {
 .ctrl-actions {
   display: flex;
   gap: 6px;
+  flex: 1 1 100%;
+  justify-content: flex-end;
 }
 .ctrl-btn {
   font-family: var(--font-mono);

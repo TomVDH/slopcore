@@ -1,24 +1,34 @@
 /* ------------------------------------------------------------------
    ARTEFACT — corner field.
 
-   An empty viewport. The Presswerk dither is anchored in the bottom-left
-   and CSS-masked so its rectangle dissolves into a gray-purple ground.
-   The ground color is the Heather paper exactly (#413c50), so the plate
-   has no seam: only the cream disc marks read, thinning toward the top
-   right. Depends on tokens via ../system for the mono caption only.
+   An empty viewport, inset 10px so the deep gray-purple ground reads as
+   a framed plate over the black page. The Presswerk dither is anchored in
+   the bottom-left and CSS-masked so its rectangle dissolves into the
+   ground (Heather paper == ground, so there is no plate seam). A
+   placeholder left menu of big display headers re-dithers the field per
+   option (stand-in for the future particle morph). Depends on tokens via
+   ../system for the display font + cream.
 ------------------------------------------------------------------- */
 
 body.art {
   min-height: 100dvh;
   margin: 0;
-  background: #413c50; /* == Heather paper; keep the two in lockstep */
+  background: #000; /* the 10px frame gap */
   color: #f4efdd;
   overflow: hidden;
   cursor: default;
 }
 
-#gl {
+/* The framed plate: 10px margin on all sides. */
+.art-frame {
   position: fixed;
+  inset: 10px;
+  overflow: hidden;
+  background: #2a2636; /* deep gray-purple; keep == Heather paper in art.ts */
+}
+
+#gl {
+  position: absolute;
   left: 0;
   bottom: 0;
   width: min(64vw, 880px);
@@ -29,11 +39,56 @@ body.art {
   mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0, 0, 0, 0) 72%);
 }
 
-.art-cap {
-  position: fixed;
-  top: clamp(16px, 3vw, 32px);
-  right: clamp(16px, 3vw, 32px);
+/* Placeholder section menu: big stacked display headers, outlined until
+   active. Anchored to the right edge (where the dither has faded out) and
+   right-aligned within itself. */
+.art-menu {
+  position: absolute;
+  right: clamp(18px, 4vw, 64px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: clamp(2px, 0.6vh, 12px);
+}
+
+.art-link {
+  appearance: none;
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: right;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.6rem, 8.5vw, 7rem);
+  line-height: 0.92;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1.2px rgba(244, 239, 221, 0.42);
+  transition:
+    color var(--dur) var(--ease-out),
+    -webkit-text-stroke-color var(--dur) var(--ease-out);
+}
+.art-link:hover {
+  -webkit-text-stroke-color: rgba(244, 239, 221, 0.85);
+  color: rgba(244, 239, 221, 0.06);
+}
+.art-link.is-active {
+  color: #f4efdd;
+  -webkit-text-stroke-color: transparent;
+}
+
+.art-cap {
+  position: absolute;
+  top: clamp(14px, 3vw, 30px);
+  right: clamp(14px, 3vw, 30px);
+  margin: 0;
+  z-index: 2;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.64rem;
   letter-spacing: 0.18em;

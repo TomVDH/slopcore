@@ -54,6 +54,7 @@ type Param =
 const PARAMS: Param[] = [
   { key: "uMotif", label: "Motif", kind: "select", options: ["Dots", "Disc", "X", "Plus", "Dash"], def: 0 },
   { key: "uColorway", label: "Colorway", kind: "select", options: ["Bone / Carbon", "Blueprint", "Sepia", "Acid Lime", "Cyanotype", "Riso Pink", "Riso Blue", "Steel", "Oxblood", "Mono Invert", "Heather"], def: 0 },
+  { key: "uImageOn", label: "Dither image", kind: "toggle", def: 0 },
   { key: "uMotifWeight", label: "Mark weight", kind: "range", min: 0.1, max: 1, step: 0.01, def: 0.5 },
   { key: "uMotifAngle", label: "Mark angle", kind: "range", min: 0, max: 1, step: 0.005, def: 0 },
   { key: "uMotifTone", label: "Tone link", kind: "range", min: 0, max: 1, step: 0.01, def: 0 },
@@ -185,6 +186,81 @@ function flash(btn: HTMLElement | null, msg: string): void {
   window.setTimeout(() => {
     btn.textContent = prev;
   }, 1100);
+}
+
+/* ---- Image source: load a file (or drop one on the plate) to dither ---- */
+
+function setImageOn(on: boolean): void {
+  apply("uImageOn", on ? 1 : 0);
+  const t = document.getElementById("c-uImageOn") as HTMLInputElement | null;
+  if (t) t.checked = on;
+}
+
+function loadImageFile(file: File | null | undefined): void {
+  if (!file || !file.type.startsWith("image/")) return;
+  const s = scene;
+  if (!s) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    s.setImage(img);
+    setImageOn(true);
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+}
+
+const fileInput = document.getElementById("imgfile") as HTMLInputElement | null;
+document.getElementById("open")?.addEventListener("click", () => fileInput?.click());
+fileInput?.addEventListener("change", () => loadImageFile(fileInput.files?.[0]));
+
+// Apply a value AND sync its control widget (used by the Sample preset).
+function syncControl(key: string, value: number): void {
+  apply(key, value);
+  const param = PARAMS.find((p) => p.key === key);
+  const el = document.getElementById(`c-${key}`) as HTMLInputElement | HTMLSelectElement | null;
+  if (el) {
+    if (param?.kind === "toggle") (el as HTMLInputElement).checked = !!value;
+    else el.value = String(value);
+  }
+  const out = document.getElementById(`c-${key}-v`);
+  if (out && param?.kind === "range") out.textContent = fmt(value);
+}
+
+// Sample: load the bundled portrait into the artefact's palette + treatment,
+// so the rig previews and tunes exactly what the artefact corner renders.
+document.getElementById("sample")?.addEventListener("click", () => {
+  const s = scene;
+  if (!s) return;
+  syncControl("uColorway", 10); // Heather (the artefact palette)
+  syncControl("uMotif", 1); // disc
+  syncControl("uCell", 150);
+  syncControl("uMotifWeight", 0.62);
+  syncControl("uMotifTone", 0.5);
+  syncControl("uCrossOn", 0);
+  const img = new Image();
+  img.onload = () => {
+    s.setImage(img);
+    syncControl("uImageOn", 1);
+  };
+  img.src = "/portrait.jpg";
+});
+
+const plate = document.getElementById("plate");
+if (plate) {
+  for (const ev of ["dragenter", "dragover"]) {
+    plate.addEventListener(ev, (e) => {
+      e.preventDefault();
+      plate.classList.add("is-drop");
+    });
+  }
+  plate.addEventListener("dragleave", () => plate.classList.remove("is-drop"));
+  plate.addEventListener("drop", (e) => {
+    e.preventDefault();
+    plate.classList.remove("is-drop");
+    loadImageFile((e as DragEvent).dataTransfer?.files?.[0]);
+  });
 }
 
 if (import.meta.env.DEV) {

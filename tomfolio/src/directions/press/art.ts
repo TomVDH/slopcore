@@ -5,9 +5,11 @@
  * way a press can: by deciding, dot by dot, ink or no ink. A drifting
  * fbm luminance field is quantized through an ordered 4x4 Bayer matrix
  * at chunky cell size, so the gradient lives entirely in dot density.
- * The cursor presses a highlight into the plate; one aviation-red
- * registration cross holds the corner. Seeded by time alone, tuned so
- * the plate reads as a working proof, not a screensaver.
+ * The tone source is either that field or a sampled image (uImageOn) the
+ * dither engine treats identically, so the plate doubles as a halftone
+ * printer for photos. The cursor presses a highlight into the plate; one
+ * aviation-red registration cross holds the corner. Tuned so the plate
+ * reads as a working proof, not a screensaver.
  */
 
 export const pressFrag = /* glsl */ `
@@ -37,6 +39,9 @@ export const pressFrag = /* glsl */ `
   uniform float uCrossOn;      // registration cross visible
   uniform float uCrossSize;    // registration cross size
   uniform vec2  uCrossPos;     // registration cross position
+  uniform sampler2D uImage;    // source image to dither (when uImageOn > 0.5)
+  uniform float uImageOn;      // 0 procedural tone field, 1 dither the image
+  uniform vec2  uImageRes;     // source image pixel size, for cover-fit aspect
 
   float hash(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -101,11 +106,24 @@ export const pressFrag = /* glsl */ `
     else if (uColorway < 7.5) { paper = vec3(0.106,0.118,0.137); ink = vec3(0.722,0.760,0.800); accent = vec3(0.298,0.792,0.886); } // 7 steel
     else if (uColorway < 8.5) { paper = vec3(0.129,0.043,0.051); ink = vec3(0.902,0.871,0.800); accent = vec3(0.851,0.200,0.149); } // 8 oxblood
     else if (uColorway < 9.5) { paper = vec3(0.043,0.043,0.047); ink = vec3(0.953,0.949,0.937); accent = vec3(0.902,0.098,0.098); } // 9 mono invert
-    else if (uColorway > 9.5) { paper = vec3(0.255,0.235,0.314); ink = vec3(0.957,0.937,0.867); accent = vec3(0.776,0.553,0.604); } // 10 heather (gray-purple / cream)
+    else if (uColorway > 9.5) { paper = vec3(0.165,0.149,0.212); ink = vec3(0.957,0.937,0.867); accent = vec3(0.776,0.553,0.604); } // 10 heather (deep gray-purple / cream)
 
-    // Tone field: diagonal wash plus drifting grain.
-    float lum = uToneBase + uToneContrast * fbm(p * uToneScale + vec2(t * 0.5, -t * 0.3));
-    lum += 0.22 * smoothstep(-1.2, 1.2, dot(p, vec2(0.5, 0.85)));
+    // Tone source: crossfade the procedural field and a sampled image by
+    // uImageOn (0 field, 1 image). Animating uImageOn lets the dots flow
+    // from the drifting field into a photo (particles forming an image).
+    float field = uToneBase + uToneContrast * fbm(p * uToneScale + vec2(t * 0.5, -t * 0.3));
+    field += 0.22 * smoothstep(-1.2, 1.2, dot(p, vec2(0.5, 0.85)));
+
+    // Sample at the cell center, cover-fitting the image to the plate so it
+    // fills without distortion (crop the overflowing dimension).
+    vec2 iuv = (cellId + 0.5) * cell / uRes;
+    float plateA = uRes.x / uRes.y;
+    float imgA   = uImageRes.x / max(uImageRes.y, 1.0);
+    vec2 isc = imgA > plateA ? vec2(plateA / imgA, 1.0) : vec2(1.0, imgA / plateA);
+    iuv = (iuv - 0.5) * isc + 0.5;
+    float img = dot(texture2D(uImage, iuv).rgb, vec3(0.299, 0.587, 0.114));
+
+    float lum = mix(field, img, clamp(uImageOn, 0.0, 1.0));
 
     // The cursor presses a highlight into the plate.
     float md = length(p - uMouse);

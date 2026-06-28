@@ -9,12 +9,22 @@
       content="An empty-viewport study: the Presswerk dither bled into the bottom-left corner, cream on gray-purple. A Tomtoolery effect sandbox."
     />
     <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#413c50" />
+    <meta name="theme-color" content="#2a2636" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body class="art">
-    <canvas id="gl" aria-hidden="true"></canvas>
-    <figcaption class="art-cap">FIG. C / CORNER FIELD</figcaption>
+    <div class="art-frame">
+      <canvas id="gl" aria-hidden="true"></canvas>
+
+      <nav class="art-menu" aria-label="Sections (placeholder)">
+        <button type="button" class="art-link is-active" data-i="0">Work</button>
+        <button type="button" class="art-link" data-i="1">Play</button>
+        <button type="button" class="art-link" data-i="2">Words</button>
+        <button type="button" class="art-link" data-i="3">Info</button>
+      </nav>
+
+      <figcaption class="art-cap">FIG. C / CORNER FIELD</figcaption>
+    </div>
     <script type="module" src="/src/sandbox/artefact.ts"></script>
   </body>
 </html>
