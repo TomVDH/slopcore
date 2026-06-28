@@ -1,164 +1,21 @@
 /* ------------------------------------------------------------------
-   LETTERPRESS SANDBOX
-
-   A maker's lab page to evaluate the Presswerk dither (pressFrag) as a
-   restrained page accent. The plate is predominantly paper-white, so a
-   warm near-black studio lets it read as a lit proof pinned in the
-   middle of the room. One accent (aviation red) lives only inside the
-   plate. Sharp corners, locked dark theme, art-gallery breathing room.
-
-   Z-scale: 10 stage / 50 nav / 100 skip-link.
+   Letterpress sandbox: page-specific layout only. Tokens, reset, the
+   .frame / .fig / .bar / .mark components, and the cursor all come from
+   src/system. This file just stages the framed plate in the middle of
+   the room.
 ------------------------------------------------------------------- */
 
-/* Fonts: the project's self-hosted faces (JetBrains Mono via the TS). */
-@font-face {
-  font-family: "Clash Display";
-  src: url("/fonts/clash-display-600.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Satoshi";
-  src: url("/fonts/satoshi-400.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Satoshi";
-  src: url("/fonts/satoshi-500.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-:root {
-  --lp-studio: #15140f;
-  --lp-studio-2: #1d1b15;
-  --lp-bone: #e8e3d6;
-  --lp-mid: #918a78;
-  --lp-line: rgba(232, 227, 214, 0.16);
-  --lp-paper: #f4f4f0;
-
-  --lp-display: "Clash Display", "Helvetica Neue", sans-serif;
-  --lp-body: "Satoshi", "Helvetica Neue", sans-serif;
-  --lp-mono: "JetBrains Mono", ui-monospace, monospace;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  color-scheme: dark;
-}
-
-body.lp {
+.lp {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(120% 90% at 50% 8%, var(--lp-studio-2), transparent 60%),
-    var(--lp-studio);
-  color: var(--lp-bone);
-  font-family: var(--lp-body);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: clip;
+    radial-gradient(120% 90% at 50% 8%, var(--bg-2), transparent 60%),
+    var(--bg);
 }
 
-.lp ::selection {
-  background: var(--lp-bone);
-  color: var(--lp-studio);
-}
-.lp :focus-visible {
-  outline: 2px solid var(--lp-bone);
-  outline-offset: 3px;
-}
-
-img,
-canvas {
-  display: block;
-  max-width: 100%;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.skip-link {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 100;
-  background: var(--lp-bone);
-  color: var(--lp-studio);
-  font-family: var(--lp-mono);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 10px 16px;
-  transform: translateY(-300%);
-  transition: transform 0.2s ease;
-}
-.skip-link:focus-visible {
-  transform: translateY(0);
-}
-
-/* ---- Top bar ---- */
-
-.lp-nav {
-  position: relative;
-  z-index: 50;
-  height: 60px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-inline: clamp(16px, 4vw, 48px);
-}
-
-.lp-brand {
-  font-family: var(--lp-display);
-  font-weight: 600;
-  font-size: 1.12rem;
-  letter-spacing: -0.01em;
-}
-.lp-brand::after {
-  content: ".";
-  color: var(--lp-mid);
-}
-
-.lp-links {
-  display: flex;
-  gap: clamp(16px, 3vw, 30px);
-}
-.lp-links a {
-  font-family: var(--lp-mono);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--lp-mid);
-  padding-block: 6px;
-  border-bottom: 1px solid transparent;
-  transition: color 0.25s ease, border-color 0.25s ease;
-}
-.lp-links a:hover {
-  color: var(--lp-bone);
-  border-bottom-color: var(--lp-bone);
-}
-
-/* ---- Center stage: the plate, framed ---- */
-
+/* The bar and footer are fixed-height bookends; the stage takes the rest. */
 .lp-stage {
-  position: relative;
-  z-index: 10;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -168,103 +25,37 @@ a {
   padding: clamp(20px, 4vh, 48px) clamp(16px, 4vw, 48px);
 }
 
+/* The plate: ~60% of the viewport, 4:3, capped by height so it stays an
+   inset. Border, shadow, paper, and the no-gl fallback are .frame. */
 .lp-plate {
-  position: relative;
-  /* ~60% of the viewport, 4:3, capped by height so it stays an inset. */
   width: min(60vw, 80vh);
   aspect-ratio: 4 / 3;
-  background: var(--lp-paper);
-  border: 1px solid rgba(232, 227, 214, 0.5);
-  box-shadow:
-    0 1px 0 rgba(232, 227, 214, 0.08) inset,
-    0 30px 70px -30px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(0, 0, 0, 0.4);
 }
-.lp-plate canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* CSS fallback when WebGL is unavailable (?nogl or no context). */
-.lp.no-gl .lp-plate {
-  background-color: var(--lp-paper);
-  background-image: radial-gradient(rgba(10, 10, 10, 0.8) 22%, transparent 24%);
-  background-size: 6px 6px;
-}
-
-.lp-fig {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--lp-paper);
-  color: #0a0a0a;
-  border-top: 1px solid #0a0a0a;
-  border-right: 1px solid #0a0a0a;
-  padding: 7px 13px;
-  font-family: var(--lp-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
-}
-.lp-fig span {
-  color: #55554f;
-}
-
-/* ---- Caption ---- */
 
 .lp-caption {
-  max-width: 46ch;
+  max-width: var(--measure);
   text-align: center;
 }
-.lp-title {
-  font-family: var(--lp-display);
-  font-weight: 600;
-  font-size: clamp(1.4rem, 2.6vw, 2rem);
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-}
-.lp-note {
+.lp-caption .lede {
   margin-top: 10px;
-  color: var(--lp-mid);
-  font-size: clamp(0.92rem, 1.1vw, 1.02rem);
+  margin-inline: auto;
 }
-
-/* ---- Footer ---- */
 
 .lp-foot {
   flex: none;
   padding: 18px clamp(16px, 4vw, 48px) 22px;
-  border-top: 1px solid var(--lp-line);
+  border-top: 1px solid var(--line);
 }
 .lp-fine {
-  font-family: var(--lp-mono);
+  font-family: var(--font-mono);
   font-size: 0.64rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--lp-mid);
+  color: var(--muted);
 }
-
-/* ---- Mobile: the plate stays a comfortable 4:3 inset ---- */
 
 @media (max-width: 767px) {
   .lp-plate {
     width: 88vw;
-  }
-  .lp-links a {
-    font-size: 0.64rem;
-    letter-spacing: 0.1em;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
   }
 }

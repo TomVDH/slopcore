@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RIG / 01, a registration plate</title>
+    <meta
+      name="description"
+      content="A raw industrial-brutalist style screen: the Presswerk dither held as a press registration plate. A Tomtoolery effect sandbox."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#15140f" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="rig">
+    <a class="skip-link" href="#plate">Skip to the plate</a>
+
+    <div class="rig-frame">
+      <header class="rig-head">
+        <span class="rig-cell rig-id">RIG / 01</span>
+        <span class="rig-cell rig-mid">REGISTRATION PLATE</span>
+        <span class="rig-cell rig-rev">REV 2026.06</span>
+      </header>
+
+      <div class="rig-body">
+        <main id="plate" class="rig-plate frame">
+          <canvas id="gl" aria-hidden="true"></canvas>
+          <span class="reg reg--tl" aria-hidden="true"></span>
+          <span class="reg reg--tr" aria-hidden="true"></span>
+          <span class="reg reg--br" aria-hidden="true"></span>
+          <figcaption class="fig">FIG. A <span>DITHER, LIVE</span></figcaption>
+        </main>
+
+        <aside class="rig-controls" aria-label="Shader controls">
+          <div class="ctrl-head">
+            <span class="ctrl-title">Control / Dither</span>
+            <span class="ctrl-actions">
+              <button type="button" id="reset" class="ctrl-btn">Reset</button>
+              <button type="button" id="copy" class="ctrl-btn">Copy</button>
+            </span>
+          </div>
+          <div class="ctrl-list"></div>
+        </aside>
+      </div>
+
+      <footer class="rig-foot">
+        <span class="rig-cell">BAYER 4×4 / CELL 6PX</span>
+        <span class="rig-cell rig-mid">INK CARBON / STOCK BONE</span>
+        <span class="rig-cell rig-end">PLATE 01 / 01</span>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/sandbox/rig.ts"></script>
+  </body>
+</html>

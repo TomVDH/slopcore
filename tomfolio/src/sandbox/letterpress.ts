@@ -1,21 +1,19 @@
 /**
  * Letterpress sandbox runtime.
  *
- * Mounts the Presswerk dither (pressFrag) into a small centered 4:3
- * plate via the shared initScene engine, which sizes to the canvas
- * element and renders a synchronous first frame. The only interaction
- * is the shader's own cursor press (uMouse / uMouseStrength). `?still`
- * or reduced motion gives a static frame; `?nogl` or a missing context
- * falls back to a CSS dot texture so the plate never reads broken.
+ * Mounts the Presswerk dither (pressFrag) into a centered 4:3 framed
+ * plate via the shared initScene engine, and boots the site system
+ * (tokens, base, components, fonts) plus the custom registration cursor.
+ * The only shader interaction is its own cursor press (uMouse /
+ * uMouseStrength). `?still` or reduced motion gives a static frame;
+ * `?nogl` or a missing context falls back to a CSS dot texture.
  */
 
+import { initCursor } from "../system";
 import "./letterpress.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/500.css";
 
 import { initScene, type GlScene } from "../gl/scene";
 import { pressFrag } from "../directions/press/art";
-import { identity } from "../content/portfolio";
 
 const params = new URLSearchParams(window.location.search);
 const reduced =
@@ -37,7 +35,9 @@ try {
 }
 
 const fine = document.querySelector<HTMLElement>(".lp-fine");
-if (fine) fine.textContent = identity.smallPrint;
+if (fine) fine.textContent = "LETTERPRESS PLATE // EFFECT SANDBOX";
+
+initCursor();
 
 if (import.meta.env.DEV) {
   Object.assign(window, { scene });

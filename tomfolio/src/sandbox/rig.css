@@ -1,0 +1,265 @@
+/* ------------------------------------------------------------------
+   RIG — a registration plate.
+
+   A raw, industrial-brutalist style screen: the Presswerk dither held
+   as the dominant texture, framed like a press test rig. One viewport,
+   no scroll, no portfolio content. A warm near-black studio, dense mono
+   in a print voice (RIG / PLATE / REV / INK / STOCK), 1px registration
+   rules, corner crosshairs, and one registration-red mark. Utilitarian,
+   mechanical. Depends on tokens.css + components.css (via ../system).
+------------------------------------------------------------------- */
+
+body.rig {
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+}
+
+.rig-frame {
+  height: 100dvh;
+  padding: clamp(12px, 2.4vw, 28px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(12px, 2.4vw, 28px);
+}
+
+/* ---- Head + foot: mono strips, razor 1px dividers ---- */
+
+.rig-head,
+.rig-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.rig-cell {
+  background: var(--bg);
+  padding: 9px clamp(10px, 1.4vw, 16px);
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rig-id,
+.rig-end {
+  color: var(--fg);
+}
+.rig-mid {
+  text-align: center;
+}
+.rig-rev,
+.rig-end {
+  text-align: right;
+}
+
+/* ---- The plate: the dither, dominant, framed flat (no soft shadow) ---- */
+
+.rig-plate {
+  position: relative;
+  box-shadow: none;
+  overflow: hidden;
+}
+.rig-plate canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Registration crosshairs pinned to the plate corners; one in the accent. */
+.reg {
+  position: absolute;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  color: var(--ink);
+  pointer-events: none;
+}
+.reg::before,
+.reg::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.reg::before {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+.reg::after {
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: 100%;
+  transform: translateY(-50%);
+}
+.reg--tl {
+  top: 10px;
+  left: 10px;
+  color: var(--accent);
+}
+.reg--tr {
+  top: 10px;
+  right: 10px;
+}
+.reg--br {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* FIG caption (from components) sits in the plate's bottom-left corner. */
+.rig-plate .fig {
+  letter-spacing: 0.16em;
+}
+
+/* ---- Middle: the plate beside the control panel ---- */
+
+.rig-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr clamp(260px, 24vw, 340px);
+  gap: clamp(12px, 2.4vw, 28px);
+}
+.rig-plate {
+  min-height: 0;
+}
+
+/* ---- Control panel: a raw mono rig of sliders ---- */
+
+.rig-controls {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.ctrl-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.ctrl-title {
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.ctrl-actions {
+  display: flex;
+  gap: 6px;
+}
+.ctrl-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  padding: 5px 9px;
+  transition: color var(--dur) ease, border-color var(--dur) ease;
+}
+.ctrl-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.ctrl-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 14px 16px;
+}
+.ctrl-row {
+  padding-block: 11px;
+  border-bottom: 1px solid var(--line);
+}
+.ctrl-row:last-child {
+  border-bottom: 0;
+}
+.ctrl-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.ctrl-label {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ctrl-val {
+  font-size: var(--text-xs);
+  color: var(--fg);
+}
+.ctrl-input {
+  width: 100%;
+}
+input[type="range"].ctrl-input {
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: ew-resize;
+}
+select.ctrl-input {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  padding: 6px 8px;
+}
+.ctrl-row.is-vec2 input + input {
+  margin-top: 6px;
+}
+.ctrl-row.is-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ctrl-toggle {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .rig-head,
+  .rig-foot {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rig-mid {
+    display: none;
+  }
+  .rig-body {
+    grid-template-columns: 1fr;
+  }
+  .rig-controls {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

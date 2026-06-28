@@ -1,4 +1,5 @@
-# Adjudant breadcrumb (project-local)
+# Adjudant breadcrumb + handoff bridge (project-local)
 .claude/adjudant
+.remember
 node_modules/
 dist/

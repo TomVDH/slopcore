@@ -1,0 +1,189 @@
+/* ------------------------------------------------------------------
+   Components: the small reusable kit for the site. Each is class-only,
+   token-driven, and composes with the others. Depends on tokens.css.
+
+   Index:
+     .container          page width
+     .bar                fixed top bar
+     .mark               logo slot (neutral placeholder while rebranding)
+     .link-mono          small uppercase mono link
+     .eyebrow            small mono label above a heading
+     .btn / .btn--ghost  sharp mono button
+     .frame              bordered media plate (holds a canvas/img)
+     .fig                FIG-style corner caption on a frame
+     .title / .lede      display heading + supporting line
+------------------------------------------------------------------- */
+
+.container {
+  width: var(--container);
+  margin-inline: auto;
+}
+
+/* ---- Top bar ---- */
+
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: clamp(16px, 4vw, 48px);
+}
+.bar nav {
+  display: flex;
+  gap: clamp(16px, 3vw, 30px);
+}
+
+/* ---- Logo slot: a registration mark placeholder, brand-agnostic ---- */
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1;
+  transition: border-color var(--dur) ease, color var(--dur) ease;
+}
+.mark:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---- Mono link ---- */
+
+.link-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  padding-block: 6px;
+  border-bottom: 1px solid transparent;
+  transition: color var(--dur) ease, border-color var(--dur) ease;
+}
+.link-mono:hover {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+}
+
+/* ---- Eyebrow ---- */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+
+/* ---- Button ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--bg);
+  background: var(--fg);
+  border: 1px solid var(--fg);
+  border-radius: var(--radius);
+  padding: 13px 26px;
+  white-space: nowrap;
+  transition: background-color var(--dur) ease, color var(--dur) ease, transform var(--dur-fast) ease;
+}
+.btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+}
+.btn:active {
+  transform: translate(1px, 1px);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--fg);
+}
+.btn--ghost:hover {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Frame: a bordered media plate (the press idiom, generalized) ---- */
+
+.frame {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 227, 214, 0.08),
+    0 30px 70px -30px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+.frame > canvas,
+.frame > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* WebGL-absent fallback: a paper dot texture so the frame never reads
+   broken. Pages flag this by adding `.no-gl` to <body>. */
+.no-gl .frame {
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(10, 10, 10, 0.8) 22%, transparent 24%);
+  background-size: 6px 6px;
+}
+
+/* ---- FIG caption: a mono label tucked into a frame corner ---- */
+
+.fig {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  border-top: 1px solid var(--ink);
+  border-right: 1px solid var(--ink);
+  padding: 7px 13px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+.fig span {
+  color: #55554f;
+}
+
+/* ---- Typography helpers ---- */
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: var(--text-md);
+  max-width: var(--measure);
+}

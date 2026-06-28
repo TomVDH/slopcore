@@ -16,6 +16,8 @@ export interface GlScene {
   setScrollVelocity(value: number): void;
   setRunning(running: boolean): void;
   renderOnce(): void;
+  /** Set any shader uniform by name (number, or [x, y] for a vec2). */
+  setParam(name: string, value: number | [number, number]): void;
 }
 
 export function initScene(
@@ -70,6 +72,24 @@ export function initScene(
     uMouseStrength: { value: 0 },
     uEnergy: { value: 1 },
     uScrollVel: { value: 0 },
+    // Editable dither parameters (defaults reproduce the original plate).
+    // Unused by shaders that do not declare them; three.js ignores those.
+    uCell: { value: 150 },
+    uToneBase: { value: 0.42 },
+    uToneContrast: { value: 0.34 },
+    uToneScale: { value: 1.7 },
+    uDrift: { value: 0.05 },
+    uThreshold: { value: 0.03 },
+    uPress: { value: 0.4 },
+    uPressFalloff: { value: 2.2 },
+    uMotif: { value: 0 },
+    uMotifWeight: { value: 0.5 },
+    uMotifAngle: { value: 0 },
+    uMotifTone: { value: 0 },
+    uColorway: { value: 0 },
+    uCrossOn: { value: 1 },
+    uCrossSize: { value: 0.075 },
+    uCrossPos: { value: new THREE.Vector2(0.62, 0.58) },
   };
 
   const material = new THREE.ShaderMaterial({
@@ -180,6 +200,17 @@ export function initScene(
     },
     renderOnce() {
       render(reducedMotion ? 20.0 : gsap.ticker.time);
+    },
+    setParam(name: string, value: number | [number, number]) {
+      const u = (uniforms as Record<string, { value: unknown }>)[name];
+      if (!u) return;
+      if (Array.isArray(value)) {
+        (u.value as THREE.Vector2).set(value[0], value[1]);
+      } else {
+        u.value = value;
+      }
+      // Static frames (reduced / ?still) need a manual re-render to update.
+      if (reducedMotion) render(20.0);
     },
   };
 }

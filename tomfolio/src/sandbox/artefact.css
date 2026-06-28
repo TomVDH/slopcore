@@ -1,0 +1,50 @@
+/* ------------------------------------------------------------------
+   ARTEFACT — corner field.
+
+   An empty viewport. The Presswerk dither is anchored in the bottom-left
+   and CSS-masked so its rectangle dissolves into a gray-purple ground.
+   The ground color is the Heather paper exactly (#413c50), so the plate
+   has no seam: only the cream disc marks read, thinning toward the top
+   right. Depends on tokens via ../system for the mono caption only.
+------------------------------------------------------------------- */
+
+body.art {
+  min-height: 100dvh;
+  margin: 0;
+  background: #413c50; /* == Heather paper; keep the two in lockstep */
+  color: #f4efdd;
+  overflow: hidden;
+  cursor: default;
+}
+
+#gl {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: min(64vw, 880px);
+  height: min(80vh, 760px);
+  pointer-events: none;
+  /* Dissolve the rectangle into the ground out from the bottom-left corner. */
+  -webkit-mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0, 0, 0, 0) 72%);
+  mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0, 0, 0, 0) 72%);
+}
+
+.art-cap {
+  position: fixed;
+  top: clamp(16px, 3vw, 32px);
+  right: clamp(16px, 3vw, 32px);
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f4efdd;
+  opacity: 0.5;
+}
+
+@media (max-width: 767px) {
+  #gl {
+    width: 92vw;
+    height: 64vh;
+  }
+}

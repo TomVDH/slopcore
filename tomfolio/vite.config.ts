@@ -57,6 +57,8 @@ export default defineConfig({
         sepia: entry("./directions/sepia.html"),
         fresco: entry("./directions/fresco.html"),
         letterpress: entry("./sandbox/letterpress.html"),
+        rig: entry("./sandbox/rig.html"),
+        artefact: entry("./sandbox/artefact.html"),
       },
     },
   },

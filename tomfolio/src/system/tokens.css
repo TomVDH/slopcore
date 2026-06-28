@@ -1,0 +1,70 @@
+/* ------------------------------------------------------------------
+   Design tokens. Brand-neutral foundation for the site (the wordmark
+   and identity are being reworked, so nothing here names a brand).
+
+   Seeded by the letterpress study: a warm near-black studio, a bone
+   text, a light "paper" surface, and ONE accent: registration red,
+   the printer's mark that the press shader already uses. Swap values
+   here and the whole site follows.
+------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #15140f; /* warm near-black studio */
+  --bg-2: #1d1b15; /* raised panel */
+  --paper: #f4f4f0; /* light plate surface */
+  --ink: #0a0a0a; /* text on paper */
+
+  /* Text */
+  --fg: #e8e3d6; /* bone */
+  --muted: #918a78; /* secondary */
+  --line: rgba(232, 227, 214, 0.16); /* hairline */
+  --line-strong: rgba(232, 227, 214, 0.5);
+
+  /* The one accent: registration red. */
+  --accent: #e61919;
+
+  /* Type families (semantic: rebrand by editing these three) */
+  --font-display: "Clash Display", "Helvetica Neue", sans-serif;
+  --font-body: "Satoshi", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Fluid type scale */
+  --text-xs: 0.7rem;
+  --text-sm: 0.85rem;
+  --text-base: 1rem;
+  --text-md: clamp(1.05rem, 1.2vw, 1.2rem);
+  --text-lg: clamp(1.4rem, 2.6vw, 2rem);
+  --text-xl: clamp(2rem, 4.4vw, 3.4rem);
+  --text-2xl: clamp(2.6rem, 6vw, 4.8rem);
+
+  /* Spacing scale */
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 64px;
+  --space-7: clamp(64px, 10vh, 130px);
+
+  /* Shape: sharp by default (the press world). */
+  --radius: 0px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 0.18s;
+  --dur: 0.3s;
+
+  /* Layers */
+  --z-nav: 50;
+  --z-skip: 100;
+  --z-cursor: 1000;
+
+  /* Layout */
+  --measure: 46ch;
+  --container: min(1240px, 92vw);
+}
