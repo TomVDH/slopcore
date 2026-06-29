@@ -1,0 +1,208 @@
+<!-- @dsCard group="Artefact" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dither artefact — corner field</title>
+    <style>
+      @import url("https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap");
+      :root { --ground: #2a2636; --cream: #f4efdd; }
+      * { margin: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        background: #000; color: var(--cream); overflow: hidden; cursor: default;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      /* 10px inset frame; the ground reads as a framed plate over black. */
+      .art-frame {
+        position: fixed; inset: 10px; overflow: hidden; background: var(--ground);
+      }
+      #gl {
+        position: absolute; left: 0; bottom: 0;
+        width: min(64vw, 880px); height: min(80vh, 760px); pointer-events: none;
+        -webkit-mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0,0,0,0) 72%);
+        mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0,0,0,0) 72%);
+      }
+      .art-menu {
+        position: absolute; right: clamp(18px, 4vw, 64px); top: 50%;
+        transform: translateY(-50%); z-index: 2;
+        display: flex; flex-direction: column; align-items: flex-end;
+        gap: clamp(2px, 0.6vh, 12px);
+      }
+      .art-link {
+        appearance: none; margin: 0; padding: 0; border: 0; background: none;
+        text-align: right; cursor: pointer;
+        font-family: "Clash Display", ui-sans-serif, sans-serif; font-weight: 600;
+        font-size: clamp(2.6rem, 8.5vw, 7rem); line-height: 0.92; letter-spacing: -0.015em;
+        text-transform: uppercase; color: transparent;
+        -webkit-text-stroke: 1.2px rgba(244,239,221,0.42);
+        transition: color 0.3s cubic-bezier(0.16,1,0.3,1), -webkit-text-stroke-color 0.3s cubic-bezier(0.16,1,0.3,1);
+      }
+      .art-link:hover { -webkit-text-stroke-color: rgba(244,239,221,0.85); color: rgba(244,239,221,0.06); }
+      .art-link.is-active { color: var(--cream); -webkit-text-stroke-color: transparent; }
+      .art-cap {
+        position: absolute; top: clamp(14px,3vw,30px); right: clamp(14px,3vw,30px);
+        margin: 0; z-index: 2; font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--cream); opacity: 0.5;
+      }
+      @media (max-width: 767px) { #gl { width: 92vw; height: 64vh; } }
+    </style>
+  </head>
+  <body>
+    <div class="art-frame">
+      <canvas id="gl" aria-hidden="true"></canvas>
+      <nav class="art-menu" aria-label="Sections (placeholder)">
+        <button type="button" class="art-link is-active" data-i="0">Work</button>
+        <button type="button" class="art-link" data-i="1">Play</button>
+        <button type="button" class="art-link" data-i="2">Words</button>
+        <button type="button" class="art-link" data-i="3">Info</button>
+      </nav>
+      <figcaption class="art-cap">FIG. C / CORNER FIELD</figcaption>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "three": "https://esm.sh/three@0.184.0" } }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+
+      const VERT = `void main(){ gl_Position = vec4(position, 1.0); }`;
+      const FRAG = `
+        precision highp float;
+        uniform vec2 uRes; uniform float uTime; uniform vec2 uMouse; uniform float uMouseStrength;
+        uniform float uEnergy; uniform float uScrollVel;
+        uniform float uCell; uniform float uToneBase; uniform float uToneContrast; uniform float uToneScale;
+        uniform float uDrift; uniform float uThreshold; uniform float uPress; uniform float uPressFalloff;
+        uniform float uMotif; uniform float uMotifWeight; uniform float uMotifAngle; uniform float uMotifTone;
+        uniform float uColorway; uniform float uCrossOn; uniform float uCrossSize; uniform vec2 uCrossPos;
+        uniform sampler2D uImage; uniform float uImageOn; uniform vec2 uImageRes;
+        float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+        float vnoise(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f);
+          float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0));
+          return mix(mix(a,b,u.x),mix(c,d,u.x),u.y); }
+        float fbm(vec2 p){ float v=0.0; float amp=0.55; for(int i=0;i<4;i++){ v+=amp*vnoise(p); p*=2.02; amp*=0.5; } return v; }
+        float bayer2(vec2 p){ return p.x*2.0+p.y*3.0-p.x*p.y*4.0; }
+        float bayer4(vec2 pix){ vec2 p1=mod(pix,2.0); vec2 p2=mod(floor(pix/2.0),2.0); return (bayer2(p1)*4.0+bayer2(p2))/16.0; }
+        void main(){
+          float cell=max(uRes.y/uCell,2.0);
+          vec2 cellId=floor(gl_FragCoord.xy/cell);
+          vec2 local=fract(gl_FragCoord.xy/cell);
+          vec2 p=(cellId*cell*2.0-uRes)/min(uRes.x,uRes.y);
+          float t=uTime*uDrift;
+          vec3 paper=vec3(0.957,0.957,0.941); vec3 ink=vec3(0.039,0.039,0.039); vec3 accent=vec3(0.902,0.098,0.098);
+          if(uColorway>0.5&&uColorway<1.5){paper=vec3(0.086,0.227,0.361);ink=vec3(0.863,0.902,0.941);accent=vec3(0.984,0.792,0.310);}
+          else if(uColorway<2.5){paper=vec3(0.910,0.873,0.784);ink=vec3(0.180,0.137,0.090);accent=vec3(0.780,0.180,0.110);}
+          else if(uColorway<3.5){paper=vec3(0.082,0.078,0.059);ink=vec3(0.784,0.961,0.259);accent=vec3(0.902,0.098,0.098);}
+          else if(uColorway<4.5){paper=vec3(0.043,0.122,0.180);ink=vec3(0.847,0.910,0.886);accent=vec3(0.957,0.604,0.180);}
+          else if(uColorway<5.5){paper=vec3(0.961,0.949,0.925);ink=vec3(0.945,0.176,0.451);accent=vec3(0.110,0.110,0.118);}
+          else if(uColorway<6.5){paper=vec3(0.961,0.957,0.933);ink=vec3(0.000,0.267,0.647);accent=vec3(0.945,0.176,0.451);}
+          else if(uColorway<7.5){paper=vec3(0.106,0.118,0.137);ink=vec3(0.722,0.760,0.800);accent=vec3(0.298,0.792,0.886);}
+          else if(uColorway<8.5){paper=vec3(0.129,0.043,0.051);ink=vec3(0.902,0.871,0.800);accent=vec3(0.851,0.200,0.149);}
+          else if(uColorway<9.5){paper=vec3(0.043,0.043,0.047);ink=vec3(0.953,0.949,0.937);accent=vec3(0.902,0.098,0.098);}
+          else if(uColorway>9.5){paper=vec3(0.165,0.149,0.212);ink=vec3(0.957,0.937,0.867);accent=vec3(0.776,0.553,0.604);}
+          float field=uToneBase+uToneContrast*fbm(p*uToneScale+vec2(t*0.5,-t*0.3));
+          field+=0.22*smoothstep(-1.2,1.2,dot(p,vec2(0.5,0.85)));
+          vec2 iuv=(cellId+0.5)*cell/uRes;
+          float plateA=uRes.x/uRes.y; float imgA=uImageRes.x/max(uImageRes.y,1.0);
+          vec2 isc = imgA>plateA ? vec2(plateA/imgA,1.0) : vec2(1.0,imgA/plateA);
+          iuv=(iuv-0.5)*isc+0.5;
+          float img=dot(texture2D(uImage,iuv).rgb, vec3(0.299,0.587,0.114));
+          float lum=mix(field,img,clamp(uImageOn,0.0,1.0));
+          float md=length(p-uMouse);
+          lum+=uPress*uMouseStrength*exp(-md*uPressFalloff);
+          lum=0.5+(lum-0.5)*(0.75+0.55*uEnergy);
+          lum+=clamp(uScrollVel,-4.0,4.0)*0.01;
+          float threshold=bayer4(cellId)+uThreshold;
+          float on=step(threshold,clamp(lum,0.0,1.0));
+          float aa=clamp(0.9/cell,0.001,0.25);
+          float dk=1.0-clamp(lum,0.0,1.0);
+          float wEff=clamp(uMotifWeight,0.05,1.0)*0.5*(1.0+uMotifTone*(1.6*dk-0.8));
+          wEff=clamp(wEff,0.0,0.5);
+          vec2 lc=local-0.5; float ang=uMotifAngle*6.2831853; float cs=cos(ang),sn=sin(ang);
+          lc=mat2(cs,-sn,sn,cs)*lc; vec2 rl=lc+0.5;
+          float rad=length(lc); float dia=abs(rl.x-rl.y)*0.7071; float dib=abs(rl.x+rl.y-1.0)*0.7071;
+          float dax=abs(lc.x); float day=abs(lc.y);
+          float mDisc=1.0-smoothstep(wEff-aa,wEff+aa,rad);
+          float mX=1.0-smoothstep(wEff-aa,wEff+aa,min(dia,dib));
+          float mPlus=1.0-smoothstep(wEff-aa,wEff+aa,min(dax,day));
+          float mDash=1.0-smoothstep(wEff-aa,wEff+aa,day);
+          float motif=1.0;
+          if(uMotif>0.5&&uMotif<1.5)motif=mDisc; else if(uMotif<2.5)motif=mX;
+          else if(uMotif<3.5)motif=mPlus; else if(uMotif>3.5)motif=mDash;
+          float inkAmt=(1.0-on)*motif;
+          vec3 col=mix(paper,ink,inkAmt);
+          vec2 cd=abs(p-uCrossPos);
+          float cr=uCrossOn*step(min(cd.x,cd.y),0.006)*step(max(cd.x,cd.y),uCrossSize);
+          col=mix(col,accent,cr);
+          gl_FragColor=vec4(col,1.0);
+        }`;
+
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const canvas = document.getElementById("gl");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(dpr);
+      const measure = () => { const r = canvas.getBoundingClientRect(); return { w: Math.max(r.width | 0, 2), h: Math.max(r.height | 0, 2) }; };
+      let { w, h } = measure(); renderer.setSize(w, h, false);
+
+      const scene = new THREE.Scene();
+      const cam = new THREE.Camera();
+      const placeholder = new THREE.DataTexture(new Uint8Array([128,128,128,255]), 1, 1, THREE.RGBAFormat);
+      placeholder.needsUpdate = true;
+      const U = {
+        uRes:{value:new THREE.Vector2(w*dpr,h*dpr)}, uTime:{value:0}, uMouse:{value:new THREE.Vector2(0,0)},
+        uMouseStrength:{value:0}, uEnergy:{value:0.9}, uScrollVel:{value:0},
+        uCell:{value:122}, uToneBase:{value:0.46}, uToneContrast:{value:0.3}, uToneScale:{value:1.6},
+        uDrift:{value:0.03}, uThreshold:{value:0.03}, uPress:{value:0.4}, uPressFalloff:{value:2.2},
+        uMotif:{value:1}, uMotifWeight:{value:0.62}, uMotifAngle:{value:0}, uMotifTone:{value:0.55},
+        uColorway:{value:10}, uCrossOn:{value:0}, uCrossSize:{value:0.075}, uCrossPos:{value:new THREE.Vector2(0.62,0.58)},
+        uImage:{value:placeholder}, uImageOn:{value:0}, uImageRes:{value:new THREE.Vector2(1,1)},
+      };
+      const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthTest: false, depthWrite: false });
+      scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+
+      const setP = (n, v) => { const u = U[n]; if (!u) return; if (Array.isArray(v)) u.value.set(v[0], v[1]); else u.value = v; };
+      const render = (t) => { U.uTime.value = t; renderer.render(scene, cam); };
+
+      // Per-section presets: uImageOn crossfades field <-> portrait.
+      const PRESETS = [
+        { uImageOn:1, uMotif:1, uCell:150, uMotifWeight:0.62, uMotifAngle:0, uMotifTone:0.5 },
+        { uImageOn:1, uMotif:3, uCell:120, uMotifWeight:0.42, uMotifAngle:0, uMotifTone:0.6 },
+        { uImageOn:1, uMotif:4, uCell:110, uMotifWeight:0.4, uMotifAngle:0.08, uMotifTone:0.5 },
+        { uImageOn:0, uMotif:1, uCell:122, uMotifWeight:0.6, uMotifAngle:0, uMotifTone:0.55 },
+      ];
+      const applyPreset = (i) => { const p = PRESETS[i] || PRESETS[0]; for (const k in p) setP(k, p[k]); };
+      applyPreset(0);
+
+      // Dither the portrait once it loads.
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const tex = new THREE.Texture(img);
+        tex.colorSpace = THREE.SRGBColorSpace; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
+        U.uImage.value = tex; U.uImageRes.value.set(img.naturalWidth || 1, img.naturalHeight || 1);
+        if (reduced) render(20.0);
+      };
+      img.src = "./portrait.jpg";
+
+      // Menu: click to re-dither (instant).
+      const links = Array.from(document.querySelectorAll(".art-link"));
+      for (const btn of links) {
+        btn.addEventListener("click", () => {
+          for (const b of links) b.classList.toggle("is-active", b === btn);
+          applyPreset(Number(btn.dataset.i));
+          if (reduced) render(20.0);
+        });
+      }
+
+      const resize = () => { const m = measure(); w = m.w; h = m.h; renderer.setSize(w, h, false); U.uRes.value.set(w*dpr, h*dpr); if (reduced) render(20.0); };
+      window.addEventListener("resize", resize, { passive: true });
+
+      if (reduced) { render(20.0); }
+      else { renderer.setAnimationLoop((ms) => render(ms / 1000)); }
+    </script>
+  </body>
+</html>
