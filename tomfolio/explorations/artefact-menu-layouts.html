@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artefact — menu layouts (low-fi)</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root {
+        --paper: #ece8df;
+        --ink: #2a2636;
+        --muted: #6f6a5c;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .sheet {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+      }
+      .sheet svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      svg text.th {
+        fill: var(--ink);
+        font-weight: 600;
+      }
+      svg text.t {
+        fill: var(--ink);
+      }
+      svg text.ts {
+        fill: var(--muted);
+      }
+      footer {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 24px 48px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <svg viewBox="0 0 700 1840" xmlns="http://www.w3.org/2000/svg" role="img">
+        <title>Seven low-fi menu layouts for the artefact</title>
+        <desc>Each row shows a menu idea: idle state on the left, where content appears on click on the right. Drawn in the artefact palette — gray-purple plate, white margin, cream dither and marks.</desc>
+        <defs>
+          <pattern id="dz" width="9" height="9" patternUnits="userSpaceOnUse">
+            <circle cx="2.4" cy="2.4" r="1.5" fill="#f4efdd" />
+          </pattern>
+          <g id="chrome">
+            <rect x="0" y="0" width="270" height="185" rx="3" fill="#ffffff" stroke="#8d8a82" stroke-width="1" />
+            <rect x="5" y="5" width="260" height="175" rx="2" fill="#2a2636" />
+          </g>
+        </defs>
+
+        <text class="th" x="14" y="30" font-size="18">artefact — menu layouts</text>
+        <text class="ts" x="14" y="52" font-size="12">Seven low-fi directions · idle menu (left) → where content lands on click (right)</text>
+
+        <g transform="translate(0,70)">
+          <text class="th" x="14" y="26" font-size="16">01</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">right rail</text>
+          <text class="ts" x="14" y="66" font-size="11">menu pinned right.</text>
+          <text class="ts" x="14" y="80" font-size="11">click → content</text>
+          <text class="ts" x="14" y="94" font-size="11">column slides in.</text>
+          <text class="ts" x="14" y="108" font-size="11">dither holds corner.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,92 C28,76 60,74 86,96 C112,118 104,150 96,180 Z" fill="url(#dz)" opacity="0.92" />
+            <rect x="185" y="56" width="70" height="12" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="185" y="73" width="70" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="185" y="90" width="70" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="185" y="107" width="70" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,140 C16,130 34,129 48,142 C62,155 56,170 52,180 Z" fill="url(#dz)" opacity="0.92" />
+            <rect x="152" y="14" width="24" height="7" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="180" y="14" width="24" height="7" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="208" y="14" width="24" height="7" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="236" y="14" width="20" height="7" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="150" y="34" width="96" height="9" rx="1" fill="#f4efdd" opacity="0.7" />
+            <rect x="150" y="52" width="104" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="62" width="104" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="72" width="96" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="82" width="104" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="92" width="88" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="102" width="100" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="150" width="64" height="24" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">right rail, one item lit</text>
+          <text class="ts" x="412" y="212" font-size="11">content column slides in</text>
+        </g>
+
+        <g transform="translate(0,320)">
+          <text class="th" x="14" y="26" font-size="16">02</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">baseline strip</text>
+          <text class="ts" x="14" y="66" font-size="11">menu along the foot.</text>
+          <text class="ts" x="14" y="80" font-size="11">click → a sheet</text>
+          <text class="ts" x="14" y="94" font-size="11">rises from below.</text>
+          <text class="ts" x="14" y="108" font-size="11">dither shrinks up.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,108 C26,94 56,92 80,110 C104,128 98,156 90,180 Z" fill="url(#dz)" opacity="0.9" />
+            <rect x="16" y="162" width="54" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="78" y="162" width="54" height="12" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="140" y="162" width="54" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="202" y="162" width="54" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <path d="M5,5 L5,40 C16,48 30,46 37,33 C43,22 31,8 18,5 Z" fill="url(#dz)" opacity="0.9" />
+            <rect x="140" y="14" width="24" height="7" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="168" y="14" width="24" height="7" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="196" y="14" width="24" height="7" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="224" y="14" width="24" height="7" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="5" y="66" width="260" height="114" rx="2" fill="#353043" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="20" y="84" width="110" height="9" rx="1" fill="#f4efdd" opacity="0.7" />
+            <rect x="20" y="102" width="118" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="20" y="112" width="118" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="20" y="122" width="104" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="20" y="132" width="118" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="156" y="96" width="30" height="30" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="194" y="96" width="30" height="30" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="232" y="96" width="22" height="30" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">menu along the foot</text>
+          <text class="ts" x="412" y="212" font-size="11">sheet rises, dither shrinks</text>
+        </g>
+
+        <g transform="translate(0,570)">
+          <text class="th" x="14" y="26" font-size="16">03</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">centre spine</text>
+          <text class="ts" x="14" y="66" font-size="11">menu stacked centre.</text>
+          <text class="ts" x="14" y="80" font-size="11">click → plate splits:</text>
+          <text class="ts" x="14" y="94" font-size="11">dither left,</text>
+          <text class="ts" x="14" y="108" font-size="11">text on the right.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,100 C26,86 54,84 78,102 C102,120 96,154 88,180 Z" fill="url(#dz)" opacity="0.55" />
+            <rect x="103" y="52" width="64" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="103" y="69" width="64" height="12" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="103" y="86" width="64" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="103" y="103" width="64" height="12" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <rect x="5" y="5" width="130" height="175" fill="url(#dz)" opacity="0.55" />
+            <line x1="135" y1="6" x2="135" y2="179" stroke="#f4efdd" stroke-opacity="0.5" />
+            <rect x="150" y="40" width="100" height="9" rx="1" fill="#f4efdd" opacity="0.7" />
+            <rect x="150" y="58" width="100" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="68" width="100" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="78" width="92" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="88" width="100" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="98" width="86" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="108" width="100" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="150" y="150" width="70" height="24" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">stacked centre list</text>
+          <text class="ts" x="412" y="212" font-size="11">split: dither left, text right</text>
+        </g>
+
+        <g transform="translate(0,820)">
+          <text class="th" x="14" y="26" font-size="16">04</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">edge spine</text>
+          <text class="ts" x="14" y="66" font-size="11">tabs up the margin.</text>
+          <text class="ts" x="14" y="80" font-size="11">click → panel fans</text>
+          <text class="ts" x="14" y="94" font-size="11">in over a faint</text>
+          <text class="ts" x="14" y="108" font-size="11">full-bleed field.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,98 C26,82 56,80 82,100 C108,120 100,152 92,180 Z" fill="url(#dz)" opacity="0.92" />
+            <rect x="252" y="44" width="8" height="32" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="252" y="82" width="8" height="32" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="252" y="120" width="8" height="32" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <rect x="5" y="5" width="260" height="175" fill="url(#dz)" opacity="0.2" />
+            <rect x="56" y="18" width="184" height="150" rx="2" fill="#353043" stroke="#f4efdd" stroke-opacity="0.5" />
+            <rect x="70" y="38" width="120" height="9" rx="1" fill="#f4efdd" opacity="0.7" />
+            <rect x="70" y="58" width="70" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="70" y="68" width="70" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="70" y="78" width="70" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="70" y="88" width="62" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="152" y="58" width="74" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="152" y="68" width="74" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="152" y="78" width="66" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="70" y="128" width="156" height="30" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="252" y="44" width="8" height="32" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="252" y="82" width="8" height="32" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="252" y="120" width="8" height="32" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">tabs up the margin</text>
+          <text class="ts" x="412" y="212" font-size="11">panel fans over faint field</text>
+        </g>
+
+        <g transform="translate(0,1070)">
+          <text class="th" x="14" y="26" font-size="16">05</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">corner toggle</text>
+          <text class="ts" x="14" y="66" font-size="11">a single + index.</text>
+          <text class="ts" x="14" y="80" font-size="11">click → full</text>
+          <text class="ts" x="14" y="94" font-size="11">takeover; text fills</text>
+          <text class="ts" x="14" y="108" font-size="11">the cleared corner.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,98 C26,82 56,80 82,100 C108,120 100,152 92,180 Z" fill="url(#dz)" opacity="0.92" />
+            <line x1="238" y1="22" x2="252" y2="22" stroke="#f4efdd" stroke-opacity="0.75" stroke-width="2" />
+            <line x1="245" y1="15" x2="245" y2="29" stroke="#f4efdd" stroke-opacity="0.75" stroke-width="2" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <rect x="5" y="5" width="260" height="175" fill="url(#dz)" opacity="0.5" />
+            <rect x="5" y="88" width="150" height="92" fill="#2a2636" opacity="0.9" />
+            <rect x="18" y="102" width="120" height="9" rx="1" fill="#f4efdd" opacity="0.7" />
+            <rect x="18" y="120" width="120" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="18" y="130" width="120" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="18" y="140" width="108" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="18" y="150" width="120" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="18" y="160" width="96" height="4" fill="#f4efdd" opacity="0.32" />
+            <line x1="240" y1="16" x2="252" y2="28" stroke="#f4efdd" stroke-opacity="0.75" stroke-width="2" />
+            <line x1="252" y1="16" x2="240" y2="28" stroke="#f4efdd" stroke-opacity="0.75" stroke-width="2" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">single + index mark</text>
+          <text class="ts" x="412" y="212" font-size="11">full field, text in corner</text>
+        </g>
+
+        <g transform="translate(0,1320)">
+          <text class="th" x="14" y="26" font-size="16">06</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">top bar</text>
+          <text class="ts" x="14" y="66" font-size="11">nav across the top.</text>
+          <text class="ts" x="14" y="80" font-size="11">click → a drawer</text>
+          <text class="ts" x="14" y="94" font-size="11">drops from the head;</text>
+          <text class="ts" x="14" y="108" font-size="11">plate dims below.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,98 C26,82 56,80 82,100 C108,120 100,152 92,180 Z" fill="url(#dz)" opacity="0.92" />
+            <rect x="14" y="12" width="10" height="10" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.5" />
+            <rect x="98" y="14" width="34" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="140" y="14" width="34" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="182" y="14" width="34" height="8" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="224" y="14" width="34" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <line x1="5" y1="30" x2="265" y2="30" stroke="#f4efdd" stroke-opacity="0.25" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <rect x="5" y="104" width="260" height="76" fill="url(#dz)" opacity="0.15" />
+            <rect x="5" y="5" width="260" height="96" rx="2" fill="#353043" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="98" y="14" width="34" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="140" y="14" width="34" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="182" y="14" width="34" height="8" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="224" y="14" width="34" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <line x1="5" y1="30" x2="265" y2="30" stroke="#f4efdd" stroke-opacity="0.25" />
+            <rect x="20" y="44" width="110" height="9" rx="1" fill="#f4efdd" opacity="0.7" />
+            <rect x="20" y="62" width="150" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="20" y="72" width="150" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="20" y="82" width="132" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="178" y="44" width="26" height="26" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="208" y="44" width="26" height="26" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+            <rect x="238" y="44" width="20" height="26" rx="1" fill="none" stroke="#f4efdd" stroke-opacity="0.4" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">top bar across the head</text>
+          <text class="ts" x="412" y="212" font-size="11">drawer drops, plate dims</text>
+        </g>
+
+        <g transform="translate(0,1570)">
+          <text class="th" x="14" y="26" font-size="16">07</text>
+          <text class="t" x="14" y="46" font-size="12" font-weight="600">caption ladder</text>
+          <text class="ts" x="14" y="66" font-size="11">labels ride the</text>
+          <text class="ts" x="14" y="80" font-size="11">dither's fading edge.</text>
+          <text class="ts" x="14" y="94" font-size="11">click → the caption</text>
+          <text class="ts" x="14" y="108" font-size="11">grows in place.</text>
+          <g transform="translate(132,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,98 C26,82 56,80 82,100 C108,120 100,152 92,180 Z" fill="url(#dz)" opacity="0.92" />
+            <rect x="108" y="100" width="44" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="118" y="122" width="44" height="8" rx="2" fill="#f4efdd" opacity="0.9" />
+            <rect x="126" y="144" width="44" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="132" y="166" width="44" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+          </g>
+          <g transform="translate(412,8)">
+            <use href="#chrome" />
+            <path d="M5,180 L5,118 C22,106 46,104 66,120 C84,134 80,158 74,180 Z" fill="url(#dz)" opacity="0.9" />
+            <rect x="100" y="76" width="44" height="8" rx="2" fill="none" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="98" y="92" width="160" height="86" rx="2" fill="#353043" stroke="#f4efdd" stroke-opacity="0.45" />
+            <rect x="112" y="108" width="120" height="9" rx="1" fill="#f4efdd" opacity="0.8" />
+            <rect x="112" y="128" width="130" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="112" y="138" width="130" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="112" y="148" width="118" height="4" fill="#f4efdd" opacity="0.32" />
+            <rect x="112" y="158" width="130" height="4" fill="#f4efdd" opacity="0.32" />
+          </g>
+          <text class="ts" x="132" y="212" font-size="11">labels at the dither edge</text>
+          <text class="ts" x="412" y="212" font-size="11">caption expands in place</text>
+        </g>
+      </svg>
+    </div>
+    <footer>
+      Low-fi exploration for the artefact section menu (<code>sandbox/artefact.html</code>). Each row: idle menu (left) → where content lands on click (right). All seven reuse the existing <code>uImageOn</code> crossfade and <code>uFadeMode</code> dissolve — DOM layout + a GSAP reveal, no new shader work.
+    </footer>
+  </body>
+</html>
