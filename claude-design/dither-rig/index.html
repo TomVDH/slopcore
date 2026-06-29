@@ -1,0 +1,361 @@
+<!-- @dsCard group="Sandbox" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dither rig — sandbox (non-binding)</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
+      :root {
+        --bg: #15140f; --bg-2: #1d1b15; --fg: #e8e3d6; --muted: #918a78;
+        --line: rgba(232,227,214,0.16); --line-strong: rgba(232,227,214,0.5);
+        --accent: #e61919; --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+        --text-xs: 0.7rem; --dur: 0.3s;
+      }
+      * { margin: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { height: 100dvh; overflow: hidden; background: var(--bg); color: var(--fg); font-family: var(--font-mono); }
+      .rig-frame { height: 100dvh; padding: clamp(12px,2.4vw,28px); display: grid; grid-template-rows: auto 1fr auto; gap: clamp(12px,2.4vw,28px); }
+      .rig-head, .rig-foot { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+      .rig-cell { background: var(--bg); padding: 9px clamp(10px,1.4vw,16px); font-size: var(--text-xs); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .rig-id, .rig-end { color: var(--fg); }
+      .rig-mid { text-align: center; }
+      .rig-rev, .rig-end { text-align: right; }
+      .rig-body { min-height: 0; display: grid; grid-template-columns: 1fr clamp(260px,24vw,340px); gap: clamp(12px,2.4vw,28px); }
+      .rig-plate { position: relative; min-height: 0; overflow: hidden; border: 1px solid var(--line-strong); background: #f4f4f0; }
+      .rig-plate canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .rig-plate.is-drop { outline: 2px dashed var(--accent); outline-offset: -6px; }
+      .reg { position: absolute; z-index: 2; width: 18px; height: 18px; color: var(--bg); pointer-events: none; }
+      .reg::before, .reg::after { content: ""; position: absolute; background: currentColor; }
+      .reg::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-50%); }
+      .reg::after { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-50%); }
+      .reg--tl { top: 10px; left: 10px; color: var(--accent); }
+      .reg--tr { top: 10px; right: 10px; }
+      .reg--br { bottom: 10px; right: 10px; }
+      .fig { position: absolute; left: 12px; bottom: 10px; z-index: 2; font-size: var(--text-xs); letter-spacing: 0.16em; text-transform: uppercase; color: var(--bg); opacity: 0.6; }
+      .fig span { opacity: 0.7; }
+      .rig-controls { min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); background: var(--bg-2); }
+      .ctrl-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px 10px; flex-wrap: wrap; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+      .ctrl-title { font-size: var(--text-xs); letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg); }
+      .ctrl-actions { display: flex; gap: 6px; flex: 1 1 100%; justify-content: flex-end; }
+      .ctrl-btn { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); background: transparent; border: 1px solid var(--line-strong); padding: 5px 9px; cursor: pointer; transition: color var(--dur) ease, border-color var(--dur) ease; }
+      .ctrl-btn:hover { color: var(--accent); border-color: var(--accent); }
+      .ctrl-list { flex: 1; overflow-y: auto; padding: 4px 14px 16px; }
+      .ctrl-row { padding-block: 11px; border-bottom: 1px solid var(--line); }
+      .ctrl-row:last-child { border-bottom: 0; }
+      .ctrl-row.is-vec2 input + input { margin-top: 6px; }
+      .ctrl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+      .ctrl-label { font-size: var(--text-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+      .ctrl-val { font-size: var(--text-xs); color: var(--fg); }
+      .ctrl-input { width: 100%; }
+      input[type="range"].ctrl-input { height: 18px; accent-color: var(--accent); cursor: ew-resize; }
+      select.ctrl-input { font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 0; padding: 6px 8px; }
+      .ctrl-row.is-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .ctrl-toggle { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+      @media (max-width: 767px) {
+        .rig-head, .rig-foot { grid-template-columns: 1fr 1fr; }
+        .rig-mid { display: none; }
+        .rig-body { grid-template-columns: 1fr; }
+        .rig-controls { display: none; }
+      }
+    </style>
+  </head>
+  <body class="rig">
+    <div class="rig-frame">
+      <header class="rig-head">
+        <span class="rig-cell rig-id">RIG / 01</span>
+        <span class="rig-cell rig-mid">SANDBOX · NON-BINDING SOURCE</span>
+        <span class="rig-cell rig-rev">REV 2026.06</span>
+      </header>
+
+      <div class="rig-body">
+        <main id="plate" class="rig-plate">
+          <canvas id="gl" aria-hidden="true"></canvas>
+          <span class="reg reg--tl" aria-hidden="true"></span>
+          <span class="reg reg--tr" aria-hidden="true"></span>
+          <span class="reg reg--br" aria-hidden="true"></span>
+          <figcaption class="fig">FIG. A <span>DITHER, LIVE</span></figcaption>
+        </main>
+
+        <aside class="rig-controls" aria-label="Shader controls">
+          <div class="ctrl-head">
+            <span class="ctrl-title">Control / Dither</span>
+            <span class="ctrl-actions">
+              <button type="button" id="sample" class="ctrl-btn">Sample</button>
+              <button type="button" id="open" class="ctrl-btn">Image</button>
+              <button type="button" id="reset" class="ctrl-btn">Reset</button>
+              <button type="button" id="copy" class="ctrl-btn">Copy</button>
+            </span>
+          </div>
+          <input id="imgfile" type="file" accept="image/*" hidden />
+          <div class="ctrl-list"></div>
+        </aside>
+      </div>
+
+      <footer class="rig-foot">
+        <span class="rig-cell">BAYER 4×4 / CELL 6PX</span>
+        <span class="rig-cell rig-mid">INK CARBON / STOCK BONE</span>
+        <span class="rig-cell rig-end">PLATE 01 / 01</span>
+      </footer>
+    </div>
+
+    <script type="importmap">
+      { "imports": { "three": "https://esm.sh/three@0.184.0" } }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+
+      const VERT = `void main(){ gl_Position = vec4(position, 1.0); }`;
+      const FRAG = `
+        precision highp float;
+        uniform vec2 uRes; uniform float uTime; uniform vec2 uMouse; uniform float uMouseStrength;
+        uniform float uEnergy; uniform float uScrollVel;
+        uniform float uCell; uniform float uToneBase; uniform float uToneContrast; uniform float uToneScale;
+        uniform float uDrift; uniform float uThreshold; uniform float uPress; uniform float uPressFalloff;
+        uniform float uMotif; uniform float uMotifWeight; uniform float uMotifAngle; uniform float uMotifTone;
+        uniform float uColorway; uniform float uCrossOn; uniform float uCrossSize; uniform vec2 uCrossPos;
+        uniform sampler2D uImage; uniform float uImageOn; uniform vec2 uImageRes;
+        float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+        float vnoise(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f);
+          float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0));
+          return mix(mix(a,b,u.x),mix(c,d,u.x),u.y); }
+        float fbm(vec2 p){ float v=0.0; float amp=0.55; for(int i=0;i<4;i++){ v+=amp*vnoise(p); p*=2.02; amp*=0.5; } return v; }
+        float bayer2(vec2 p){ return p.x*2.0+p.y*3.0-p.x*p.y*4.0; }
+        float bayer4(vec2 pix){ vec2 p1=mod(pix,2.0); vec2 p2=mod(floor(pix/2.0),2.0); return (bayer2(p1)*4.0+bayer2(p2))/16.0; }
+        void main(){
+          float cell=max(uRes.y/uCell,2.0);
+          vec2 cellId=floor(gl_FragCoord.xy/cell);
+          vec2 local=fract(gl_FragCoord.xy/cell);
+          vec2 p=(cellId*cell*2.0-uRes)/min(uRes.x,uRes.y);
+          float t=uTime*uDrift;
+          vec3 paper=vec3(0.957,0.957,0.941); vec3 ink=vec3(0.039,0.039,0.039); vec3 accent=vec3(0.902,0.098,0.098);
+          if(uColorway>0.5&&uColorway<1.5){paper=vec3(0.086,0.227,0.361);ink=vec3(0.863,0.902,0.941);accent=vec3(0.984,0.792,0.310);}
+          else if(uColorway<2.5){paper=vec3(0.910,0.873,0.784);ink=vec3(0.180,0.137,0.090);accent=vec3(0.780,0.180,0.110);}
+          else if(uColorway<3.5){paper=vec3(0.082,0.078,0.059);ink=vec3(0.784,0.961,0.259);accent=vec3(0.902,0.098,0.098);}
+          else if(uColorway<4.5){paper=vec3(0.043,0.122,0.180);ink=vec3(0.847,0.910,0.886);accent=vec3(0.957,0.604,0.180);}
+          else if(uColorway<5.5){paper=vec3(0.961,0.949,0.925);ink=vec3(0.945,0.176,0.451);accent=vec3(0.110,0.110,0.118);}
+          else if(uColorway<6.5){paper=vec3(0.961,0.957,0.933);ink=vec3(0.000,0.267,0.647);accent=vec3(0.945,0.176,0.451);}
+          else if(uColorway<7.5){paper=vec3(0.106,0.118,0.137);ink=vec3(0.722,0.760,0.800);accent=vec3(0.298,0.792,0.886);}
+          else if(uColorway<8.5){paper=vec3(0.129,0.043,0.051);ink=vec3(0.902,0.871,0.800);accent=vec3(0.851,0.200,0.149);}
+          else if(uColorway<9.5){paper=vec3(0.043,0.043,0.047);ink=vec3(0.953,0.949,0.937);accent=vec3(0.902,0.098,0.098);}
+          else if(uColorway>9.5){paper=vec3(0.165,0.149,0.212);ink=vec3(0.957,0.937,0.867);accent=vec3(0.776,0.553,0.604);}
+          float field=uToneBase+uToneContrast*fbm(p*uToneScale+vec2(t*0.5,-t*0.3));
+          field+=0.22*smoothstep(-1.2,1.2,dot(p,vec2(0.5,0.85)));
+          vec2 iuv=(cellId+0.5)*cell/uRes;
+          float plateA=uRes.x/uRes.y; float imgA=uImageRes.x/max(uImageRes.y,1.0);
+          vec2 isc = imgA>plateA ? vec2(plateA/imgA,1.0) : vec2(1.0,imgA/plateA);
+          iuv=(iuv-0.5)*isc+0.5;
+          float img=dot(texture2D(uImage,iuv).rgb, vec3(0.299,0.587,0.114));
+          float lum=mix(field,img,clamp(uImageOn,0.0,1.0));
+          float md=length(p-uMouse);
+          lum+=uPress*uMouseStrength*exp(-md*uPressFalloff);
+          lum=0.5+(lum-0.5)*(0.75+0.55*uEnergy);
+          lum+=clamp(uScrollVel,-4.0,4.0)*0.01;
+          float threshold=bayer4(cellId)+uThreshold;
+          float on=step(threshold,clamp(lum,0.0,1.0));
+          float aa=clamp(0.9/cell,0.001,0.25);
+          float dk=1.0-clamp(lum,0.0,1.0);
+          float wEff=clamp(uMotifWeight,0.05,1.0)*0.5*(1.0+uMotifTone*(1.6*dk-0.8));
+          wEff=clamp(wEff,0.0,0.5);
+          vec2 lc=local-0.5; float ang=uMotifAngle*6.2831853; float cs=cos(ang),sn=sin(ang);
+          lc=mat2(cs,-sn,sn,cs)*lc; vec2 rl=lc+0.5;
+          float rad=length(lc); float dia=abs(rl.x-rl.y)*0.7071; float dib=abs(rl.x+rl.y-1.0)*0.7071;
+          float dax=abs(lc.x); float day=abs(lc.y);
+          float mDisc=1.0-smoothstep(wEff-aa,wEff+aa,rad);
+          float mX=1.0-smoothstep(wEff-aa,wEff+aa,min(dia,dib));
+          float mPlus=1.0-smoothstep(wEff-aa,wEff+aa,min(dax,day));
+          float mDash=1.0-smoothstep(wEff-aa,wEff+aa,day);
+          float motif=1.0;
+          if(uMotif>0.5&&uMotif<1.5)motif=mDisc; else if(uMotif<2.5)motif=mX;
+          else if(uMotif<3.5)motif=mPlus; else if(uMotif>3.5)motif=mDash;
+          float inkAmt=(1.0-on)*motif;
+          vec3 col=mix(paper,ink,inkAmt);
+          vec2 cd=abs(p-uCrossPos);
+          float cr=uCrossOn*step(min(cd.x,cd.y),0.006)*step(max(cd.x,cd.y),uCrossSize);
+          col=mix(col,accent,cr);
+          gl_FragColor=vec4(col,1.0);
+        }`;
+
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const canvas = document.getElementById("gl");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      renderer.setPixelRatio(dpr);
+      const measure = () => { const r = canvas.getBoundingClientRect(); return { w: Math.max(r.width | 0, 2), h: Math.max(r.height | 0, 2) }; };
+      let { w, h } = measure(); renderer.setSize(w, h, false);
+
+      const scene = new THREE.Scene();
+      const cam = new THREE.Camera();
+      const placeholder = new THREE.DataTexture(new Uint8Array([128,128,128,255]), 1, 1, THREE.RGBAFormat);
+      placeholder.needsUpdate = true;
+      const U = {
+        uRes:{value:new THREE.Vector2(w*dpr,h*dpr)}, uTime:{value:0}, uMouse:{value:new THREE.Vector2(0,0)},
+        uMouseStrength:{value:0}, uEnergy:{value:1}, uScrollVel:{value:0},
+        uCell:{value:150}, uToneBase:{value:0.42}, uToneContrast:{value:0.34}, uToneScale:{value:1.7},
+        uDrift:{value:0.05}, uThreshold:{value:0.03}, uPress:{value:0.4}, uPressFalloff:{value:2.2},
+        uMotif:{value:0}, uMotifWeight:{value:0.5}, uMotifAngle:{value:0}, uMotifTone:{value:0},
+        uColorway:{value:0}, uCrossOn:{value:1}, uCrossSize:{value:0.075}, uCrossPos:{value:new THREE.Vector2(0.62,0.58)},
+        uImage:{value:placeholder}, uImageOn:{value:0}, uImageRes:{value:new THREE.Vector2(1,1)},
+      };
+      const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthTest: false, depthWrite: false });
+      scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+
+      const setParam = (n, v) => { const u = U[n]; if (!u) return; if (Array.isArray(v)) u.value.set(v[0], v[1]); else u.value = v; if (reduced) render(20.0); };
+      const setImage = (src) => {
+        const prev = U.uImage.value; if (prev && prev !== placeholder) prev.dispose();
+        if (!src) { U.uImage.value = placeholder; U.uImageRes.value.set(1, 1); }
+        else {
+          const tex = new THREE.Texture(src);
+          tex.colorSpace = THREE.SRGBColorSpace; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+          tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
+          U.uImage.value = tex; U.uImageRes.value.set(src.naturalWidth || src.width || 1, src.naturalHeight || src.height || 1);
+        }
+        if (reduced) render(20.0);
+      };
+      const render = (t) => { U.uTime.value = t; renderer.render(scene, cam); };
+
+      /* ---- pointer press (live tool) ---- */
+      const mouseTarget = new THREE.Vector2(0, 0);
+      let strengthTarget = 0, lastX = 0, lastY = 0, lastT = performance.now();
+      const toShader = (cx, cy) => { const r = canvas.getBoundingClientRect(); const ww = r.width || innerWidth, hh = r.height || innerHeight; const x = cx - r.left, y = cy - r.top; const m = Math.min(ww, hh); return [(2*x-ww)/m, -(2*y-hh)/m]; };
+      if (matchMedia("(pointer: fine)").matches && !reduced) {
+        window.addEventListener("pointermove", (e) => {
+          const [sx, sy] = toShader(e.clientX, e.clientY); mouseTarget.set(sx, sy);
+          const now = performance.now(); const dt = Math.max(now - lastT, 1);
+          const sp = Math.hypot(e.clientX - lastX, e.clientY - lastY) / dt;
+          strengthTarget = Math.min(strengthTarget + sp * 0.35, 1.4);
+          lastX = e.clientX; lastY = e.clientY; lastT = now;
+        }, { passive: true });
+      }
+
+      /* ---- controller ---- */
+      const PARAMS = [
+        { key:"uMotif", label:"Motif", kind:"select", options:["Dots","Disc","X","Plus","Dash"], def:0 },
+        { key:"uColorway", label:"Colorway", kind:"select", options:["Bone / Carbon","Blueprint","Sepia","Acid Lime","Cyanotype","Riso Pink","Riso Blue","Steel","Oxblood","Mono Invert","Heather"], def:0 },
+        { key:"uImageOn", label:"Dither image", kind:"toggle", def:0 },
+        { key:"uMotifWeight", label:"Mark weight", kind:"range", min:0.1, max:1, step:0.01, def:0.5 },
+        { key:"uMotifAngle", label:"Mark angle", kind:"range", min:0, max:1, step:0.005, def:0 },
+        { key:"uMotifTone", label:"Tone link", kind:"range", min:0, max:1, step:0.01, def:0 },
+        { key:"uCell", label:"Cell density", kind:"range", min:60, max:320, step:1, def:150 },
+        { key:"uEnergy", label:"Pressure", kind:"range", min:0, max:2, step:0.01, def:1 },
+        { key:"uToneBase", label:"Tone base", kind:"range", min:0.2, max:0.8, step:0.01, def:0.42 },
+        { key:"uToneContrast", label:"Tone contrast", kind:"range", min:0, max:0.7, step:0.01, def:0.34 },
+        { key:"uToneScale", label:"Field scale", kind:"range", min:0.5, max:4, step:0.05, def:1.7 },
+        { key:"uDrift", label:"Drift speed", kind:"range", min:0, max:0.2, step:0.005, def:0.05 },
+        { key:"uThreshold", label:"Threshold", kind:"range", min:-0.2, max:0.3, step:0.01, def:0.03 },
+        { key:"uPress", label:"Cursor press", kind:"range", min:0, max:1, step:0.01, def:0.4 },
+        { key:"uPressFalloff", label:"Press falloff", kind:"range", min:0.5, max:6, step:0.05, def:2.2 },
+        { key:"uCrossOn", label:"Reg cross", kind:"toggle", def:1 },
+        { key:"uCrossSize", label:"Reg size", kind:"range", min:0, max:0.2, step:0.005, def:0.075 },
+        { key:"uCrossPos", label:"Reg position", kind:"vec2", min:-1.2, max:1.2, step:0.01, defX:0.62, defY:0.58, labelX:"Reg X", labelY:"Reg Y" },
+      ];
+      const state = new Map();
+      const apply = (k, v) => { state.set(k, v); setParam(k, v); };
+      const fmt = (v) => Number.isInteger(v) ? String(v) : v.toFixed(Math.abs(v) < 1 ? 3 : 2);
+      const list = document.querySelector(".ctrl-list");
+      for (const p of PARAMS) {
+        const id = `c-${p.key}`; const row = document.createElement("div");
+        if (p.kind === "vec2") {
+          state.set(p.key, [p.defX, p.defY]); row.className = "ctrl-row is-vec2";
+          row.innerHTML = `<div class="ctrl-top"><label class="ctrl-label">${p.label}</label><output class="ctrl-val" id="${id}-v">${fmt(p.defX)}, ${fmt(p.defY)}</output></div>
+            <input class="ctrl-input" type="range" id="${id}-x" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.defX}" aria-label="${p.labelX}" />
+            <input class="ctrl-input" type="range" id="${id}-y" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.defY}" aria-label="${p.labelY}" />`;
+          const ex = row.querySelector(`#${id}-x`), ey = row.querySelector(`#${id}-y`), out = row.querySelector("output");
+          const upd = () => { const v = [Number(ex.value), Number(ey.value)]; out.textContent = `${fmt(v[0])}, ${fmt(v[1])}`; apply(p.key, v); };
+          ex.addEventListener("input", upd); ey.addEventListener("input", upd); list.appendChild(row); continue;
+        }
+        state.set(p.key, p.def);
+        if (p.kind === "select") {
+          row.className = "ctrl-row is-toggle";
+          row.innerHTML = `<label class="ctrl-label" for="${id}">${p.label}</label>
+            <select class="ctrl-input" id="${id}" style="width:auto">${p.options.map((o,i)=>`<option value="${i}">${o}</option>`).join("")}</select>`;
+          const el = row.querySelector("select"); el.value = String(p.def);
+          el.addEventListener("input", () => apply(p.key, Number(el.value)));
+        } else if (p.kind === "toggle") {
+          row.className = "ctrl-row is-toggle";
+          row.innerHTML = `<label class="ctrl-label" for="${id}">${p.label}</label><input class="ctrl-toggle" type="checkbox" id="${id}"${p.def?" checked":""} />`;
+          const el = row.querySelector("input");
+          el.addEventListener("input", () => apply(p.key, el.checked ? 1 : 0));
+        } else {
+          row.className = "ctrl-row";
+          row.innerHTML = `<div class="ctrl-top"><label class="ctrl-label" for="${id}">${p.label}</label><output class="ctrl-val" id="${id}-v">${fmt(p.def)}</output></div>
+            <input class="ctrl-input" type="range" id="${id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.def}" />`;
+          const el = row.querySelector("input"), out = row.querySelector("output");
+          el.addEventListener("input", () => { const v = Number(el.value); out.textContent = fmt(v); apply(p.key, v); });
+        }
+        list.appendChild(row);
+      }
+
+      const syncControl = (key, value) => {
+        apply(key, value);
+        const param = PARAMS.find((p) => p.key === key);
+        const el = document.getElementById(`c-${key}`);
+        if (el) { if (param && param.kind === "toggle") el.checked = !!value; else el.value = String(value); }
+        const out = document.getElementById(`c-${key}-v`);
+        if (out && param && param.kind === "range") out.textContent = fmt(value);
+      };
+
+      document.getElementById("reset").addEventListener("click", () => {
+        for (const p of PARAMS) {
+          if (p.kind === "vec2") {
+            apply(p.key, [p.defX, p.defY]);
+            const ex = document.getElementById(`c-${p.key}-x`), ey = document.getElementById(`c-${p.key}-y`);
+            if (ex) ex.value = String(p.defX); if (ey) ey.value = String(p.defY);
+            const out = document.getElementById(`c-${p.key}-v`); if (out) out.textContent = `${fmt(p.defX)}, ${fmt(p.defY)}`;
+            continue;
+          }
+          apply(p.key, p.def);
+          const el = document.getElementById(`c-${p.key}`); if (!el) continue;
+          if (p.kind === "toggle") el.checked = !!p.def; else el.value = String(p.def);
+          const out = document.getElementById(`c-${p.key}-v`); if (out) out.textContent = fmt(p.def);
+        }
+      });
+
+      const flash = (btn, msg) => { if (!btn) return; const prev = btn.textContent; btn.textContent = msg; setTimeout(() => { btn.textContent = prev; }, 1100); };
+      document.getElementById("copy").addEventListener("click", async () => {
+        const obj = {}; for (const [k, v] of state) obj[k] = v; const btn = document.getElementById("copy");
+        try { await navigator.clipboard.writeText(JSON.stringify(obj, null, 2)); flash(btn, "Copied"); } catch { flash(btn, "Failed"); }
+      });
+
+      /* ---- image source ---- */
+      const loadImageFile = (file) => {
+        if (!file || !file.type.startsWith("image/")) return;
+        const url = URL.createObjectURL(file); const im = new Image();
+        im.onload = () => { setImage(im); setImageOn(true); URL.revokeObjectURL(url); };
+        im.onerror = () => URL.revokeObjectURL(url); im.src = url;
+      };
+      const setImageOn = (on) => { apply("uImageOn", on ? 1 : 0); const t = document.getElementById("c-uImageOn"); if (t) t.checked = on; };
+      const fileInput = document.getElementById("imgfile");
+      document.getElementById("open").addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", () => loadImageFile(fileInput.files[0]));
+      document.getElementById("sample").addEventListener("click", () => {
+        syncControl("uColorway", 10); syncControl("uMotif", 1); syncControl("uCell", 150);
+        syncControl("uMotifWeight", 0.62); syncControl("uMotifTone", 0.5); syncControl("uCrossOn", 0);
+        const im = new Image(); im.crossOrigin = "anonymous";
+        im.onload = () => { setImage(im); setImageOn(true); };
+        im.src = "../../Artefact/DitherArtefact/portrait.jpg";
+      });
+      const plate = document.getElementById("plate");
+      for (const ev of ["dragenter", "dragover"]) plate.addEventListener(ev, (e) => { e.preventDefault(); plate.classList.add("is-drop"); });
+      plate.addEventListener("dragleave", () => plate.classList.remove("is-drop"));
+      plate.addEventListener("drop", (e) => { e.preventDefault(); plate.classList.remove("is-drop"); loadImageFile(e.dataTransfer && e.dataTransfer.files[0]); });
+
+      const resize = () => { const m = measure(); w = m.w; h = m.h; renderer.setSize(w, h, false); U.uRes.value.set(w*dpr, h*dpr); if (reduced) render(20.0); };
+      window.addEventListener("resize", resize, { passive: true });
+
+      if (reduced) { render(20.0); }
+      else {
+        let prev = 0;
+        renderer.setAnimationLoop((ms) => {
+          const dt = prev ? ms - prev : 16; prev = ms;
+          const k = 1 - Math.exp(-dt * 0.006);
+          U.uMouse.value.lerp(mouseTarget, k);
+          strengthTarget *= Math.exp(-dt * 0.0022);
+          U.uMouseStrength.value += (strengthTarget - U.uMouseStrength.value) * k;
+          render(ms / 1000);
+        });
+      }
+    </script>
+  </body>
+</html>
