@@ -1,42 +1,50 @@
 /* ------------------------------------------------------------------
    ARTEFACT — corner field.
 
-   An empty viewport, inset 10px so the deep gray-purple ground reads as
-   a framed plate over the black page. The Presswerk dither is anchored in
-   the bottom-left and CSS-masked so its rectangle dissolves into the
-   ground (Heather paper == ground, so there is no plate seam). A
-   placeholder left menu of big display headers re-dithers the field per
-   option (stand-in for the future particle morph). Depends on tokens via
-   ../system for the display font + cream.
+   An empty viewport, inset 25px so the deep gray-purple ground reads as
+   a framed plate over a white margin. The Presswerk dither is anchored in
+   the bottom-left; the shader's organic cloud edge (uFade) dissolves the
+   marks into the ground (Heather paper == ground, so there is no plate
+   seam) — no CSS mask. A right-aligned menu of big display headers
+   re-dithers per section. Depends on tokens via ../system for the display
+   font + cream.
 ------------------------------------------------------------------- */
 
 body.art {
+  --ground: #2a2636; /* colorway paper — drives the plate ground (set by JS) */
+  --ink: #f4efdd; /* colorway ink — drives the menu text (set by JS) */
   min-height: 100dvh;
   margin: 0;
-  background: #000; /* the 10px frame gap */
-  color: #f4efdd;
+  background: #fff; /* the 25px frame margin */
+  color: var(--ink);
   overflow: hidden;
   cursor: default;
 }
 
-/* The framed plate: 10px margin on all sides. */
+/* The framed plate: 25px white margin on all sides. */
 .art-frame {
   position: fixed;
-  inset: 10px;
+  inset: 25px;
   overflow: hidden;
-  background: #2a2636; /* deep gray-purple; keep == Heather paper in art.ts */
+  background: var(--ground); /* colorway paper; must == the shader's paper to blend */
 }
 
+/* The corner plate. The shader (uFadeMode) dissolves the marks into the
+   ground — Off / Simple gradient / Cloud — so no CSS mask is needed. */
 #gl {
   position: absolute;
   left: 0;
+  top: 0;
   bottom: 0;
   width: min(64vw, 880px);
-  height: min(80vh, 760px);
+  height: 100%;
   pointer-events: none;
-  /* Dissolve the rectangle into the ground out from the bottom-left corner. */
-  -webkit-mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0, 0, 0, 0) 72%);
-  mask-image: radial-gradient(135% 135% at 0% 100%, #000 22%, rgba(0, 0, 0, 0) 72%);
+}
+
+@media (max-width: 767px) {
+  #gl {
+    width: 92vw;
+  }
 }
 
 /* Placeholder section menu: big stacked display headers, outlined until
@@ -51,7 +59,7 @@ body.art {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: clamp(2px, 0.6vh, 12px);
+  gap: clamp(1px, 0.4vh, 6px);
 }
 
 .art-link {
@@ -64,42 +72,129 @@ body.art {
   cursor: pointer;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(2.6rem, 8.5vw, 7rem);
-  line-height: 0.92;
-  letter-spacing: -0.015em;
+  font-size: clamp(1.05rem, 2.8vw, 2.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
   text-transform: uppercase;
   color: transparent;
-  -webkit-text-stroke: 1.2px rgba(244, 239, 221, 0.42);
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 42%, transparent);
   transition:
     color var(--dur) var(--ease-out),
     -webkit-text-stroke-color var(--dur) var(--ease-out);
 }
 .art-link:hover {
-  -webkit-text-stroke-color: rgba(244, 239, 221, 0.85);
-  color: rgba(244, 239, 221, 0.06);
+  -webkit-text-stroke-color: color-mix(in srgb, var(--ink) 85%, transparent);
+  color: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 .art-link.is-active {
-  color: #f4efdd;
+  color: var(--ink);
   -webkit-text-stroke-color: transparent;
 }
 
-.art-cap {
-  position: absolute;
-  top: clamp(14px, 3vw, 30px);
-  right: clamp(14px, 3vw, 30px);
-  margin: 0;
-  z-index: 2;
+/* Dev-mode panel (only when ?dev): a settings readout + grouped controls. */
+.art-dev {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: min(1280px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 14px;
+  background: rgba(12, 11, 16, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(244, 239, 221, 0.14);
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.64rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+}
+.art-readout {
+  text-align: center;
+  font-size: 0.6rem;
+  letter-spacing: 0.07em;
   color: #f4efdd;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
-@media (max-width: 767px) {
-  #gl {
-    width: 92vw;
-    height: 64vh;
-  }
+/* Grouped control row: Mark · Dissolve · Tone · View, divided by rules. */
+.art-dev-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px 0;
+}
+.art-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 11px;
+  border-left: 1px solid rgba(244, 239, 221, 0.12);
+}
+.art-group:first-child {
+  border-left: 0;
+  padding-left: 2px;
+}
+.art-group-l {
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 221, 0.4);
+}
+.art-group-ctls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 9px;
+}
+.art-ctl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.art-ctl-l {
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 221, 0.45);
+}
+.art-dev button {
+  font: 600 0.62rem var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f4efdd;
+  background: transparent;
+  border: 1px solid rgba(244, 239, 221, 0.22);
+  padding: 4px 7px;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+.art-dev button:hover {
+  border-color: #f4efdd;
+}
+.art-ctl-v {
+  min-width: 50px;
+  text-align: center;
+  color: #f4efdd;
+  font-size: 0.62rem;
+}
+button.art-ctl-v {
+  text-transform: capitalize;
+}
+.art-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.art-step button {
+  min-width: 20px;
+  padding: 3px 0;
+}
+.art-step .art-ctl-v {
+  min-width: 38px;
+}
+.art-copy {
+  margin-left: 2px;
 }

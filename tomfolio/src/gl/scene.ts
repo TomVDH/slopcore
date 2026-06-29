@@ -104,6 +104,12 @@ export function initScene(
     uImage: { value: placeholder as THREE.Texture },
     uImageOn: { value: 0 },
     uImageRes: { value: new THREE.Vector2(1, 1) },
+    uInvert: { value: 0 },
+    uImageBrightness: { value: 0 },
+    uImageContrast: { value: 1 },
+    uFadeMode: { value: 0 },
+    uFadeScale: { value: 3 },
+    uShowRaw: { value: 0 }, // debug: 1 bypasses the dither, shows the source photo
   };
 
   const material = new THREE.ShaderMaterial({

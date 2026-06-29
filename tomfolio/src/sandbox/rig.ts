@@ -13,6 +13,7 @@ import "./rig.css";
 
 import { initScene, type GlScene } from "../gl/scene";
 import { pressFrag } from "../directions/press/art";
+import { SAMPLES } from "../samples";
 
 const params = new URLSearchParams(window.location.search);
 const reduced =
@@ -55,6 +56,8 @@ const PARAMS: Param[] = [
   { key: "uMotif", label: "Motif", kind: "select", options: ["Dots", "Disc", "X", "Plus", "Dash"], def: 0 },
   { key: "uColorway", label: "Colorway", kind: "select", options: ["Bone / Carbon", "Blueprint", "Sepia", "Acid Lime", "Cyanotype", "Riso Pink", "Riso Blue", "Steel", "Oxblood", "Mono Invert", "Heather"], def: 0 },
   { key: "uImageOn", label: "Dither image", kind: "toggle", def: 0 },
+  { key: "uInvert", label: "Invert", kind: "toggle", def: 0 },
+  { key: "uFade", label: "Edge fade", kind: "range", min: 0, max: 1, step: 0.01, def: 0 },
   { key: "uMotifWeight", label: "Mark weight", kind: "range", min: 0.1, max: 1, step: 0.01, def: 0.5 },
   { key: "uMotifAngle", label: "Mark angle", kind: "range", min: 0, max: 1, step: 0.005, def: 0 },
   { key: "uMotifTone", label: "Tone link", kind: "range", min: 0, max: 1, step: 0.01, def: 0 },
@@ -228,11 +231,14 @@ function syncControl(key: string, value: number): void {
   if (out && param?.kind === "range") out.textContent = fmt(value);
 }
 
-// Sample: load the bundled portrait into the artefact's palette + treatment,
-// so the rig previews and tunes exactly what the artefact corner renders.
+// Sample: cycle the bundled dither test images (src/samples/, auto-discovered)
+// in the artefact palette, so the rig previews/tunes the look on real photos.
+let sampleIdx = 0;
 document.getElementById("sample")?.addEventListener("click", () => {
   const s = scene;
   if (!s) return;
+  const sample = SAMPLES[sampleIdx % SAMPLES.length];
+  sampleIdx += 1;
   syncControl("uColorway", 10); // Heather (the artefact palette)
   syncControl("uMotif", 1); // disc
   syncControl("uCell", 150);
@@ -243,8 +249,19 @@ document.getElementById("sample")?.addEventListener("click", () => {
   img.onload = () => {
     s.setImage(img);
     syncControl("uImageOn", 1);
+    flash(document.getElementById("sample"), sample.label);
   };
-  img.src = "/portrait.jpg";
+  img.src = sample.src;
+});
+
+// Fullscreen the plate (the dither fills the screen); re-measure on change.
+document.getElementById("full")?.addEventListener("click", () => {
+  const el = document.getElementById("plate");
+  if (!document.fullscreenElement) el?.requestFullscreen?.().catch(() => {});
+  else void document.exitFullscreen?.();
+});
+document.addEventListener("fullscreenchange", () => {
+  window.setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
 });
 
 const plate = document.getElementById("plate");

@@ -42,6 +42,12 @@ export const pressFrag = /* glsl */ `
   uniform sampler2D uImage;    // source image to dither (when uImageOn > 0.5)
   uniform float uImageOn;      // 0 procedural tone field, 1 dither the image
   uniform vec2  uImageRes;     // source image pixel size, for cover-fit aspect
+  uniform float uInvert;          // 0 normal, 1 invert tone polarity (ink <-> paper)
+  uniform float uImageBrightness; // added to the sampled image luminance
+  uniform float uImageContrast;   // contrast of the sampled image around mid-grey
+  uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
+  uniform float uFadeScale;       // cloud-noise frequency for fade mode 2 (smaller = bigger billows)
+  uniform float uShowRaw;         // debug: 1 bypasses the dither/dissolve, shows the source photo
 
   float hash(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -122,8 +128,10 @@ export const pressFrag = /* glsl */ `
     vec2 isc = imgA > plateA ? vec2(plateA / imgA, 1.0) : vec2(1.0, imgA / plateA);
     iuv = (iuv - 0.5) * isc + 0.5;
     float img = dot(texture2D(uImage, iuv).rgb, vec3(0.299, 0.587, 0.114));
+    img = clamp((img - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
 
     float lum = mix(field, img, clamp(uImageOn, 0.0, 1.0));
+    lum = mix(lum, 1.0 - lum, uInvert); // polarity invert
 
     // The cursor presses a highlight into the plate.
     float md = length(p - uMouse);
@@ -132,6 +140,24 @@ export const pressFrag = /* glsl */ `
     // Energy is press pressure: contrast around the midpoint.
     lum = 0.5 + (lum - 0.5) * (0.75 + 0.55 * uEnergy);
     lum += clamp(uScrollVel, -4.0, 4.0) * 0.01;
+
+    // Edge dissolve. The marks fade toward the ground from the near
+    // (bottom-left) corner outward. uFadeMode: 0 off (full-bleed); 1 simple
+    // radial gradient; 2 cloud — the boundary is perturbed by a slowly drifting
+    // fbm at uFadeScale, so it reads wispy and alive. (An image-endemic "blob"
+    // mask lived here briefly; reverted to this cloud while we work out a more
+    // graceful organic edge for dithered photos.) Mode 0 leaves the
+    // letterpress / rig plates untouched.
+    float cov = 1.0;
+    if (uFadeMode > 0.5) {
+      vec2 cuv = (cellId + 0.5) * cell / uRes;
+      vec2 fq  = vec2(cuv.x * uRes.x / max(uRes.y, 1.0), cuv.y);
+      float fd = length(fq);
+      if (uFadeMode > 1.5) {
+        fd += (fbm(cuv * uFadeScale + vec2(t * 0.6, -t * 0.4)) - 0.5) * 0.95;
+      }
+      cov = 1.0 - smoothstep(0.3, 1.45, fd);
+    }
 
     // The decision: ink or no ink (ordered Bayer threshold).
     float threshold = bayer4(cellId) + uThreshold;
@@ -174,12 +200,48 @@ export const pressFrag = /* glsl */ `
 
     float inkAmt = (1.0 - on) * motif;
     vec3 col = mix(paper, ink, inkAmt);
+    col = mix(paper, col, cov); // organic cloud fade of the marks into the ground
 
     // Aviation-red registration cross (position / size / visibility editable).
     vec2 cd = abs(p - uCrossPos);
     float cross = uCrossOn * step(min(cd.x, cd.y), 0.006) * step(max(cd.x, cd.y), uCrossSize);
     col = mix(col, accent, cross);
 
+    // Debug: show the raw cover-fit source photo (with the current brightness /
+    // contrast) instead of the dither, bypassing the dissolve. Lets you confirm
+    // the source texture itself is intact when the halftone looks wrong.
+    if (uShowRaw > 0.5) {
+      vec3 raw = texture2D(uImage, iuv).rgb;
+      raw = clamp((raw - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      col = raw;
+    }
+
     gl_FragColor = vec4(col, 1.0);
   }
 `;
+
+/**
+ * The same palettes the shader's `uColorway` switch uses, as CSS colors, so a
+ * page's chrome (ground, text, accent) can follow the colorway. Index order
+ * matches the palette block in pressFrag's main() and the rig's Colorway
+ * select — KEEP ALL THREE IN LOCKSTEP.
+ */
+export interface Palette {
+  paper: string;
+  ink: string;
+  accent: string;
+}
+
+export const PALETTES: Palette[] = [
+  { paper: "#f4f4f0", ink: "#0a0a0a", accent: "#e61919" }, // 0  Bone / Carbon
+  { paper: "#163a5c", ink: "#dce6f0", accent: "#fbca4f" }, // 1  Blueprint
+  { paper: "#e8dfc8", ink: "#2e2317", accent: "#c72e1c" }, // 2  Sepia
+  { paper: "#15140f", ink: "#c8f542", accent: "#e61919" }, // 3  Acid Lime
+  { paper: "#0b1f2e", ink: "#d8e8e2", accent: "#f49a2e" }, // 4  Cyanotype
+  { paper: "#f5f2ec", ink: "#f12d73", accent: "#1c1c1e" }, // 5  Riso Pink
+  { paper: "#f5f4ee", ink: "#0044a5", accent: "#f12d73" }, // 6  Riso Blue
+  { paper: "#1b1e23", ink: "#b8c2cc", accent: "#4ccae2" }, // 7  Steel
+  { paper: "#210b0d", ink: "#e6decc", accent: "#d93326" }, // 8  Oxblood
+  { paper: "#0b0b0c", ink: "#f3f2ef", accent: "#e61919" }, // 9  Mono Invert
+  { paper: "#2a2636", ink: "#f4efdd", accent: "#c68d9a" }, // 10 Heather
+];
