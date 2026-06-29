@@ -34,7 +34,6 @@ const COLORS = [
   "Amber", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum",
   "Slate Ice", "Rust Sand", "Indigo Sun",
 ];
-const FADES = ["off", "simple", "cloud"];
 
 let scene: GlScene | null = null;
 const canvas = document.getElementById("gl") as HTMLCanvasElement | null;
@@ -104,10 +103,18 @@ function pushTreatment(): void {
 // Reveal: smoothly crossfade the dither <-> full-res photo AND ramp the cell
 // frequency up 32x so the marks shrink and resolve into the image. `rev.v` is
 // the tweened amount [0..1]; `look.reveal` is the 0/1 target the button flips.
+//
+// The ramp is GEOMETRIC, not linear. On-screen mark size is `uRes.y / uCell`
+// (see pressFrag), so size ∝ 1/uCell. A linear uCell ramp shrinks the marks as
+// 1/(1+31·v) — ~75% of the shrink lands in the first 10% of the tween, so the
+// dither resolves to fine grain almost instantly while the photo crossfade
+// (uReveal, linear in v) is still near zero: the two read as out of sync.
+// Scaling uCell by MULT^v makes log-resolution linear in v, so the perceived
+// "resolving" of the marks advances in lockstep with the crossfade.
 const rev = { v: 0 };
 const REVEAL_CELL_MULT = 32;
 function effectiveCell(): number {
-  return Math.round(look.cell * (1 + (REVEAL_CELL_MULT - 1) * rev.v));
+  return Math.round(look.cell * Math.pow(REVEAL_CELL_MULT, rev.v));
 }
 function pushReveal(): void {
   if (!scene) return;
@@ -255,11 +262,62 @@ function buildDevBar(): void {
   const bar = document.createElement("div");
   bar.className = "art-dev";
 
+  // Slim grip across the top: click (or backtick) collapses the controls down
+  // to just this handle, so the plate can be read unobstructed. State persists.
+  const grip = document.createElement("button");
+  grip.type = "button";
+  grip.className = "art-dev-grip";
+  grip.setAttribute("aria-label", "Toggle dev controls");
+  bar.appendChild(grip);
+
+  // Clip wrapper carries the collapse; the row inside keeps its padding/flow.
+  const clip = document.createElement("div");
+  clip.className = "art-dev-clip";
   const row = document.createElement("div");
   row.className = "art-dev-row";
-  bar.appendChild(row);
+  clip.appendChild(row);
+  bar.appendChild(clip);
 
-  // A labeled group of controls, separated by dividers in the row.
+  // The floating Reveal button duplicates View > Photo, so hide it while the
+  // bar is open (avoids the bottom-right collision); it returns on collapse.
+  const floatingReveal = document.querySelector<HTMLElement>(".art-reveal");
+  let collapsed = false;
+  const STORE = "artefact:devbar-collapsed";
+  // Accordion: animate the clip to the row's exact height (no dead-time, no
+  // clipping at any viewport), then release to auto when fully open.
+  const setCollapsed = (next: boolean, persist = true): void => {
+    collapsed = next;
+    bar.classList.toggle("is-collapsed", collapsed);
+    grip.textContent = collapsed ? "▴ Dev" : "Dev ▾";
+    grip.setAttribute("aria-expanded", String(!collapsed));
+    if (floatingReveal) floatingReveal.style.display = collapsed ? "" : "none";
+    if (bar.classList.contains("no-anim")) {
+      clip.style.maxHeight = collapsed ? "0px" : "";
+    } else if (collapsed) {
+      clip.style.maxHeight = `${row.offsetHeight}px`;
+      void clip.offsetHeight; // reflow so the next set animates
+      clip.style.maxHeight = "0px";
+    } else {
+      clip.style.maxHeight = `${row.offsetHeight}px`;
+      const done = (e: TransitionEvent): void => {
+        if (e.target === clip && !collapsed) clip.style.maxHeight = "";
+        clip.removeEventListener("transitionend", done);
+      };
+      clip.addEventListener("transitionend", done);
+    }
+    if (persist) {
+      try { localStorage.setItem(STORE, collapsed ? "1" : "0"); } catch { /* ignore */ }
+    }
+  };
+  grip.addEventListener("click", () => setCollapsed(!collapsed));
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "`" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      setCollapsed(!collapsed);
+    }
+  });
+
+  // A labeled column. Controls stack vertically inside it as [label · widget].
   const group = (label: string): HTMLElement => {
     const g = document.createElement("div");
     g.className = "art-group";
@@ -273,7 +331,9 @@ function buildDevBar(): void {
     return ctls;
   };
 
-  const ctl = (into: HTMLElement, label: string, widget: HTMLElement): void => {
+  // One control row: label on the left, widget on the right. Returns the row so
+  // callers can mark it contextually N/A (dimmed + disabled).
+  const ctl = (into: HTMLElement, label: string, widget: HTMLElement): HTMLElement => {
     const w = document.createElement("div");
     w.className = "art-ctl";
     const l = document.createElement("span");
@@ -281,6 +341,7 @@ function buildDevBar(): void {
     l.textContent = label;
     w.append(l, widget);
     into.appendChild(w);
+    return w;
   };
 
   // A dropdown for multi-option params (motif, colorway, fade).
@@ -290,7 +351,8 @@ function buildDevBar(): void {
     options: readonly string[],
     get: () => number,
     set: (i: number) => void,
-  ): void => {
+    after?: () => void,
+  ): HTMLElement => {
     const sel = document.createElement("select");
     sel.className = "art-sel";
     options.forEach((opt, i) => {
@@ -303,8 +365,9 @@ function buildDevBar(): void {
     sel.addEventListener("change", () => {
       set(parseInt(sel.value, 10));
       pushTreatment();
+      after?.();
     });
-    ctl(into, label, sel);
+    return ctl(into, label, sel);
   };
 
   // A [−] value [+] stepper for numerics.
@@ -314,79 +377,105 @@ function buildDevBar(): void {
     get: () => string,
     dec: () => void,
     inc: () => void,
-  ): void => {
+  ): HTMLElement => {
     const grp = document.createElement("div");
     grp.className = "art-step";
     const minus = document.createElement("button");
     minus.type = "button";
+    minus.className = "art-step-b";
     minus.textContent = "−";
     const val = document.createElement("span");
     val.className = "art-ctl-v";
     val.textContent = get();
     const plus = document.createElement("button");
     plus.type = "button";
+    plus.className = "art-step-b";
     plus.textContent = "+";
     minus.addEventListener("click", () => { dec(); pushTreatment(); val.textContent = get(); });
     plus.addEventListener("click", () => { inc(); pushTreatment(); val.textContent = get(); });
     grp.append(minus, val, plus);
-    ctl(into, label, grp);
+    return ctl(into, label, grp);
   };
 
-  // A small two-state toggle button.
-  const toggle = (into: HTMLElement, label: string, get: () => string, flip: () => void): void => {
+  // A two-state toggle button (On is filled to read as "active").
+  const toggle = (
+    into: HTMLElement,
+    label: string,
+    on: () => boolean,
+    flip: () => void,
+    after?: () => void,
+  ): HTMLElement => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "art-ctl-v art-toggle";
-    btn.textContent = get();
-    btn.addEventListener("click", () => { flip(); pushTreatment(); btn.textContent = get(); });
-    ctl(into, label, btn);
+    btn.className = "art-toggle";
+    const sync = (): void => {
+      btn.textContent = on() ? "On" : "Off";
+      btn.classList.toggle("is-on", on());
+    };
+    sync();
+    btn.addEventListener("click", () => { flip(); pushTreatment(); sync(); after?.(); });
+    return ctl(into, label, btn);
   };
 
-  const mark = group("Mark");
-  select(mark, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; });
-  stepper(mark, "Cell", () => String(look.cell),
+  // A full-width action button (the Output column).
+  const action = (into: HTMLElement, btn: HTMLButtonElement): void => {
+    const w = document.createElement("div");
+    w.className = "art-ctl art-ctl-act";
+    btn.classList.add("art-act");
+    w.appendChild(btn);
+    into.appendChild(w);
+  };
+
+  // Dim + disable a control that does not currently apply.
+  const setNA = (el: HTMLElement, na: boolean): void => {
+    el.classList.toggle("is-na", na);
+    el.querySelectorAll<HTMLButtonElement | HTMLSelectElement>("button, select").forEach(
+      (c) => { c.disabled = na; },
+    );
+  };
+
+  // MARKS — the dither marks themselves.
+  const marks = group("Marks");
+  select(marks, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; });
+  stepper(marks, "Cell", () => String(look.cell),
     () => { look.cell = Math.max(60, look.cell - 12); },
     () => { look.cell = Math.min(320, look.cell + 12); });
-  select(mark, "Palette", COLORS, () => look.colorway, (i) => { look.colorway = i; });
 
+  // COLOUR — palette + full-colour mode (Levels only applies in full colour).
   const colour = group("Colour");
-  toggle(colour, "RGB", () => (look.colorDither ? "on" : "off"), () => { look.colorDither ^= 1; });
-  stepper(colour, "Levels", () => String(look.colorLevels),
+  select(colour, "Palette", COLORS, () => look.colorway, (i) => { look.colorway = i; });
+  toggle(colour, "Full colour", () => !!look.colorDither, () => { look.colorDither ^= 1; }, () => refreshNA());
+  const levelsCtl = stepper(colour, "Levels", () => String(look.colorLevels),
     () => { look.colorLevels = Math.max(2, look.colorLevels - 1); },
     () => { look.colorLevels = Math.min(8, look.colorLevels + 1); });
 
-  const tone = group("Tone");
-  stepper(tone, "Bright", () => look.brightness.toFixed(2),
+  // IMAGE — source photo tone.
+  const image = group("Image");
+  stepper(image, "Brightness", () => look.brightness.toFixed(2),
     () => { look.brightness = Math.max(-0.5, +(look.brightness - 0.05).toFixed(2)); },
     () => { look.brightness = Math.min(0.5, +(look.brightness + 0.05).toFixed(2)); });
-  stepper(tone, "Contrast", () => look.contrast.toFixed(2),
+  stepper(image, "Contrast", () => look.contrast.toFixed(2),
     () => { look.contrast = Math.max(0.4, +(look.contrast - 0.1).toFixed(2)); },
     () => { look.contrast = Math.min(2.6, +(look.contrast + 0.1).toFixed(2)); });
-  toggle(tone, "Invert", () => (look.invert ? "on" : "off"), () => { look.invert ^= 1; });
+  toggle(image, "Invert", () => !!look.invert, () => { look.invert ^= 1; });
 
-  // Force a second row: image-look controls above, scene + utilities below.
-  const br = document.createElement("div");
-  br.className = "art-rowbreak";
-  row.appendChild(br);
-
-  const dissolve = group("Dissolve");
-  select(dissolve, "Fade", FADES, () => look.fadeMode, (i) => { look.fadeMode = i; });
-  stepper(dissolve, "Cloud", () => look.cloudSize.toFixed(1),
+  // EDGE — how the plate dissolves into the ground (Cloud only applies to cloud fade).
+  const edge = group("Edge");
+  select(edge, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
+  const cloudCtl = stepper(edge, "Cloud", () => look.cloudSize.toFixed(1),
     () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
     () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
 
-  // Meta / debug controls grouped apart from the treatment.
-  const view = group("View");
+  // OUTPUT — reveal the source + export the settings.
+  const output = group("Output");
   const revealCtl = document.createElement("button");
   revealCtl.type = "button";
-  revealCtl.className = "art-ctl-v art-toggle";
   revealCtl.textContent = look.reveal ? "Dither" : "Reveal";
   revealCtl.addEventListener("click", toggleReveal);
   revealBtns.push(revealCtl);
-  ctl(view, "Photo", revealCtl);
+  action(output, revealCtl);
   const copy = document.createElement("button");
   copy.type = "button";
-  copy.className = "art-copy";
   copy.textContent = "Copy values";
   copy.addEventListener("click", async () => {
     try {
@@ -396,9 +485,22 @@ function buildDevBar(): void {
       flash(copy, "Failed");
     }
   });
-  view.appendChild(copy);
+  action(output, copy);
+
+  // Keep contextual controls in step with the mode they belong to.
+  function refreshNA(): void {
+    setNA(levelsCtl, !look.colorDither);
+    setNA(cloudCtl, look.fadeMode !== 2);
+  }
+  refreshNA();
 
   document.body.appendChild(bar);
+
+  let startCollapsed = false;
+  try { startCollapsed = localStorage.getItem(STORE) === "1"; } catch { /* ignore */ }
+  bar.classList.add("no-anim"); // no slide on first paint
+  setCollapsed(startCollapsed, false);
+  requestAnimationFrame(() => bar.classList.remove("no-anim"));
 }
 
 if (params.has("dev")) buildDevBar();

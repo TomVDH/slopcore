@@ -129,6 +129,12 @@ export const pressFrag = /* glsl */ `
     else if (uColorway < 22.5) { paper = vec3(0.941,0.890,0.812); ink = vec3(0.353,0.141,0.063); accent = vec3(0.761,0.286,0.114); } // 22 rust sand
     else if (uColorway < 23.5) { paper = vec3(0.059,0.075,0.251); ink = vec3(0.910,0.902,1.000); accent = vec3(1.000,0.824,0.247); } // 23 indigo sun
 
+    // Reveal reverts the inversion. Many photos need uInvert to dither with the
+    // right polarity, but the full-res source should read true, so the applied
+    // inversion fades out as uReveal goes 0 -> 1 (and the dither follows it, so
+    // the marks and the emerging photo stay the same polarity through the fade).
+    float effInvert = uInvert * (1.0 - clamp(uReveal, 0.0, 1.0));
+
     // Tone source: crossfade the procedural field and a sampled image by
     // uImageOn (0 field, 1 image). Animating uImageOn lets the dots flow
     // from the drifting field into a photo (particles forming an image).
@@ -146,7 +152,7 @@ export const pressFrag = /* glsl */ `
     img = clamp((img - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
 
     float lum = mix(field, img, clamp(uImageOn, 0.0, 1.0));
-    lum = mix(lum, 1.0 - lum, uInvert); // polarity invert
+    lum = mix(lum, 1.0 - lum, effInvert); // polarity invert (reverts during reveal)
 
     // The cursor presses a highlight into the plate.
     float md = length(p - uMouse);
@@ -222,7 +228,7 @@ export const pressFrag = /* glsl */ `
       // marks. The colorway's paper stays the ground between marks.
       vec3 src = texture2D(uImage, iuv).rgb;
       src = clamp((src - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      src = mix(src, 1.0 - src, uInvert);
+      src = mix(src, 1.0 - src, effInvert);
       float L = max(uColorLevels, 2.0);
       vec3 q = floor(src * (L - 1.0) + bayer4(cellId)) / (L - 1.0);
       col = mix(paper, q, motif);
@@ -243,7 +249,7 @@ export const pressFrag = /* glsl */ `
     if (uReveal > 0.001 && uImageOn > 0.5) {
       vec3 raw = texture2D(uImage, iuv).rgb;
       raw = clamp((raw - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      raw = mix(raw, 1.0 - raw, uInvert);
+      raw = mix(raw, 1.0 - raw, effInvert); // at full reveal effInvert = 0 -> true photo
       col = mix(col, raw, clamp(uReveal, 0.0, 1.0));
     }
 
