@@ -95,6 +95,11 @@ export function initScene(
     uThreshold: { value: 0.03 },
     uPress: { value: 0.4 },
     uPressFalloff: { value: 2.2 },
+    uCursorMode: { value: 1 }, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
+    uCursorAmp: { value: 0.4 }, // cursor effect strength (was uPress)
+    uCursorRadius: { value: 2.2 }, // disc falloff rate (was uPressFalloff)
+    uHold: { value: 0 }, // static floor under the decaying cursor strength
+    uCursorEdge: { value: 0.25 }, // negative-mode disc hardness
     uMotif: { value: 0 },
     uMotifWeight: { value: 0.5 },
     uMotifAngle: { value: 0 },

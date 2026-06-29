@@ -29,8 +29,13 @@ export const pressFrag = /* glsl */ `
   uniform float uToneScale;    // field scale
   uniform float uDrift;        // drift speed
   uniform float uThreshold;    // dither threshold bias
-  uniform float uPress;        // cursor-press strength
-  uniform float uPressFalloff; // cursor-press falloff
+  uniform float uPress;        // cursor-press strength (legacy; kept for back-compat)
+  uniform float uPressFalloff; // cursor-press falloff (legacy)
+  uniform float uCursorMode;   // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
+  uniform float uCursorAmp;    // cursor effect strength
+  uniform float uCursorRadius; // cursor disc falloff rate (larger = tighter)
+  uniform float uHold;         // static floor under the decaying cursor strength
+  uniform float uCursorEdge;   // negative-mode disc hardness
   uniform float uMotif;        // shape: 0 dots(solid) 1 disc 2 x 3 plus 4 dash
   uniform float uMotifWeight;  // mark thickness / dot radius
   uniform float uMotifAngle;   // rotation of the mark in its cell (0..1 turn)
@@ -133,12 +138,6 @@ export const pressFrag = /* glsl */ `
     else if (uColorway < 22.5) { paper = vec3(0.941,0.890,0.812); ink = vec3(0.353,0.141,0.063); accent = vec3(0.761,0.286,0.114); } // 22 rust sand
     else if (uColorway < 23.5) { paper = vec3(0.059,0.075,0.251); ink = vec3(0.910,0.902,1.000); accent = vec3(1.000,0.824,0.247); } // 23 indigo sun
 
-    // Reveal reverts the inversion. Many photos need uInvert to dither with the
-    // right polarity, but the full-res source should read true, so the applied
-    // inversion fades out as uReveal goes 0 -> 1 (and the dither follows it, so
-    // the marks and the emerging photo stay the same polarity through the fade).
-    float effInvert = uInvert * (1.0 - clamp(uReveal, 0.0, 1.0));
-
     // Tone source: crossfade the procedural field and a sampled image by
     // uImageOn (0 field, 1 image). Animating uImageOn lets the dots flow
     // from the drifting field into a photo (particles forming an image).
@@ -162,11 +161,23 @@ export const pressFrag = /* glsl */ `
     img = clamp((img - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
 
     float lum = mix(field, img, clamp(uImageOn, 0.0, 1.0));
-    lum = mix(lum, 1.0 - lum, effInvert); // polarity invert (reverts during reveal)
+    lum = mix(lum, 1.0 - lum, uInvert); // polarity invert (dither stylization)
 
-    // The cursor presses a highlight into the plate.
+    // The interactive cursor. One shared local-influence scalar (infl) (a soft
+    // disc of cursor energy) drives every mode; it is built only from p (one
+    // value per cell, never local/gl_FragCoord), so a whole cell agrees and the
+    // marks reorganize under the pointer instead of shattering. uHold is a
+    // static floor so the effect can persist while the pointer is still.
     float md = length(p - uMouse);
-    lum += uPress * uMouseStrength * exp(-md * uPressFalloff);
+    float infl = max(uMouseStrength, uHold) * exp(-md * uCursorRadius);
+    if (uCursorMode > 0.5 && uCursorMode < 1.5) {
+      lum += uCursorAmp * infl;            // Clear: lift ink, open paper
+    } else if (uCursorMode > 1.5 && uCursorMode < 2.5) {
+      lum -= uCursorAmp * infl;            // Ink: press ink in (tone half; weight below)
+    } else if (uCursorMode > 3.5 && uCursorMode < 4.5) {
+      float flip = smoothstep(uCursorEdge, uCursorEdge + 0.12, infl);
+      lum = mix(lum, 1.0 - lum, flip);     // Negative: local polarity flip
+    }
 
     // Energy is press pressure: contrast around the midpoint.
     lum = 0.5 + (lum - 0.5) * (0.75 + 0.55 * uEnergy);
@@ -191,7 +202,10 @@ export const pressFrag = /* glsl */ `
     }
 
     // The decision: ink or no ink (ordered Bayer threshold).
-    float threshold = bayer4(cellId) + uThreshold;
+    // Bias (cursor mode 3): rub the ordered-dither threshold locally so marks
+    // fill in/clear in the plate's own Bayer order, not as a smooth tonal disc.
+    float threshold = bayer4(cellId) + uThreshold
+      - ((uCursorMode > 2.5 && uCursorMode < 3.5) ? 0.6 * uCursorAmp * infl : 0.0);
     float on = step(threshold, clamp(lum, 0.0, 1.0)); // 1 = paper, 0 = ink
 
     // Mark motif: how an inked cell is drawn (0 solid, 1 x, 2 lines).
@@ -200,6 +214,11 @@ export const pressFrag = /* glsl */ `
     float dk   = 1.0 - clamp(lum, 0.0, 1.0);
     float wEff = clamp(uMotifWeight, 0.05, 1.0) * 0.5 * (1.0 + uMotifTone * (1.6 * dk - 0.8));
     wEff = clamp(wEff, 0.0, 0.5);
+    // Ink (cursor mode 2): thicken the mark under the pointer (re-clamp is
+    // mandatory so the grid spacing is preserved).
+    if (uCursorMode > 1.5 && uCursorMode < 2.5) {
+      wEff = clamp(wEff + 0.30 * infl, 0.0, 0.5);
+    }
 
     // Each mark is a distance field tested against wEff: measure a distance
     // from the mark's geometry, ink where it is < wEff, smoothstep across ~1px
@@ -237,7 +256,7 @@ export const pressFrag = /* glsl */ `
       // a dither. Solid motif -> full-colour field; disc/X/etc -> colour halftone
       // marks. The colorway's paper stays the ground between marks.
       vec3 src = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      src = mix(src, 1.0 - src, effInvert);
+      src = mix(src, 1.0 - src, uInvert);
       float L = max(uColorLevels, 2.0);
       vec3 q = floor(src * (L - 1.0) + bayer4(cellId)) / (L - 1.0);
       col = mix(paper, q, motif);
@@ -251,14 +270,17 @@ export const pressFrag = /* glsl */ `
     float cross = uCrossOn * step(min(cd.x, cd.y), 0.006) * step(max(cd.x, cd.y), uCrossSize);
     col = mix(col, accent, cross);
 
-    // Reveal: crossfade the whole dithered composite toward the full-res
-    // cover-fit photo (with the current brightness / contrast / invert),
-    // bypassing the dissolve. Animating uReveal 0 -> 1 resolves the marks into
-    // the source image; at 1 it also serves as a raw-source check.
-    if (uReveal > 0.001 && uImageOn > 0.5) {
-      vec3 raw = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      raw = mix(raw, 1.0 - raw, effInvert); // at full reveal effInvert = 0 -> true photo
-      col = mix(col, raw, clamp(uReveal, 0.0, 1.0));
+    // Reveal: crossfade the dithered composite toward the full-res photo in its
+    // NATURAL light — the true source, with no invert / brightness / contrast
+    // applied — so it resolves straight to true colour and never passes through a
+    // negative (the dither's own invert is a separate stylization on the marks).
+    // Develop (cursor mode 5) rubs that same true photo in locally, gated by infl;
+    // max() with uReveal so the global Reveal button still works.
+    float localRev = (uCursorMode > 4.5 && uCursorMode < 5.5)
+      ? clamp(uCursorAmp * infl, 0.0, 1.0) : 0.0;
+    float revAmt = max(clamp(uReveal, 0.0, 1.0), localRev);
+    if (revAmt > 0.001 && uImageOn > 0.5) {
+      col = mix(col, clamp(imgRGB, 0.0, 1.0), revAmt);
     }
 
     // Image state (dev): the continuous-tone source the dither reads — with the

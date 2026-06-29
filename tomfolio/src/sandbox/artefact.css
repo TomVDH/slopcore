@@ -128,8 +128,7 @@ body.art {
   bottom: 18px;
   transform: translateX(-50%);
   z-index: 10;
-  width: max-content;
-  max-width: calc(100vw - 32px);
+  width: min(672px, calc(100vw - 28px));
   display: flex;
   flex-direction: column;
   background: rgba(12, 11, 16, 0.9);
@@ -174,13 +173,13 @@ body.art {
 .art-dev.no-anim .art-dev-clip {
   transition: none;
 }
-/* Row of group columns. */
+/* Reflowing grid of group columns: 3 across on desktop, 2 then 1 as it narrows. */
 .art-dev-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: center;
-  padding: 13px 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  align-items: start;
+  gap: 16px 18px;
+  padding: 14px 16px;
   opacity: 1;
   transition: opacity 0.28s ease;
 }
@@ -194,18 +193,13 @@ body.art {
   }
 }
 
-/* A group: header above a vertical stack of controls; divider between groups. */
+/* A group: header above a vertical stack of controls. Separated by grid gap. */
 .art-group {
   box-sizing: border-box;
-  min-width: 194px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 9px;
-  padding: 1px 16px;
-  border-left: 1px solid rgba(244, 239, 221, 0.1);
-}
-.art-group:first-child {
-  border-left: 0;
 }
 .art-group-l {
   font-size: 0.55rem;
@@ -329,6 +323,10 @@ body.art {
   line-height: 22px;
   border-left: 1px solid rgba(244, 239, 221, 0.14);
   border-right: 1px solid rgba(244, 239, 221, 0.14);
+}
+/* The Palette stepper shows the colorway NAME, so give it room for long ones. */
+.art-step .art-ctl-v.is-name {
+  min-width: 84px;
 }
 
 /* Full-width action button (Output column). */

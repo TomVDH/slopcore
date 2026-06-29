@@ -34,6 +34,8 @@ const COLORS = [
   "Amber", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum",
   "Slate Ice", "Rust Sand", "Indigo Sun",
 ];
+// Index === uCursorMode value === the shader's if-ladder (keep in lockstep).
+const CURSOR_MODES = ["Off", "Clear", "Ink", "Bias", "Negative", "Develop"];
 
 let scene: GlScene | null = null;
 const canvas = document.getElementById("gl") as HTMLCanvasElement | null;
@@ -56,6 +58,11 @@ const look = {
   imageState: 0, // dev: 1 shows the adjusted source the dither reads, undithered
   colorDither: 0, // 0 duotone (palette), 1 full-colour ordered dither
   colorLevels: 4, // posterise steps per channel in colour mode
+  cursorMode: 1, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
+  cursorAmp: 0.4, // cursor strength
+  cursorRadius: 2.2, // cursor disc falloff (larger = tighter)
+  cursorHold: 0, // static persistence floor under the movement-driven strength
+  cursorEdge: 0.25, // negative-mode disc hardness
 };
 
 const imgCache = new Map<string, HTMLImageElement>();
@@ -103,6 +110,11 @@ function pushTreatment(): void {
   scene.setParam("uFadeScale", look.cloudSize);
   scene.setParam("uColorDither", look.colorDither);
   scene.setParam("uColorLevels", look.colorLevels);
+  scene.setParam("uCursorMode", look.cursorMode);
+  scene.setParam("uCursorAmp", look.cursorAmp);
+  scene.setParam("uCursorRadius", look.cursorRadius);
+  scene.setParam("uHold", look.cursorHold);
+  scene.setParam("uCursorEdge", look.cursorEdge);
   applyColorwayChrome(look.colorway);
 }
 
@@ -481,7 +493,17 @@ function buildDevBar(): void {
 
   // COLOUR — palette + full-colour mode (Levels only applies in full colour).
   const colour = group("Colour");
-  select(colour, "Palette", COLORS, () => look.colorway, (i) => { look.colorway = i; });
+  // Palette is a ‹ name › stepper that wraps around all 24 colorways. The
+  // stepper's +/- already run pushTreatment() (which pushes uColorway and runs
+  // applyColorwayChrome), so the chrome and shader stay in lockstep.
+  const nColors = COLORS.length;
+  const palRow = stepper(colour, "Palette", () => COLORS[look.colorway],
+    () => { look.colorway = (look.colorway - 1 + nColors) % nColors; },
+    () => { look.colorway = (look.colorway + 1) % nColors; });
+  const palBtns = palRow.querySelectorAll<HTMLButtonElement>(".art-step-b");
+  if (palBtns[0]) palBtns[0].textContent = "‹";
+  if (palBtns[1]) palBtns[1].textContent = "›";
+  palRow.querySelector(".art-ctl-v")?.classList.add("is-name");
   toggle(colour, "Full colour", () => !!look.colorDither, () => { look.colorDither ^= 1; }, () => refreshNA());
   const levelsCtl = stepper(colour, "Levels", () => String(look.colorLevels),
     () => { look.colorLevels = Math.max(2, look.colorLevels - 1); },
@@ -503,6 +525,22 @@ function buildDevBar(): void {
   const cloudCtl = stepper(edge, "Cloud", () => look.cloudSize.toFixed(1),
     () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
     () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
+
+  // CURSOR — how the pointer presses into the dither (Edge applies to Negative only).
+  const cursor = group("Cursor");
+  select(cursor, "Mode", CURSOR_MODES, () => look.cursorMode, (i) => { look.cursorMode = i; }, () => refreshNA());
+  stepper(cursor, "Strength", () => look.cursorAmp.toFixed(2),
+    () => { look.cursorAmp = Math.max(0, +(look.cursorAmp - 0.1).toFixed(2)); },
+    () => { look.cursorAmp = Math.min(1.5, +(look.cursorAmp + 0.1).toFixed(2)); });
+  stepper(cursor, "Radius", () => look.cursorRadius.toFixed(1),
+    () => { look.cursorRadius = Math.max(0.6, +(look.cursorRadius - 0.2).toFixed(1)); },
+    () => { look.cursorRadius = Math.min(6, +(look.cursorRadius + 0.2).toFixed(1)); });
+  stepper(cursor, "Hold", () => look.cursorHold.toFixed(2),
+    () => { look.cursorHold = Math.max(0, +(look.cursorHold - 0.1).toFixed(2)); },
+    () => { look.cursorHold = Math.min(1, +(look.cursorHold + 0.1).toFixed(2)); });
+  const edgeCtl = stepper(cursor, "Edge", () => look.cursorEdge.toFixed(2),
+    () => { look.cursorEdge = Math.max(0, +(look.cursorEdge - 0.05).toFixed(2)); },
+    () => { look.cursorEdge = Math.min(0.8, +(look.cursorEdge + 0.05).toFixed(2)); });
 
   // OUTPUT — reveal the source + export the settings.
   const output = group("Output");
@@ -544,6 +582,7 @@ function buildDevBar(): void {
   function refreshNA(): void {
     setNA(levelsCtl, !look.colorDither);
     setNA(cloudCtl, look.fadeMode !== 2);
+    setNA(edgeCtl, look.cursorMode !== 4); // Edge applies only to Negative
   }
   refreshNA();
 
