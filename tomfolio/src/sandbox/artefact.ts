@@ -70,6 +70,7 @@ const look = {
   cursorHold: 0, // static persistence floor under the movement-driven strength
   cursorEdge: 0.25, // negative-mode disc hardness
   cursorDetail: 3, // develop-mode cell multiplier (finer marks under the cursor)
+  cursorColorize: 1, // develop: 1 resolve to true-colour photo, 0 stay monotone
 };
 
 const imgCache = new Map<string, HTMLImageElement>();
@@ -123,6 +124,7 @@ function pushTreatment(): void {
   scene.setParam("uHold", look.cursorHold);
   scene.setParam("uCursorEdge", look.cursorEdge);
   scene.setParam("uDevFine", look.cursorDetail);
+  scene.setParam("uDevColor", look.cursorColorize);
   applyColorwayChrome(look.colorway);
 }
 
@@ -495,7 +497,7 @@ function buildDevBar(): void {
     into.appendChild(w);
   };
 
-  // Dim + disable a control that does not currently apply.
+  // Hide + disable a control that does not apply to the current mode.
   const setNA = (el: HTMLElement, na: boolean): void => {
     el.classList.toggle("is-na", na);
     el.querySelectorAll<HTMLButtonElement | HTMLSelectElement>("button, select").forEach(
@@ -503,12 +505,16 @@ function buildDevBar(): void {
     );
   };
 
-  // MARKS — the dither marks themselves.
-  const marks = group("Marks");
-  select(marks, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; });
-  stepper(marks, "Cell", () => String(look.cell),
+  // SCREEN — the dither marks + edge dissolve (Cloud only applies to Cloud fade).
+  const screen = group("Screen");
+  select(screen, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; });
+  stepper(screen, "Cell", () => String(look.cell),
     () => { look.cell = Math.max(60, look.cell - 12); },
     () => { look.cell = Math.min(320, look.cell + 12); });
+  select(screen, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
+  const cloudCtl = stepper(screen, "Cloud", () => look.cloudSize.toFixed(1),
+    () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
+    () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
 
   // COLOUR — palette + full-colour mode (Levels only applies in full colour).
   const colour = group("Colour");
@@ -538,14 +544,8 @@ function buildDevBar(): void {
     () => { look.contrast = Math.min(2.6, +(look.contrast + 0.1).toFixed(2)); });
   toggle(image, "Invert", () => !!look.invert, () => { look.invert ^= 1; });
 
-  // EDGE — how the plate dissolves into the ground (Cloud only applies to cloud fade).
-  const edge = group("Edge");
-  select(edge, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
-  const cloudCtl = stepper(edge, "Cloud", () => look.cloudSize.toFixed(1),
-    () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
-    () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
-
-  // CURSOR — how the pointer presses into the dither (Edge applies to Negative only).
+  // CURSOR — how the pointer presses into the dither. Edge applies to Negative;
+  // Detail + Colorize apply to Develop (others are hidden for the active mode).
   const cursor = group("Cursor");
   select(cursor, "Mode", CURSOR_MODES, () => look.cursorMode, (i) => { look.cursorMode = i; }, () => refreshNA());
   stepper(cursor, "Strength", () => look.cursorAmp.toFixed(2),
@@ -563,6 +563,7 @@ function buildDevBar(): void {
   const detailCtl = stepper(cursor, "Detail", () => `${look.cursorDetail.toFixed(1)}x`,
     () => { look.cursorDetail = Math.max(1, +(look.cursorDetail - 0.5).toFixed(1)); },
     () => { look.cursorDetail = Math.min(8, +(look.cursorDetail + 0.5).toFixed(1)); });
+  const colorizeCtl = toggle(cursor, "Colorize", () => !!look.cursorColorize, () => { look.cursorColorize ^= 1; });
 
   // MOTION — the easing curve + duration of every dither/reveal transition.
   const mo = group("Motion");
@@ -607,12 +608,13 @@ function buildDevBar(): void {
   });
   action(output, copy);
 
-  // Keep contextual controls in step with the mode they belong to.
+  // Show only the controls that apply to the current mode (others are hidden).
   function refreshNA(): void {
-    setNA(levelsCtl, !look.colorDither);
-    setNA(cloudCtl, look.fadeMode !== 2);
-    setNA(edgeCtl, look.cursorMode !== 4); // Edge applies only to Negative
-    setNA(detailCtl, look.cursorMode !== 5); // Detail applies only to Develop
+    setNA(levelsCtl, !look.colorDither); // Levels: full-colour only
+    setNA(cloudCtl, look.fadeMode !== 2); // Cloud: cloud fade only
+    setNA(edgeCtl, look.cursorMode !== 4); // Edge: Negative only
+    setNA(detailCtl, look.cursorMode !== 5); // Detail: Develop only
+    setNA(colorizeCtl, look.cursorMode !== 5); // Colorize: Develop only
   }
   refreshNA();
 

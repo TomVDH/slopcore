@@ -37,6 +37,7 @@ export const pressFrag = /* glsl */ `
   uniform float uHold;         // static floor under the decaying cursor strength
   uniform float uCursorEdge;   // negative-mode disc hardness
   uniform float uDevFine;      // develop-mode cell multiplier (sub-grid = cell / uDevFine)
+  uniform float uDevColor;     // develop: 1 resolve to true-colour photo, 0 stay monotone
   uniform float uMotif;        // shape: 0 dots(solid) 1 disc 2 x 3 plus 4 dash
   uniform float uMotifWeight;  // mark thickness / dot radius
   uniform float uMotifAngle;   // rotation of the mark in its cell (0..1 turn)
@@ -355,8 +356,11 @@ export const pressFrag = /* glsl */ `
       col = mix(col, fineCol, smoothstep(0.04, 0.55, localRev)); // marks refine first
     }
 
-    // Resolve to the true photo: global reveal, or the late stage of Develop.
-    float photoT = max(clamp(uReveal, 0.0, 1.0), smoothstep(0.45, 1.0, localRev));
+    // Resolve to the true-colour photo: the global Reveal always does; Develop
+    // does only when Colorize is on (uDevColor) — otherwise it stays monotone
+    // (just the finer sub-dither in the palette's own colours).
+    float devPhoto = (uDevColor > 0.5) ? smoothstep(0.45, 1.0, localRev) : 0.0;
+    float photoT = max(clamp(uReveal, 0.0, 1.0), devPhoto);
     if (photoT > 0.001 && uImageOn > 0.5) {
       col = mix(col, clamp(imgRGB, 0.0, 1.0), photoT);
     }

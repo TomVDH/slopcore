@@ -228,7 +228,7 @@ body.art {
   white-space: nowrap;
 }
 .art-ctl.is-na {
-  opacity: 0.3; /* control does not apply in the current mode */
+  display: none; /* control does not apply to the current mode */
 }
 .art-ctl-act {
   display: block;

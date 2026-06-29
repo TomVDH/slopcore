@@ -101,6 +101,7 @@ export function initScene(
     uHold: { value: 0 }, // static floor under the decaying cursor strength
     uCursorEdge: { value: 0.25 }, // negative-mode disc hardness
     uDevFine: { value: 3 }, // develop-mode cell multiplier (sub-grid = cell / uDevFine)
+    uDevColor: { value: 1 }, // develop: 1 resolve to true-colour photo, 0 stay monotone
     uMotif: { value: 0 },
     uMotifWeight: { value: 0.5 },
     uMotifAngle: { value: 0 },
