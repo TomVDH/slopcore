@@ -351,3 +351,8 @@ body.art {
   border-color: #f4efdd;
   background: rgba(244, 239, 221, 0.06);
 }
+.art-act.is-on {
+  background: #f4efdd;
+  color: #14121a;
+  border-color: #f4efdd;
+}

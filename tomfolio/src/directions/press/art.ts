@@ -42,6 +42,10 @@ export const pressFrag = /* glsl */ `
   uniform sampler2D uImage;    // source image to dither (when uImageOn > 0.5)
   uniform float uImageOn;      // 0 procedural tone field, 1 dither the image
   uniform vec2  uImageRes;     // source image pixel size, for cover-fit aspect
+  uniform sampler2D uImage2;   // second image slot, for image->image crossfade
+  uniform vec2  uImage2Res;    // second image pixel size
+  uniform float uXfade;        // 0 sample uImage, 1 sample uImage2 (no field dip)
+  uniform float uImageState;   // dev: show the adjusted continuous-tone source, undithered
   uniform float uInvert;          // 0 normal, 1 invert tone polarity (ink <-> paper)
   uniform float uImageBrightness; // added to the sampled image luminance
   uniform float uImageContrast;   // contrast of the sampled image around mid-grey
@@ -141,14 +145,20 @@ export const pressFrag = /* glsl */ `
     float field = uToneBase + uToneContrast * fbm(p * uToneScale + vec2(t * 0.5, -t * 0.3));
     field += 0.22 * smoothstep(-1.2, 1.2, dot(p, vec2(0.5, 0.85)));
 
-    // Sample at the cell center, cover-fitting the image to the plate so it
-    // fills without distortion (crop the overflowing dimension).
-    vec2 iuv = (cellId + 0.5) * cell / uRes;
+    // Sample at the cell center, cover-fitting each image to the plate so it
+    // fills without distortion (crop the overflowing dimension). Both slots are
+    // sampled and blended by uXfade, so an image->image swap crossfades directly
+    // with no procedural-field flash in between.
+    vec2 baseUv = (cellId + 0.5) * cell / uRes;
     float plateA = uRes.x / uRes.y;
-    float imgA   = uImageRes.x / max(uImageRes.y, 1.0);
-    vec2 isc = imgA > plateA ? vec2(plateA / imgA, 1.0) : vec2(1.0, imgA / plateA);
-    iuv = (iuv - 0.5) * isc + 0.5;
-    float img = dot(texture2D(uImage, iuv).rgb, vec3(0.299, 0.587, 0.114));
+    float imgA0 = uImageRes.x / max(uImageRes.y, 1.0);
+    vec2 isc0 = imgA0 > plateA ? vec2(plateA / imgA0, 1.0) : vec2(1.0, imgA0 / plateA);
+    vec2 iuv = (baseUv - 0.5) * isc0 + 0.5;
+    float imgA1 = uImage2Res.x / max(uImage2Res.y, 1.0);
+    vec2 isc1 = imgA1 > plateA ? vec2(plateA / imgA1, 1.0) : vec2(1.0, imgA1 / plateA);
+    vec2 iuv2 = (baseUv - 0.5) * isc1 + 0.5;
+    vec3 imgRGB = mix(texture2D(uImage, iuv).rgb, texture2D(uImage2, iuv2).rgb, clamp(uXfade, 0.0, 1.0));
+    float img = dot(imgRGB, vec3(0.299, 0.587, 0.114));
     img = clamp((img - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
 
     float lum = mix(field, img, clamp(uImageOn, 0.0, 1.0));
@@ -226,8 +236,7 @@ export const pressFrag = /* glsl */ `
       // posterised per channel with the cell's Bayer value so it still reads as
       // a dither. Solid motif -> full-colour field; disc/X/etc -> colour halftone
       // marks. The colorway's paper stays the ground between marks.
-      vec3 src = texture2D(uImage, iuv).rgb;
-      src = clamp((src - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      vec3 src = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
       src = mix(src, 1.0 - src, effInvert);
       float L = max(uColorLevels, 2.0);
       vec3 q = floor(src * (L - 1.0) + bayer4(cellId)) / (L - 1.0);
@@ -247,10 +256,18 @@ export const pressFrag = /* glsl */ `
     // bypassing the dissolve. Animating uReveal 0 -> 1 resolves the marks into
     // the source image; at 1 it also serves as a raw-source check.
     if (uReveal > 0.001 && uImageOn > 0.5) {
-      vec3 raw = texture2D(uImage, iuv).rgb;
-      raw = clamp((raw - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      vec3 raw = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
       raw = mix(raw, 1.0 - raw, effInvert); // at full reveal effInvert = 0 -> true photo
       col = mix(col, raw, clamp(uReveal, 0.0, 1.0));
+    }
+
+    // Image state (dev): the continuous-tone source the dither reads — with the
+    // current brightness / contrast / invert applied (uInvert, not reverted), but
+    // NOT dithered and not dissolved. Lets you see what is fed into the screen.
+    if (uImageState > 0.5 && uImageOn > 0.5) {
+      vec3 s = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      s = mix(s, 1.0 - s, uInvert);
+      col = uColorDither > 0.5 ? s : vec3(dot(s, vec3(0.299, 0.587, 0.114)));
     }
 
     gl_FragColor = vec4(col, 1.0);

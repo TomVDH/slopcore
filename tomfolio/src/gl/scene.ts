@@ -20,6 +20,8 @@ export interface GlScene {
   setParam(name: string, value: number | [number, number]): void;
   /** Set the image to dither (img / canvas / bitmap), or null to clear it. */
   setImage(source: TexImageSource | null): void;
+  /** Set the second image slot used for image->image crossfades (uXfade). */
+  setImage2(source: TexImageSource | null): void;
 }
 
 export function initScene(
@@ -104,6 +106,10 @@ export function initScene(
     uImage: { value: placeholder as THREE.Texture },
     uImageOn: { value: 0 },
     uImageRes: { value: new THREE.Vector2(1, 1) },
+    uImage2: { value: placeholder as THREE.Texture },
+    uImage2Res: { value: new THREE.Vector2(1, 1) },
+    uXfade: { value: 0 }, // 0 sample uImage, 1 sample uImage2 (image->image crossfade)
+    uImageState: { value: 0 }, // dev: show the undithered adjusted source
     uInvert: { value: 0 },
     uImageBrightness: { value: 0 },
     uImageContrast: { value: 1 },
@@ -235,36 +241,47 @@ export function initScene(
       if (reducedMotion) render(20.0);
     },
     setImage(source: TexImageSource | null) {
-      // Free the previous upload (never the shared placeholder) so repeated
-      // image swaps do not leak GPU textures.
-      const prev = uniforms.uImage.value as THREE.Texture;
-      if (prev && prev !== placeholder) prev.dispose();
-      if (!source) {
-        uniforms.uImage.value = placeholder;
-        uniforms.uImageRes.value.set(1, 1);
-      } else {
-        const tex = new THREE.Texture(source);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.minFilter = THREE.LinearFilter;
-        tex.magFilter = THREE.LinearFilter;
-        tex.wrapS = THREE.ClampToEdgeWrapping;
-        tex.wrapT = THREE.ClampToEdgeWrapping;
-        tex.needsUpdate = true;
-        const s = source as {
-          naturalWidth?: number;
-          videoWidth?: number;
-          width?: number;
-          naturalHeight?: number;
-          videoHeight?: number;
-          height?: number;
-        };
-        uniforms.uImage.value = tex;
-        uniforms.uImageRes.value.set(
-          s.naturalWidth || s.videoWidth || s.width || 1,
-          s.naturalHeight || s.videoHeight || s.height || 1,
-        );
-      }
-      if (reducedMotion) render(20.0);
+      writeImage(uniforms.uImage, uniforms.uImageRes, source);
+    },
+    setImage2(source: TexImageSource | null) {
+      writeImage(uniforms.uImage2, uniforms.uImage2Res, source);
     },
   };
+
+  // Upload `source` into a (texture, resolution) uniform pair. Frees the previous
+  // upload (never the shared placeholder) so repeated swaps do not leak textures.
+  function writeImage(
+    texU: { value: THREE.Texture },
+    resU: { value: THREE.Vector2 },
+    source: TexImageSource | null,
+  ): void {
+    const prev = texU.value;
+    if (prev && prev !== placeholder) prev.dispose();
+    if (!source) {
+      texU.value = placeholder;
+      resU.value.set(1, 1);
+    } else {
+      const tex = new THREE.Texture(source);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+      const s = source as {
+        naturalWidth?: number;
+        videoWidth?: number;
+        width?: number;
+        naturalHeight?: number;
+        videoHeight?: number;
+        height?: number;
+      };
+      texU.value = tex;
+      resU.value.set(
+        s.naturalWidth || s.videoWidth || s.width || 1,
+        s.naturalHeight || s.videoHeight || s.height || 1,
+      );
+    }
+    if (reducedMotion) render(20.0);
+  }
 }

@@ -52,7 +52,8 @@ const look = {
   invert: 0,
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
   cloudSize: 1.2, // cloud-noise frequency (mode 2) — smaller = bigger billows
-  reveal: 0, // 0 dithered, 1 full-res photo (the Reveal button tweens between)
+  reveal: 0, // 0 dithered, 1 full-res photo in natural light (Reveal tweens between)
+  imageState: 0, // dev: 1 shows the adjusted source the dither reads, undithered
   colorDither: 0, // 0 duotone (palette), 1 full-colour ordered dither
   colorLevels: 4, // posterise steps per channel in colour mode
 };
@@ -75,6 +76,11 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
 let curImageSrc: string | null = null;
 let txToken = 0;
 const cur = { uImageOn: 0 }; // tweened field<->image crossfade amount
+const xf = { v: 0 }; // tweened image<->image crossfade amount (uXfade)
+
+function pushXfade(): void {
+  if (scene) scene.setParam("uXfade", xf.v);
+}
 
 function applyColorwayChrome(i: number): void {
   const pal = PALETTES[i] ?? PALETTES[10];
@@ -111,6 +117,13 @@ function pushTreatment(): void {
 // (uReveal, linear in v) is still near zero: the two read as out of sync.
 // Scaling uCell by MULT^v makes log-resolution linear in v, so the perceived
 // "resolving" of the marks advances in lockstep with the crossfade.
+// One easing + duration for every dither/reveal transition — the reveal
+// crossfade, the cell depixel, the inversion-revert (driven by uReveal in the
+// shader) and the image-swap dip — so they all move on the same quad curve and
+// stay in sync. ("quad" == GSAP power1; power2 is actually cubic.)
+const DITHER_EASE = "power1.inOut";
+const DITHER_DUR = 0.6;
+
 const rev = { v: 0 };
 const REVEAL_CELL_MULT = 32;
 function effectiveCell(): number {
@@ -133,7 +146,7 @@ function toggleReveal(): void {
     rev.v = look.reveal;
     pushReveal();
   } else {
-    gsap.to(rev, { v: look.reveal, duration: 0.85, ease: "power2.inOut", onUpdate: pushReveal });
+    gsap.to(rev, { v: look.reveal, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushReveal });
   }
 }
 
@@ -141,62 +154,87 @@ function pushImageOn(): void {
   if (scene) scene.setParam("uImageOn", cur.uImageOn);
 }
 
-// Cross-fade to a sample image (or the field). Different image dips through the
-// field — fade out, swap under cover, fade back in.
+// Switch the dithered image (or the field). Image -> image is a true crossfade
+// through the shader's second slot (uXfade), so it never dips through the
+// procedural field — no bright flash between photos. Field <-> image still uses
+// the uImageOn crossfade (the field is not a photo).
 function goImage(key: string): void {
   look.image = key;
   if (!scene) return;
   const targetSrc = key === "field" ? null : sampleSrc(key);
+  const tok = ++txToken;
+  gsap.killTweensOf(cur);
+  gsap.killTweensOf(xf);
 
   if (reduced) {
     if (targetSrc) {
-      cur.uImageOn = 1;
       loadImg(targetSrc).then((im) => {
+        if (tok !== txToken) return;
         if (im && scene) {
           scene.setImage(im);
+          scene.setImage2(null);
           curImageSrc = targetSrc;
-          pushImageOn();
         }
+        cur.uImageOn = 1;
+        xf.v = 0;
+        pushImageOn();
+        pushXfade();
       });
     } else {
       cur.uImageOn = 0;
+      pushImageOn();
     }
-    pushImageOn();
     return;
   }
 
-  const tok = ++txToken;
-  gsap.killTweensOf(cur);
+  // To the field: fade the image out and leave the procedural field.
   if (!targetSrc) {
-    gsap.to(cur, { uImageOn: 0, duration: 0.6, ease: "power2.inOut", onUpdate: pushImageOn });
+    gsap.to(cur, { uImageOn: 0, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushImageOn });
     return;
   }
+  // Same image: just make sure it is fully on.
   if (targetSrc === curImageSrc) {
-    gsap.to(cur, { uImageOn: 1, duration: 0.6, ease: "power2.inOut", onUpdate: pushImageOn });
+    gsap.to(cur, { uImageOn: 1, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushImageOn });
     return;
   }
-  const fadeIn = async (): Promise<void> => {
-    const im = await loadImg(targetSrc);
-    if (tok !== txToken) return;
-    if (im && scene) {
-      scene.setImage(im);
-      curImageSrc = targetSrc;
-    }
-    gsap.to(cur, { uImageOn: 1, duration: 0.6, ease: "power2.out", onUpdate: pushImageOn });
-  };
+  // From the field (or first load): fade the new image in over the field.
   if (!curImageSrc || cur.uImageOn < 0.02) {
-    void fadeIn();
-  } else {
-    gsap.to(cur, {
-      uImageOn: 0,
-      duration: 0.45,
-      ease: "power2.in",
-      onUpdate: pushImageOn,
+    void (async () => {
+      const im = await loadImg(targetSrc);
+      if (tok !== txToken) return;
+      if (im && scene) {
+        scene.setImage(im);
+        curImageSrc = targetSrc;
+      }
+      xf.v = 0;
+      pushXfade();
+      gsap.to(cur, { uImageOn: 1, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushImageOn });
+    })();
+    return;
+  }
+  // Image -> image: load into the second slot and crossfade directly, then
+  // promote it to the primary slot (same pixels, so the handoff is seamless).
+  void (async () => {
+    const im = await loadImg(targetSrc);
+    if (tok !== txToken || !im || !scene) return;
+    scene.setImage2(im);
+    xf.v = 0;
+    pushXfade();
+    gsap.to(xf, {
+      v: 1,
+      duration: DITHER_DUR,
+      ease: DITHER_EASE,
+      onUpdate: pushXfade,
       onComplete: () => {
-        if (tok === txToken) void fadeIn();
+        if (tok !== txToken || !scene) return;
+        scene.setImage(im);
+        scene.setImage2(null);
+        curImageSrc = targetSrc;
+        xf.v = 0;
+        pushXfade();
       },
     });
-  }
+  })();
 }
 
 try {
@@ -474,6 +512,21 @@ function buildDevBar(): void {
   revealCtl.addEventListener("click", toggleReveal);
   revealBtns.push(revealCtl);
   action(output, revealCtl);
+  // Image state: peek at the continuous-tone source the dither reads (with the
+  // current brightness / contrast / invert applied), undithered. Distinct from
+  // Reveal, which shows the photo in natural light (inversion reverted).
+  const stateCtl = document.createElement("button");
+  stateCtl.type = "button";
+  stateCtl.textContent = "Image state";
+  stateCtl.classList.toggle("is-on", !!look.imageState);
+  stateCtl.setAttribute("aria-pressed", String(!!look.imageState));
+  stateCtl.addEventListener("click", () => {
+    look.imageState ^= 1;
+    if (scene) scene.setParam("uImageState", look.imageState);
+    stateCtl.classList.toggle("is-on", !!look.imageState);
+    stateCtl.setAttribute("aria-pressed", String(!!look.imageState));
+  });
+  action(output, stateCtl);
   const copy = document.createElement("button");
   copy.type = "button";
   copy.textContent = "Copy values";
