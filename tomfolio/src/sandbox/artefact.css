@@ -91,55 +91,85 @@ body.art {
   -webkit-text-stroke-color: transparent;
 }
 
-/* Dev-mode panel (only when ?dev): a settings readout + grouped controls. */
+/* Reveal toggle: smoothly resolves the dither into the full-res photo. Anchored
+   bottom-right, subtle, and palette-aware (follows the colorway ink/ground). */
+.art-reveal {
+  position: absolute;
+  right: clamp(18px, 4vw, 64px);
+  bottom: clamp(18px, 4vh, 48px);
+  z-index: 3;
+  appearance: none;
+  margin: 0;
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, var(--ink) 38%, transparent);
+  background: color-mix(in srgb, var(--ground) 65%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--ink);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+.art-reveal:hover {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+}
+
+/* Dev-mode panel (only when ?dev): grouped controls over two rows. */
 .art-dev {
   position: fixed;
   left: 50%;
-  bottom: 16px;
+  bottom: 18px;
   transform: translateX(-50%);
   z-index: 10;
-  width: min(1280px, calc(100vw - 24px));
+  width: min(1180px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  padding: 11px 14px;
-  background: rgba(12, 11, 16, 0.82);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(244, 239, 221, 0.14);
+  padding: 14px 18px;
+  background: rgba(12, 11, 16, 0.86);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(244, 239, 221, 0.16);
   font-family: var(--font-mono, ui-monospace, monospace);
 }
-.art-readout {
-  text-align: center;
-  font-size: 0.6rem;
-  letter-spacing: 0.07em;
-  color: #f4efdd;
-  opacity: 0.55;
-}
 
-/* Grouped control row: Mark · Dissolve · Tone · View, divided by rules. */
+/* Grouped control rows, divided by rules. Two deterministic lines. */
 .art-dev-row {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   justify-content: center;
-  gap: 6px 0;
+  row-gap: 12px;
 }
 .art-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 2px 11px;
-  border-left: 1px solid rgba(244, 239, 221, 0.12);
+  gap: 8px;
+  padding: 2px 16px;
+  border-left: 1px solid rgba(244, 239, 221, 0.14);
 }
 .art-group:first-child {
   border-left: 0;
   padding-left: 2px;
 }
+/* Forces the row to wrap into two deterministic lines. */
+.art-rowbreak {
+  flex-basis: 100%;
+  height: 0;
+}
+/* The group that starts the second row should not show a left divider. */
+.art-rowbreak + .art-group {
+  border-left: 0;
+  padding-left: 2px;
+}
 .art-group-l {
-  font-size: 0.5rem;
-  letter-spacing: 0.18em;
+  font-size: 0.54rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(244, 239, 221, 0.4);
+  color: rgba(244, 239, 221, 0.42);
 }
 .art-group-ctls {
   display: flex;
@@ -153,19 +183,19 @@ body.art {
   gap: 5px;
 }
 .art-ctl-l {
-  font-size: 0.55rem;
+  font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(244, 239, 221, 0.45);
+  color: rgba(244, 239, 221, 0.5);
 }
 .art-dev button {
-  font: 600 0.62rem var(--font-mono, ui-monospace, monospace);
+  font: 600 0.66rem var(--font-mono, ui-monospace, monospace);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #f4efdd;
   background: transparent;
-  border: 1px solid rgba(244, 239, 221, 0.22);
-  padding: 4px 7px;
+  border: 1px solid rgba(244, 239, 221, 0.24);
+  padding: 5px 9px;
   cursor: pointer;
   transition:
     border-color 0.18s ease,
@@ -174,14 +204,49 @@ body.art {
 .art-dev button:hover {
   border-color: #f4efdd;
 }
+/* Dropdowns for multi-option params (motif / colorway / fade). */
+.art-sel {
+  appearance: none;
+  -webkit-appearance: none;
+  font: 600 0.66rem var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.04em;
+  color: #f4efdd;
+  background-color: transparent;
+  border: 1px solid rgba(244, 239, 221, 0.24);
+  padding: 5px 20px 5px 9px;
+  cursor: pointer;
+  border-radius: 0;
+  /* custom caret */
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(244, 239, 221, 0.55) 50%),
+    linear-gradient(135deg, rgba(244, 239, 221, 0.55) 50%, transparent 50%);
+  background-position:
+    right 9px center,
+    right 5px center;
+  background-size:
+    4px 4px,
+    4px 4px;
+  background-repeat: no-repeat;
+  transition: border-color 0.18s ease;
+}
+.art-sel:hover {
+  border-color: #f4efdd;
+}
+.art-sel option {
+  background: #14121a;
+  color: #f4efdd;
+}
 .art-ctl-v {
-  min-width: 50px;
+  min-width: 54px;
   text-align: center;
   color: #f4efdd;
-  font-size: 0.62rem;
+  font-size: 0.66rem;
 }
 button.art-ctl-v {
   text-transform: capitalize;
+}
+button.art-toggle {
+  min-width: 60px;
 }
 .art-step {
   display: flex;

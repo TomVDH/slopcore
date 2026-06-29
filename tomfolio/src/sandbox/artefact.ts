@@ -1,19 +1,18 @@
 /**
  * Corner artefact sandbox.
  *
- * An empty viewport, inset 25px (white margin): the Presswerk dither mounted in
- * the bottom-left, CSS-masked so it dissolves into the deep ground. The
+ * An empty viewport, inset 25px (white margin): the Presswerk dither mounted
+ * full-height in the bottom-left, dissolving into the deep ground. The
  * right-aligned menu lists one item per dither sample (auto-discovered from
  * src/samples/) plus Field; picking one cross-fades the dithered image (dip
- * through the field, swap under cover, fade back in, quad ease). On load each
- * image's mean luminance is measured: a near-black source (a bright subject on
- * black, like the moon) auto-inverts polarity so the subject renders as marks
- * instead of the empty ground. The colorway drives the ground + menu text.
- * With `?dev`, a dev bar exposes the treatment grouped as Mark (motif / cell /
- * colorway), Dissolve (fade / cloud), Tone (brightness / contrast / invert) and
- * View (a Source toggle that previews the raw photo with the current brightness
- * / contrast instead of the dither, plus a Copy-values button) over a live
- * settings readout. `?still` / reduced motion snap; `?nogl` leaves the ground.
+ * through the field, swap under cover, fade back in, quad ease). The colorway
+ * (Palette) drives the ground + menu text. A bottom-right Reveal button smoothly
+ * crossfades the dithered plate to the full-res source photo and back (`uReveal`).
+ * With `?dev`, a grouped dev bar exposes the treatment over two rows — Mark
+ * (motif / cell / palette), Colour (RGB full-colour dither / levels), Tone
+ * (brightness / contrast / invert), Dissolve (fade / cloud), View (Copy values) —
+ * with a live settings readout. `?still` / reduced motion snap; `?nogl` leaves
+ * the ground.
  */
 
 import "../system"; // token + base/component CSS side effects (no custom cursor)
@@ -29,7 +28,12 @@ const reduced =
   window.matchMedia("(prefers-reduced-motion: reduce)").matches || params.has("still");
 
 const MOTIFS = ["Dots", "Disc", "X", "Plus", "Dash"];
-const COLORS = ["Bone", "Blueprint", "Sepia", "Acid", "Cyanotype", "Riso Pink", "Riso Blue", "Steel", "Oxblood", "Mono Inv", "Heather"];
+const COLORS = [
+  "Bone", "Blueprint", "Sepia", "Acid", "Cyanotype", "Riso Pink", "Riso Blue",
+  "Steel", "Oxblood", "Mono Inv", "Heather", "Noir", "Newsprint", "Terminal",
+  "Amber", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum",
+  "Slate Ice", "Rust Sand", "Indigo Sun",
+];
 const FADES = ["off", "simple", "cloud"];
 
 let scene: GlScene | null = null;
@@ -49,7 +53,9 @@ const look = {
   invert: 0,
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
   cloudSize: 1.2, // cloud-noise frequency (mode 2) — smaller = bigger billows
-  showRaw: 0, // debug: 1 shows the raw source photo instead of the dither
+  reveal: 0, // 0 dithered, 1 full-res photo (the Reveal button tweens between)
+  colorDither: 0, // 0 duotone (palette), 1 full-colour ordered dither
+  colorLevels: 4, // posterise steps per channel in colour mode
 };
 
 const imgCache = new Map<string, HTMLImageElement>();
@@ -67,53 +73,9 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-// Mean luminance of an image (downscaled), cached by src. Drives auto-polarity:
-// a near-black source (a bright subject on black, like the moon) dithers better
-// inverted so the subject becomes marks instead of the empty ground. Measured
-// across the sample set, every photographic image scores >= 0.2; only an
-// almost-entirely-black frame falls under the 0.08 threshold.
-const meanLumCache = new Map<string, number>();
-function meanLuminance(im: HTMLImageElement): number {
-  const key = im.src;
-  const hit = meanLumCache.get(key);
-  if (hit !== undefined) return hit;
-  let m = 0.5;
-  const c = document.createElement("canvas");
-  c.width = 48;
-  c.height = 48;
-  const x = c.getContext("2d", { willReadFrequently: true });
-  if (x) {
-    x.drawImage(im, 0, 0, 48, 48);
-    try {
-      const d = x.getImageData(0, 0, 48, 48).data;
-      let s = 0;
-      for (let i = 0; i < d.length; i += 4) {
-        s += (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
-      }
-      m = s / (d.length / 4);
-    } catch {
-      m = 0.5;
-    }
-  }
-  meanLumCache.set(key, m);
-  return m;
-}
-const DARK_IMAGE_LUM = 0.08; // below this, auto-invert (bright subject on black)
-
 let curImageSrc: string | null = null;
 let txToken = 0;
 const cur = { uImageOn: 0 }; // tweened field<->image crossfade amount
-
-let readoutEl: HTMLElement | null = null;
-function updateReadout(): void {
-  if (!readoutEl) return;
-  const fade = FADES[look.fadeMode] + (look.fadeMode === 2 ? ` ${look.cloudSize.toFixed(1)}` : "");
-  readoutEl.textContent =
-    `${look.image} · ${MOTIFS[look.motif].toLowerCase()} · ${COLORS[look.colorway].toLowerCase()} · ` +
-    `cell ${look.cell} · bright ${look.brightness.toFixed(2)} · contrast ${look.contrast.toFixed(2)} · ` +
-    `tone ${look.tone.toFixed(2)} · inv ${look.invert ? "on" : "off"} · fade ${fade}` +
-    (look.showRaw ? " · RAW PHOTO" : "");
-}
 
 function applyColorwayChrome(i: number): void {
   const pal = PALETTES[i] ?? PALETTES[10];
@@ -125,7 +87,7 @@ function pushTreatment(): void {
   if (!scene) return;
   scene.setParam("uMotif", look.motif);
   scene.setParam("uColorway", look.colorway);
-  scene.setParam("uCell", look.cell);
+  scene.setParam("uCell", effectiveCell());
   scene.setParam("uMotifWeight", look.weight);
   scene.setParam("uMotifAngle", look.angle);
   scene.setParam("uMotifTone", look.tone);
@@ -134,36 +96,48 @@ function pushTreatment(): void {
   scene.setParam("uInvert", look.invert);
   scene.setParam("uFadeMode", look.fadeMode);
   scene.setParam("uFadeScale", look.cloudSize);
-  scene.setParam("uShowRaw", look.showRaw);
+  scene.setParam("uColorDither", look.colorDither);
+  scene.setParam("uColorLevels", look.colorLevels);
   applyColorwayChrome(look.colorway);
-  updateReadout();
+}
+
+// Reveal: smoothly crossfade the dither <-> full-res photo AND ramp the cell
+// frequency up 32x so the marks shrink and resolve into the image. `rev.v` is
+// the tweened amount [0..1]; `look.reveal` is the 0/1 target the button flips.
+const rev = { v: 0 };
+const REVEAL_CELL_MULT = 32;
+function effectiveCell(): number {
+  return Math.round(look.cell * (1 + (REVEAL_CELL_MULT - 1) * rev.v));
+}
+function pushReveal(): void {
+  if (!scene) return;
+  scene.setParam("uReveal", rev.v);
+  scene.setParam("uCell", effectiveCell());
+}
+const revealBtns: HTMLButtonElement[] = [];
+function syncRevealBtns(): void {
+  for (const b of revealBtns) b.textContent = look.reveal ? "Dither" : "Reveal";
+}
+function toggleReveal(): void {
+  look.reveal ^= 1;
+  syncRevealBtns();
+  gsap.killTweensOf(rev);
+  if (reduced) {
+    rev.v = look.reveal;
+    pushReveal();
+  } else {
+    gsap.to(rev, { v: look.reveal, duration: 0.85, ease: "power2.inOut", onUpdate: pushReveal });
+  }
 }
 
 function pushImageOn(): void {
   if (scene) scene.setParam("uImageOn", cur.uImageOn);
 }
 
-// Refreshes the dev-bar control labels from `look` (assigned by buildDevBar).
-// A no-op until the dev bar is built; lets auto-polarity update the Invert
-// control instead of leaving it stale.
-let refreshDevBar: () => void = () => {};
-
-function setPolarity(v: number): void {
-  look.invert = v;
-  if (scene) scene.setParam("uInvert", v);
-  updateReadout();
-  refreshDevBar();
-}
-
-function autoPolarity(im: HTMLImageElement): void {
-  setPolarity(meanLuminance(im) < DARK_IMAGE_LUM ? 1 : 0);
-}
-
 // Cross-fade to a sample image (or the field). Different image dips through the
 // field — fade out, swap under cover, fade back in.
 function goImage(key: string): void {
   look.image = key;
-  updateReadout();
   if (!scene) return;
   const targetSrc = key === "field" ? null : sampleSrc(key);
 
@@ -172,7 +146,6 @@ function goImage(key: string): void {
       cur.uImageOn = 1;
       loadImg(targetSrc).then((im) => {
         if (im && scene) {
-          autoPolarity(im);
           scene.setImage(im);
           curImageSrc = targetSrc;
           pushImageOn();
@@ -180,7 +153,6 @@ function goImage(key: string): void {
       });
     } else {
       cur.uImageOn = 0;
-      setPolarity(0);
     }
     pushImageOn();
     return;
@@ -189,15 +161,7 @@ function goImage(key: string): void {
   const tok = ++txToken;
   gsap.killTweensOf(cur);
   if (!targetSrc) {
-    // Reset polarity to the field default after the image has faded out, so the
-    // outgoing photo keeps its own polarity while dissolving.
-    gsap.to(cur, {
-      uImageOn: 0,
-      duration: 0.6,
-      ease: "power2.inOut",
-      onUpdate: pushImageOn,
-      onComplete: () => setPolarity(0),
-    });
+    gsap.to(cur, { uImageOn: 0, duration: 0.6, ease: "power2.inOut", onUpdate: pushImageOn });
     return;
   }
   if (targetSrc === curImageSrc) {
@@ -208,7 +172,6 @@ function goImage(key: string): void {
     const im = await loadImg(targetSrc);
     if (tok !== txToken) return;
     if (im && scene) {
-      autoPolarity(im); // swap polarity under cover, with the new texture
       scene.setImage(im);
       curImageSrc = targetSrc;
     }
@@ -267,6 +230,17 @@ if (menu) {
   }
 }
 
+/* ---- Reveal button: smoothly resolve the dither into the full-res photo ---- */
+if (scene) {
+  const rb = document.createElement("button");
+  rb.type = "button";
+  rb.className = "art-reveal";
+  rb.textContent = "Reveal";
+  rb.addEventListener("click", toggleReveal);
+  revealBtns.push(rb);
+  (document.querySelector(".art-frame") ?? document.body).appendChild(rb);
+}
+
 /* ---- Dev bar (?dev): treatment toggles + live readout + copy values ---- */
 function flash(btn: HTMLElement, msg: string): void {
   const prev = btn.textContent;
@@ -281,18 +255,9 @@ function buildDevBar(): void {
   const bar = document.createElement("div");
   bar.className = "art-dev";
 
-  readoutEl = document.createElement("div");
-  readoutEl.className = "art-readout";
-  bar.appendChild(readoutEl);
-  updateReadout();
-
   const row = document.createElement("div");
   row.className = "art-dev-row";
   bar.appendChild(row);
-
-  // Each control registers a refresher so external state changes (e.g. auto-
-  // polarity flipping Invert on image load) keep the bar in sync.
-  const refreshers: (() => void)[] = [];
 
   // A labeled group of controls, separated by dividers in the row.
   const group = (label: string): HTMLElement => {
@@ -318,22 +283,31 @@ function buildDevBar(): void {
     into.appendChild(w);
   };
 
-  // A value button that advances through options on click.
-  const cycle = (into: HTMLElement, label: string, get: () => string, advance: () => void): void => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "art-ctl-v";
-    btn.textContent = get();
-    btn.addEventListener("click", () => {
-      advance();
-      pushTreatment();
-      btn.textContent = get();
+  // A dropdown for multi-option params (motif, colorway, fade).
+  const select = (
+    into: HTMLElement,
+    label: string,
+    options: readonly string[],
+    get: () => number,
+    set: (i: number) => void,
+  ): void => {
+    const sel = document.createElement("select");
+    sel.className = "art-sel";
+    options.forEach((opt, i) => {
+      const o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = opt;
+      sel.appendChild(o);
     });
-    refreshers.push(() => { btn.textContent = get(); });
-    ctl(into, label, btn);
+    sel.value = String(get());
+    sel.addEventListener("change", () => {
+      set(parseInt(sel.value, 10));
+      pushTreatment();
+    });
+    ctl(into, label, sel);
   };
 
-  // A [-] value [+] stepper.
+  // A [−] value [+] stepper for numerics.
   const stepper = (
     into: HTMLElement,
     label: string,
@@ -352,33 +326,34 @@ function buildDevBar(): void {
     const plus = document.createElement("button");
     plus.type = "button";
     plus.textContent = "+";
-    minus.addEventListener("click", () => {
-      dec();
-      pushTreatment();
-      val.textContent = get();
-    });
-    plus.addEventListener("click", () => {
-      inc();
-      pushTreatment();
-      val.textContent = get();
-    });
-    refreshers.push(() => { val.textContent = get(); });
+    minus.addEventListener("click", () => { dec(); pushTreatment(); val.textContent = get(); });
+    plus.addEventListener("click", () => { inc(); pushTreatment(); val.textContent = get(); });
     grp.append(minus, val, plus);
     ctl(into, label, grp);
   };
 
+  // A small two-state toggle button.
+  const toggle = (into: HTMLElement, label: string, get: () => string, flip: () => void): void => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "art-ctl-v art-toggle";
+    btn.textContent = get();
+    btn.addEventListener("click", () => { flip(); pushTreatment(); btn.textContent = get(); });
+    ctl(into, label, btn);
+  };
+
   const mark = group("Mark");
-  cycle(mark, "Motif", () => MOTIFS[look.motif], () => { look.motif = (look.motif + 1) % MOTIFS.length; });
+  select(mark, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; });
   stepper(mark, "Cell", () => String(look.cell),
     () => { look.cell = Math.max(60, look.cell - 12); },
     () => { look.cell = Math.min(320, look.cell + 12); });
-  cycle(mark, "Color", () => COLORS[look.colorway], () => { look.colorway = (look.colorway + 1) % COLORS.length; });
+  select(mark, "Palette", COLORS, () => look.colorway, (i) => { look.colorway = i; });
 
-  const dissolve = group("Dissolve");
-  cycle(dissolve, "Fade", () => FADES[look.fadeMode], () => { look.fadeMode = (look.fadeMode + 1) % FADES.length; });
-  stepper(dissolve, "Cloud", () => look.cloudSize.toFixed(1),
-    () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
-    () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
+  const colour = group("Colour");
+  toggle(colour, "RGB", () => (look.colorDither ? "on" : "off"), () => { look.colorDither ^= 1; });
+  stepper(colour, "Levels", () => String(look.colorLevels),
+    () => { look.colorLevels = Math.max(2, look.colorLevels - 1); },
+    () => { look.colorLevels = Math.min(8, look.colorLevels + 1); });
 
   const tone = group("Tone");
   stepper(tone, "Bright", () => look.brightness.toFixed(2),
@@ -387,11 +362,28 @@ function buildDevBar(): void {
   stepper(tone, "Contrast", () => look.contrast.toFixed(2),
     () => { look.contrast = Math.max(0.4, +(look.contrast - 0.1).toFixed(2)); },
     () => { look.contrast = Math.min(2.6, +(look.contrast + 0.1).toFixed(2)); });
-  cycle(tone, "Invert", () => (look.invert ? "on" : "off"), () => { look.invert ^= 1; });
+  toggle(tone, "Invert", () => (look.invert ? "on" : "off"), () => { look.invert ^= 1; });
+
+  // Force a second row: image-look controls above, scene + utilities below.
+  const br = document.createElement("div");
+  br.className = "art-rowbreak";
+  row.appendChild(br);
+
+  const dissolve = group("Dissolve");
+  select(dissolve, "Fade", FADES, () => look.fadeMode, (i) => { look.fadeMode = i; });
+  stepper(dissolve, "Cloud", () => look.cloudSize.toFixed(1),
+    () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
+    () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
 
   // Meta / debug controls grouped apart from the treatment.
   const view = group("View");
-  cycle(view, "Source", () => (look.showRaw ? "photo" : "dither"), () => { look.showRaw ^= 1; });
+  const revealCtl = document.createElement("button");
+  revealCtl.type = "button";
+  revealCtl.className = "art-ctl-v art-toggle";
+  revealCtl.textContent = look.reveal ? "Dither" : "Reveal";
+  revealCtl.addEventListener("click", toggleReveal);
+  revealBtns.push(revealCtl);
+  ctl(view, "Photo", revealCtl);
   const copy = document.createElement("button");
   copy.type = "button";
   copy.className = "art-copy";
@@ -405,10 +397,6 @@ function buildDevBar(): void {
     }
   });
   view.appendChild(copy);
-
-  refreshDevBar = () => {
-    for (const r of refreshers) r();
-  };
 
   document.body.appendChild(bar);
 }

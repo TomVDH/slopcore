@@ -47,7 +47,9 @@ export const pressFrag = /* glsl */ `
   uniform float uImageContrast;   // contrast of the sampled image around mid-grey
   uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
   uniform float uFadeScale;       // cloud-noise frequency for fade mode 2 (smaller = bigger billows)
-  uniform float uShowRaw;         // debug: 1 bypasses the dither/dissolve, shows the source photo
+  uniform float uReveal;          // 0 dithered, 1 full-res photo; crossfades the dither -> source
+  uniform float uColorDither;     // 0 duotone (paper/ink), 1 full-colour ordered dither of the photo
+  uniform float uColorLevels;     // posterise steps per RGB channel in colour mode (2 = heavy dither)
 
   float hash(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -112,7 +114,20 @@ export const pressFrag = /* glsl */ `
     else if (uColorway < 7.5) { paper = vec3(0.106,0.118,0.137); ink = vec3(0.722,0.760,0.800); accent = vec3(0.298,0.792,0.886); } // 7 steel
     else if (uColorway < 8.5) { paper = vec3(0.129,0.043,0.051); ink = vec3(0.902,0.871,0.800); accent = vec3(0.851,0.200,0.149); } // 8 oxblood
     else if (uColorway < 9.5) { paper = vec3(0.043,0.043,0.047); ink = vec3(0.953,0.949,0.937); accent = vec3(0.902,0.098,0.098); } // 9 mono invert
-    else if (uColorway > 9.5) { paper = vec3(0.165,0.149,0.212); ink = vec3(0.957,0.937,0.867); accent = vec3(0.776,0.553,0.604); } // 10 heather (deep gray-purple / cream)
+    else if (uColorway < 10.5) { paper = vec3(0.165,0.149,0.212); ink = vec3(0.957,0.937,0.867); accent = vec3(0.776,0.553,0.604); } // 10 heather (deep gray-purple / cream)
+    else if (uColorway < 11.5) { paper = vec3(0.031,0.031,0.039); ink = vec3(0.910,0.910,0.918); accent = vec3(1.000,0.231,0.188); } // 11 noir
+    else if (uColorway < 12.5) { paper = vec3(0.851,0.831,0.780); ink = vec3(0.102,0.098,0.086); accent = vec3(0.541,0.169,0.122); } // 12 newsprint
+    else if (uColorway < 13.5) { paper = vec3(0.016,0.071,0.039); ink = vec3(0.235,1.000,0.478); accent = vec3(0.839,1.000,0.000); } // 13 terminal
+    else if (uColorway < 14.5) { paper = vec3(0.063,0.039,0.008); ink = vec3(1.000,0.690,0.000); accent = vec3(1.000,0.369,0.227); } // 14 amber crt
+    else if (uColorway < 15.5) { paper = vec3(0.769,0.812,0.631); ink = vec3(0.118,0.176,0.102); accent = vec3(0.353,0.478,0.227); } // 15 gameboy
+    else if (uColorway < 16.5) { paper = vec3(0.071,0.039,0.141); ink = vec3(0.851,0.761,1.000); accent = vec3(1.000,0.353,0.851); } // 16 ultraviolet
+    else if (uColorway < 17.5) { paper = vec3(0.027,0.192,0.184); ink = vec3(0.843,0.941,0.918); accent = vec3(1.000,0.478,0.349); } // 17 lagoon
+    else if (uColorway < 18.5) { paper = vec3(0.102,0.078,0.027); ink = vec3(1.000,0.824,0.290); accent = vec3(1.000,0.478,0.000); } // 18 marigold
+    else if (uColorway < 19.5) { paper = vec3(0.078,0.090,0.102); ink = vec3(0.749,0.914,0.816); accent = vec3(0.212,0.878,0.627); } // 19 mint iron
+    else if (uColorway < 20.5) { paper = vec3(0.169,0.078,0.188); ink = vec3(0.941,0.886,0.816); accent = vec3(0.906,0.635,0.235); } // 20 plum
+    else if (uColorway < 21.5) { paper = vec3(0.110,0.145,0.188); ink = vec3(0.902,0.941,0.969); accent = vec3(0.353,0.820,1.000); } // 21 slate ice
+    else if (uColorway < 22.5) { paper = vec3(0.941,0.890,0.812); ink = vec3(0.353,0.141,0.063); accent = vec3(0.761,0.286,0.114); } // 22 rust sand
+    else if (uColorway < 23.5) { paper = vec3(0.059,0.075,0.251); ink = vec3(0.910,0.902,1.000); accent = vec3(1.000,0.824,0.247); } // 23 indigo sun
 
     // Tone source: crossfade the procedural field and a sampled image by
     // uImageOn (0 field, 1 image). Animating uImageOn lets the dots flow
@@ -199,7 +214,21 @@ export const pressFrag = /* glsl */ `
     else if (uMotif > 3.5)                 motif = mDash;
 
     float inkAmt = (1.0 - on) * motif;
-    vec3 col = mix(paper, ink, inkAmt);
+    vec3 col;
+    if (uColorDither > 0.5 && uImageOn > 0.5) {
+      // Full-colour ordered dither: the mark carries the image's actual RGB,
+      // posterised per channel with the cell's Bayer value so it still reads as
+      // a dither. Solid motif -> full-colour field; disc/X/etc -> colour halftone
+      // marks. The colorway's paper stays the ground between marks.
+      vec3 src = texture2D(uImage, iuv).rgb;
+      src = clamp((src - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      src = mix(src, 1.0 - src, uInvert);
+      float L = max(uColorLevels, 2.0);
+      vec3 q = floor(src * (L - 1.0) + bayer4(cellId)) / (L - 1.0);
+      col = mix(paper, q, motif);
+    } else {
+      col = mix(paper, ink, inkAmt);
+    }
     col = mix(paper, col, cov); // organic cloud fade of the marks into the ground
 
     // Aviation-red registration cross (position / size / visibility editable).
@@ -207,13 +236,15 @@ export const pressFrag = /* glsl */ `
     float cross = uCrossOn * step(min(cd.x, cd.y), 0.006) * step(max(cd.x, cd.y), uCrossSize);
     col = mix(col, accent, cross);
 
-    // Debug: show the raw cover-fit source photo (with the current brightness /
-    // contrast) instead of the dither, bypassing the dissolve. Lets you confirm
-    // the source texture itself is intact when the halftone looks wrong.
-    if (uShowRaw > 0.5) {
+    // Reveal: crossfade the whole dithered composite toward the full-res
+    // cover-fit photo (with the current brightness / contrast / invert),
+    // bypassing the dissolve. Animating uReveal 0 -> 1 resolves the marks into
+    // the source image; at 1 it also serves as a raw-source check.
+    if (uReveal > 0.001 && uImageOn > 0.5) {
       vec3 raw = texture2D(uImage, iuv).rgb;
       raw = clamp((raw - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      col = raw;
+      raw = mix(raw, 1.0 - raw, uInvert);
+      col = mix(col, raw, clamp(uReveal, 0.0, 1.0));
     }
 
     gl_FragColor = vec4(col, 1.0);
@@ -244,4 +275,17 @@ export const PALETTES: Palette[] = [
   { paper: "#210b0d", ink: "#e6decc", accent: "#d93326" }, // 8  Oxblood
   { paper: "#0b0b0c", ink: "#f3f2ef", accent: "#e61919" }, // 9  Mono Invert
   { paper: "#2a2636", ink: "#f4efdd", accent: "#c68d9a" }, // 10 Heather
+  { paper: "#08080a", ink: "#e8e8ea", accent: "#ff3b30" }, // 11 Noir
+  { paper: "#d9d4c7", ink: "#1a1916", accent: "#8a2b1f" }, // 12 Newsprint
+  { paper: "#04120a", ink: "#3cff7a", accent: "#d6ff00" }, // 13 Terminal
+  { paper: "#100a02", ink: "#ffb000", accent: "#ff5e3a" }, // 14 Amber CRT
+  { paper: "#c4cfa1", ink: "#1e2d1a", accent: "#5a7a3a" }, // 15 Gameboy
+  { paper: "#120a24", ink: "#d9c2ff", accent: "#ff5ad9" }, // 16 Ultraviolet
+  { paper: "#07312f", ink: "#d7f0ea", accent: "#ff7a59" }, // 17 Lagoon
+  { paper: "#1a1407", ink: "#ffd24a", accent: "#ff7a00" }, // 18 Marigold
+  { paper: "#14171a", ink: "#bfe9d0", accent: "#36e0a0" }, // 19 Mint Iron
+  { paper: "#2b1430", ink: "#f0e2d0", accent: "#e7a23c" }, // 20 Plum
+  { paper: "#1c2530", ink: "#e6f0f7", accent: "#5ad1ff" }, // 21 Slate Ice
+  { paper: "#f0e3cf", ink: "#5a2410", accent: "#c2491d" }, // 22 Rust Sand
+  { paper: "#0f1340", ink: "#e8e6ff", accent: "#ffd23f" }, // 23 Indigo Sun
 ];

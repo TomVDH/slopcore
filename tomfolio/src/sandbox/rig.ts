@@ -54,8 +54,10 @@ type Param =
 
 const PARAMS: Param[] = [
   { key: "uMotif", label: "Motif", kind: "select", options: ["Dots", "Disc", "X", "Plus", "Dash"], def: 0 },
-  { key: "uColorway", label: "Colorway", kind: "select", options: ["Bone / Carbon", "Blueprint", "Sepia", "Acid Lime", "Cyanotype", "Riso Pink", "Riso Blue", "Steel", "Oxblood", "Mono Invert", "Heather"], def: 0 },
+  { key: "uColorway", label: "Colorway", kind: "select", options: ["Bone / Carbon", "Blueprint", "Sepia", "Acid Lime", "Cyanotype", "Riso Pink", "Riso Blue", "Steel", "Oxblood", "Mono Invert", "Heather", "Noir", "Newsprint", "Terminal", "Amber CRT", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum", "Slate Ice", "Rust Sand", "Indigo Sun"], def: 0 },
   { key: "uImageOn", label: "Dither image", kind: "toggle", def: 0 },
+  { key: "uColorDither", label: "Full colour", kind: "toggle", def: 0 },
+  { key: "uColorLevels", label: "Colour levels", kind: "range", min: 2, max: 8, step: 1, def: 4 },
   { key: "uInvert", label: "Invert", kind: "toggle", def: 0 },
   { key: "uFade", label: "Edge fade", kind: "range", min: 0, max: 1, step: 0.01, def: 0 },
   { key: "uMotifWeight", label: "Mark weight", kind: "range", min: 0.1, max: 1, step: 0.01, def: 0.5 },

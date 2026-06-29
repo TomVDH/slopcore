@@ -109,7 +109,9 @@ export function initScene(
     uImageContrast: { value: 1 },
     uFadeMode: { value: 0 },
     uFadeScale: { value: 3 },
-    uShowRaw: { value: 0 }, // debug: 1 bypasses the dither, shows the source photo
+    uReveal: { value: 0 }, // 0 dithered, 1 full-res photo (crossfade)
+    uColorDither: { value: 0 }, // 0 duotone, 1 full-colour ordered dither
+    uColorLevels: { value: 4 }, // posterise steps per channel in colour mode
   };
 
   const material = new THREE.ShaderMaterial({
