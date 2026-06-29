@@ -33,6 +33,12 @@ const COLORS = [
   "Steel", "Oxblood", "Mono Inv", "Heather", "Noir", "Newsprint", "Terminal",
   "Amber", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum",
   "Slate Ice", "Rust Sand", "Indigo Sun",
+  "Emerald", "Ruby", "Sapphire", "Amethyst", "Topaz", "Jade",
+  "Bubblegum", "Mint Cream", "Butter", "Periwinkle", "Peach", "Lilac",
+  "Hot Pink", "Cyber", "Volt", "Laser", "Electric",
+  "Moss", "Clay", "Saffron", "Fernway", "Dune",
+  "Miami", "Vaporwave", "Chrome", "Dusk Grid",
+  "Cobalt", "Forest Lemon", "Oxide", "Klein Pop",
 ];
 // Index === uCursorMode value === the shader's if-ladder (keep in lockstep).
 const CURSOR_MODES = ["Off", "Clear", "Ink", "Bias", "Negative", "Develop"];
@@ -63,6 +69,7 @@ const look = {
   cursorRadius: 2.2, // cursor disc falloff (larger = tighter)
   cursorHold: 0, // static persistence floor under the movement-driven strength
   cursorEdge: 0.25, // negative-mode disc hardness
+  cursorDetail: 3, // develop-mode cell multiplier (finer marks under the cursor)
 };
 
 const imgCache = new Map<string, HTMLImageElement>();
@@ -115,6 +122,7 @@ function pushTreatment(): void {
   scene.setParam("uCursorRadius", look.cursorRadius);
   scene.setParam("uHold", look.cursorHold);
   scene.setParam("uCursorEdge", look.cursorEdge);
+  scene.setParam("uDevFine", look.cursorDetail);
   applyColorwayChrome(look.colorway);
 }
 
@@ -129,12 +137,23 @@ function pushTreatment(): void {
 // (uReveal, linear in v) is still near zero: the two read as out of sync.
 // Scaling uCell by MULT^v makes log-resolution linear in v, so the perceived
 // "resolving" of the marks advances in lockstep with the crossfade.
-// One easing + duration for every dither/reveal transition — the reveal
-// crossfade, the cell depixel, the inversion-revert (driven by uReveal in the
-// shader) and the image-swap dip — so they all move on the same quad curve and
-// stay in sync. ("quad" == GSAP power1; power2 is actually cubic.)
-const DITHER_EASE = "power1.inOut";
-const DITHER_DUR = 0.6;
+// Live-tunable motion for every dither/reveal transition — the Reveal crossfade
+// + geometric cell depixel, and all the image crossfades — so they move as one.
+// Driven by the dev-bar Motion group for testing. Default is a quint ease-OUT:
+// fast attack, then a long deceleration that settles into the final frame, so
+// the motion lands instead of gliding (matches the collapse's easeOutQuint). The
+// list leans ease-out (slow into the end), plus a couple of comparison curves.
+const EASES: ReadonlyArray<readonly [string, string]> = [
+  ["Cubic out", "power2.out"],
+  ["Quart out", "power3.out"],
+  ["Quint out", "power4.out"],
+  ["Expo out", "expo.out"],
+  ["Circ out", "circ.out"],
+  ["Quint inout", "power4.inOut"],
+  ["Back out", "back.out(1.6)"],
+];
+const motion = { easeIdx: 2, dur: 0.6 }; // default: Quint out, 0.6s
+const mEase = (): string => EASES[motion.easeIdx][1];
 
 const rev = { v: 0 };
 const REVEAL_CELL_MULT = 32;
@@ -158,7 +177,7 @@ function toggleReveal(): void {
     rev.v = look.reveal;
     pushReveal();
   } else {
-    gsap.to(rev, { v: look.reveal, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushReveal });
+    gsap.to(rev, { v: look.reveal, duration: motion.dur, ease: mEase(), onUpdate: pushReveal });
   }
 }
 
@@ -201,12 +220,12 @@ function goImage(key: string): void {
 
   // To the field: fade the image out and leave the procedural field.
   if (!targetSrc) {
-    gsap.to(cur, { uImageOn: 0, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushImageOn });
+    gsap.to(cur, { uImageOn: 0, duration: motion.dur, ease: mEase(), onUpdate: pushImageOn });
     return;
   }
   // Same image: just make sure it is fully on.
   if (targetSrc === curImageSrc) {
-    gsap.to(cur, { uImageOn: 1, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushImageOn });
+    gsap.to(cur, { uImageOn: 1, duration: motion.dur, ease: mEase(), onUpdate: pushImageOn });
     return;
   }
   // From the field (or first load): fade the new image in over the field.
@@ -220,7 +239,7 @@ function goImage(key: string): void {
       }
       xf.v = 0;
       pushXfade();
-      gsap.to(cur, { uImageOn: 1, duration: DITHER_DUR, ease: DITHER_EASE, onUpdate: pushImageOn });
+      gsap.to(cur, { uImageOn: 1, duration: motion.dur, ease: mEase(), onUpdate: pushImageOn });
     })();
     return;
   }
@@ -234,8 +253,8 @@ function goImage(key: string): void {
     pushXfade();
     gsap.to(xf, {
       v: 1,
-      duration: DITHER_DUR,
-      ease: DITHER_EASE,
+      duration: motion.dur,
+      ease: mEase(),
       onUpdate: pushXfade,
       onComplete: () => {
         if (tok !== txToken || !scene) return;
@@ -541,6 +560,16 @@ function buildDevBar(): void {
   const edgeCtl = stepper(cursor, "Edge", () => look.cursorEdge.toFixed(2),
     () => { look.cursorEdge = Math.max(0, +(look.cursorEdge - 0.05).toFixed(2)); },
     () => { look.cursorEdge = Math.min(0.8, +(look.cursorEdge + 0.05).toFixed(2)); });
+  const detailCtl = stepper(cursor, "Detail", () => `${look.cursorDetail.toFixed(1)}x`,
+    () => { look.cursorDetail = Math.max(1, +(look.cursorDetail - 0.5).toFixed(1)); },
+    () => { look.cursorDetail = Math.min(8, +(look.cursorDetail + 0.5).toFixed(1)); });
+
+  // MOTION — the easing curve + duration of every dither/reveal transition.
+  const mo = group("Motion");
+  select(mo, "Ease", EASES.map((e) => e[0]), () => motion.easeIdx, (i) => { motion.easeIdx = i; });
+  stepper(mo, "Duration", () => `${motion.dur.toFixed(2)}s`,
+    () => { motion.dur = Math.max(0.15, +(motion.dur - 0.05).toFixed(2)); },
+    () => { motion.dur = Math.min(1.5, +(motion.dur + 0.05).toFixed(2)); });
 
   // OUTPUT — reveal the source + export the settings.
   const output = group("Output");
@@ -583,6 +612,7 @@ function buildDevBar(): void {
     setNA(levelsCtl, !look.colorDither);
     setNA(cloudCtl, look.fadeMode !== 2);
     setNA(edgeCtl, look.cursorMode !== 4); // Edge applies only to Negative
+    setNA(detailCtl, look.cursorMode !== 5); // Detail applies only to Develop
   }
   refreshNA();
 
