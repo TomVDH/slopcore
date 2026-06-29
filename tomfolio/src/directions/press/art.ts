@@ -160,8 +160,16 @@ export const pressFrag = /* glsl */ `
     float img = dot(imgRGB, vec3(0.299, 0.587, 0.114));
     img = clamp((img - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
 
-    float lum = mix(field, img, clamp(uImageOn, 0.0, 1.0));
-    lum = mix(lum, 1.0 - lum, uInvert); // polarity invert (dither stylization)
+    // Auto-polarity for the IMAGE: the screen inks dark tones, so a natural photo
+    // on a dark-paper stock would read as a negative. Flip the image automatically
+    // when the paper is dark, so an un-inverted photo renders in natural polarity
+    // on ANY colorway; uInvert steps to the negative from there. The procedural
+    // field has no "true" polarity, so it keeps the raw uInvert (unchanged look).
+    float paperLum = dot(paper, vec3(0.299, 0.587, 0.114));
+    float imgInv = mod(step(paperLum, 0.5) + uInvert, 2.0);
+    img = mix(img, 1.0 - img, imgInv);
+    float fieldP = mix(field, 1.0 - field, uInvert);
+    float lum = mix(fieldP, img, clamp(uImageOn, 0.0, 1.0));
 
     // The interactive cursor. One shared local-influence scalar (infl) (a soft
     // disc of cursor energy) drives every mode; it is built only from p (one
@@ -270,26 +278,73 @@ export const pressFrag = /* glsl */ `
     float cross = uCrossOn * step(min(cd.x, cd.y), 0.006) * step(max(cd.x, cd.y), uCrossSize);
     col = mix(col, accent, cross);
 
-    // Reveal: crossfade the dithered composite toward the full-res photo in its
-    // NATURAL light — the true source, with no invert / brightness / contrast
-    // applied — so it resolves straight to true colour and never passes through a
-    // negative (the dither's own invert is a separate stylization on the marks).
-    // Develop (cursor mode 5) rubs that same true photo in locally, gated by infl;
-    // max() with uReveal so the global Reveal button still works.
+    // Reveal / Develop. Global Reveal (uReveal) resolves the whole plate to the
+    // full-res photo in NATURAL light (true source, no invert/brightness/contrast)
+    // so it never passes through a negative. Develop (cursor mode 5) does the same
+    // locally under the pointer AND first raises the cell count there: a finer
+    // sub-dither blends in as you press, then resolves to the photo. The sub-grid
+    // is a clean uniform divisor of gl_FragCoord (cell / 3) — every fragment in a
+    // cell agrees, so the finer marks stay crisp and never shatter.
     float localRev = (uCursorMode > 4.5 && uCursorMode < 5.5)
       ? clamp(uCursorAmp * infl, 0.0, 1.0) : 0.0;
-    float revAmt = max(clamp(uReveal, 0.0, 1.0), localRev);
-    if (revAmt > 0.001 && uImageOn > 0.5) {
-      col = mix(col, clamp(imgRGB, 0.0, 1.0), revAmt);
+
+    if (localRev > 0.001 && uImageOn > 0.5) {
+      float fcell = max(cell / 3.0, 2.0);
+      vec2 fId = floor(gl_FragCoord.xy / fcell);
+      vec2 fLocal = fract(gl_FragCoord.xy / fcell);
+      vec2 fBase = (fId + 0.5) * fcell / uRes;
+      vec3 fRGB = mix(texture2D(uImage, (fBase - 0.5) * isc0 + 0.5).rgb,
+                      texture2D(uImage2, (fBase - 0.5) * isc1 + 0.5).rgb,
+                      clamp(uXfade, 0.0, 1.0));
+      float faa = clamp(0.9 / fcell, 0.001, 0.25);
+      vec2 flc = fLocal - 0.5;
+      float fang = uMotifAngle * 6.2831853;
+      float fcs = cos(fang), fsn = sin(fang);
+      flc = mat2(fcs, -fsn, fsn, fcs) * flc;
+      vec2 frl = flc + 0.5;
+      float fDisc = 1.0 - smoothstep(wEff - faa, wEff + faa, length(flc));
+      float fX    = 1.0 - smoothstep(wEff - faa, wEff + faa, min(abs(frl.x - frl.y), abs(frl.x + frl.y - 1.0)) * 0.7071);
+      float fPlus = 1.0 - smoothstep(wEff - faa, wEff + faa, min(abs(flc.x), abs(flc.y)));
+      float fDash = 1.0 - smoothstep(wEff - faa, wEff + faa, abs(flc.y));
+      float fmotif = 1.0;
+      if      (uMotif > 0.5 && uMotif < 1.5) fmotif = fDisc;
+      else if (uMotif < 2.5)                 fmotif = fX;
+      else if (uMotif < 3.5)                 fmotif = fPlus;
+      else if (uMotif > 3.5)                 fmotif = fDash;
+      vec3 fineCol;
+      if (uColorDither > 0.5) {
+        vec3 fsrc = clamp((fRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+        fsrc = mix(fsrc, 1.0 - fsrc, uInvert);
+        float fL = max(uColorLevels, 2.0);
+        vec3 fq = floor(fsrc * (fL - 1.0) + bayer4(fId)) / (fL - 1.0);
+        fineCol = mix(paper, fq, fmotif);
+      } else {
+        float fLum = dot(fRGB, vec3(0.299, 0.587, 0.114));
+        fLum = clamp((fLum - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+        fLum = mix(fLum, 1.0 - fLum, imgInv);
+        float fon = step(bayer4(fId) + uThreshold, clamp(fLum, 0.0, 1.0));
+        fineCol = mix(paper, ink, (1.0 - fon) * fmotif);
+      }
+      col = mix(col, fineCol, smoothstep(0.04, 0.55, localRev)); // marks refine first
     }
 
-    // Image state (dev): the continuous-tone source the dither reads — with the
-    // current brightness / contrast / invert applied (uInvert, not reverted), but
-    // NOT dithered and not dissolved. Lets you see what is fed into the screen.
+    // Resolve to the true photo: global reveal, or the late stage of Develop.
+    float photoT = max(clamp(uReveal, 0.0, 1.0), smoothstep(0.45, 1.0, localRev));
+    if (photoT > 0.001 && uImageOn > 0.5) {
+      col = mix(col, clamp(imgRGB, 0.0, 1.0), photoT);
+    }
+
+    // Image state (dev): the continuous-tone source the dither reads — current
+    // brightness / contrast / polarity applied (duotone uses the same auto imgInv
+    // as the screen; colour keeps raw uInvert), but NOT dithered or dissolved.
     if (uImageState > 0.5 && uImageOn > 0.5) {
       vec3 s = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      s = mix(s, 1.0 - s, uInvert);
-      col = uColorDither > 0.5 ? s : vec3(dot(s, vec3(0.299, 0.587, 0.114)));
+      if (uColorDither > 0.5) {
+        col = mix(s, 1.0 - s, uInvert);
+      } else {
+        float sl = dot(s, vec3(0.299, 0.587, 0.114));
+        col = vec3(mix(sl, 1.0 - sl, imgInv));
+      }
     }
 
     gl_FragColor = vec4(col, 1.0);
