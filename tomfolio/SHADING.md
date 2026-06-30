@@ -71,6 +71,7 @@ and the reveal / develop / crossfade / motion behaviours.
 | `uDevResolve` | 0–1 | 1 | 0–1 | Develop **Resolve**: how fully a full press replaces the base marks with the fine dither (0 none, 1 full) |
 | `uDevSat` | mult | 1 | 0–4 | Develop **Saturation** of the dithered colour (0 gray, >1 boost) |
 | `uDevSharp` | 0–3 | 0 | 0–3 | Develop **Pop**: 4-tap unsharp / local-contrast boost in the develop region |
+| `uDevLevels` | steps | 4 | 2–16 | Develop **Levels**: posterise steps per RGB channel for the develop colour — its own, decoupled from the full-colour `uColorLevels` |
 | `uDevBright` | offset | 0 | −1–1 | Develop's own brightness, on top of the image grade, applied to the develop source before re-dithering |
 | `uDevContrast` | mult | 1 | 0.1–5 | Develop's own contrast, on top of the image grade |
 | `uCrossOn` / `uCrossSize` / `uCrossPos` | — | 1 / 0.075 / (0.62,0.58) | — | aviation-red registration cross |
@@ -138,6 +139,9 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-30
+- **Develop Levels** (`uDevLevels`, Cursor > Develop > **Levels**, 2–16, def 4): the develop
+  colour now posterises with its OWN steps instead of reusing the full-colour `uColorLevels`
+  (art.ts `fL = max(uDevLevels, 2.0)`), matching the full-image colourisation control.
 - **Image placement**: `uImgAlign` (Pos X/Y) now goes **−1–2** (bleed the photo off-edge → ground via
   the `inImg` mask); new `uImgScale` (Image > **Zoom**, 0.2–5) scales the photo in/out within the plate
   on top of Fit (`isc /= uImgScale`). Applied to main + develop sampling.

@@ -50,6 +50,7 @@ export const pressFrag = /* glsl */ `
   uniform float uDevResolve;   // develop: how far a full press resolves toward the photo (0..1)
   uniform float uDevSat;       // develop: saturation of the resolved colour (0 gray .. 2 boost)
   uniform float uDevSharp;     // develop: local-contrast / unsharp pop in the develop region
+  uniform float uDevLevels;    // develop: posterise steps per RGB channel (own, vs uColorLevels)
   uniform float uDevBright;    // develop: brightness offset on the develop source (on top of image B)
   uniform float uDevContrast;  // develop: contrast on the develop source (on top of image C)
   uniform float uMotif;        // shape: 0 dots(solid) 1 disc 2 x 3 plus 4 dash
@@ -508,7 +509,7 @@ export const pressFrag = /* glsl */ `
       vec3 fGraded = clamp(mix(vec3(fGray), fPop, uDevSat), 0.0, 1.0);  // Saturation
       fGraded = clamp((fGraded - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
       fGraded = clamp((fGraded - 0.5) * uDevContrast + 0.5 + uDevBright, 0.0, 1.0); // develop's own B/C
-      float fL = max(uColorLevels, 2.0);
+      float fL = max(uDevLevels, 2.0); // develop's own posterise steps (Levels)
       vec3 fq = floor(fGraded * (fL - 1.0) + bayer4(fId)) / (fL - 1.0);
       fq = clamp(fq + uMarkBright * sqrt(clamp(fGraded, 0.0, 1.0)), 0.0, 1.0); // root-proportional lift
       vec3 colourFine = mix(paper, fq, fmotif);                         // colour fine-dither

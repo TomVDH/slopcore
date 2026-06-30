@@ -103,6 +103,7 @@ const look = {
   cursorResolve: 1, // develop: how far a full press resolves toward the photo (0..1)
   cursorSat: 1, // develop: saturation of the resolved colour (0 gray .. 2 boost)
   cursorSharp: 0, // develop: local-contrast / unsharp pop
+  cursorLevels: 4, // develop: posterise steps per channel (own Levels, vs colorLevels)
   cursorBright: 0, // develop: own brightness offset (on top of image B)
   cursorContrast: 1, // develop: own contrast (on top of image C)
 };
@@ -252,18 +253,21 @@ function pushTreatment(): void {
   scene.setParam("uDevStage", look.cursorStage);
   scene.setParam("uDevResolve", look.cursorResolve);
   scene.setParam("uDevSat", look.cursorSat);
+  scene.setParam("uDevLevels", look.cursorLevels);
   scene.setParam("uDevSharp", look.cursorSharp);
   scene.setParam("uDevBright", look.cursorBright);
   scene.setParam("uDevContrast", look.cursorContrast);
   applyColorwayChrome(look.colorway);
+  persistLook(); // auto-save the live look to its context (general, or this image's config)
 }
 
 // ---- Per-image parameters ---------------------------------------------------
-// Settings are NOT inherited between images. Each image either has an explicit
-// override — pinned via the dev bar's "Save to image" button — or falls back to
-// DEFAULT_PARAMS (the baseline captured from `look` at load). Editing is live and
-// transient until pinned; switching an image loads its override or the default,
-// never the previously-viewed image's look. The override map is in Copy JSON.
+// Two tiers. `general` is the live dev-menu config — it applies to EVERY image
+// that has no config of its own, so menu changes carry across all un-pinned
+// images. An image only deviates once you "Save to image" (writes its own config);
+// visiting an un-pinned image shows `general`, returning to a written one reads its
+// config back. Editing auto-persists to the current context (the image's own config
+// if it has one, else `general`). Full readout — general + per-image — in Copy JSON.
 const PARAM_SKIP = new Set(["image", "maskView", "cursorView", "imageState", "reveal", "invert"]);
 function snapshotParams(): Record<string, number> {
   const p: Record<string, number> = {};
@@ -272,19 +276,25 @@ function snapshotParams(): Record<string, number> {
   }
   return p;
 }
-const DEFAULT_PARAMS = snapshotParams(); // baseline; what every un-pinned image uses
-const imageParams: Record<string, Record<string, number>> = {}; // explicit overrides only
+let general = snapshotParams(); // the live general/menu config (un-pinned images use it)
+const imageParams: Record<string, Record<string, number>> = {}; // per-image written configs
 let refreshControls: (() => void) | null = null; // dev-bar display refresh hook
-// Load an image's treatment: default first, then its pinned override on top (so a
-// new param key always has a default). Never inherits another image's look.
+const isPinned = (key: string): boolean => Object.prototype.hasOwnProperty.call(imageParams, key);
+// Write the live look back to its context: the image's own config if it has one,
+// otherwise the shared general. Called on every edit (via pushTreatment).
+function persistLook(): void {
+  if (isPinned(look.image)) imageParams[look.image] = snapshotParams();
+  else general = snapshotParams();
+}
+// Load an image's treatment: its written config if any, else the general menu config.
 function applyImageParams(key: string): void {
-  Object.assign(look, DEFAULT_PARAMS, imageParams[key] ?? {});
+  Object.assign(look, imageParams[key] ?? general);
   refreshControls?.();
 }
-function pinCurrentImageParams(): void { imageParams[look.image] = snapshotParams(); }
-function clearCurrentImageParams(): void {
+function pinCurrentImageParams(): void { imageParams[look.image] = snapshotParams(); } // give this image its own config
+function clearCurrentImageParams(): void { // drop it → back to the general menu config
   delete imageParams[look.image];
-  Object.assign(look, DEFAULT_PARAMS);
+  Object.assign(look, general);
   refreshControls?.();
   if (scene) pushTreatment();
 }
@@ -749,9 +759,9 @@ const HELP: Record<string, string> = {
   Reveal: "Crossfade the whole plate to the true natural-light photo.",
   "Image state": "Peek the undithered, brightness/contrast-adjusted source.",
   "Show fade mask": "Show the fade mask itself — white = marks, black = ground.",
-  Stored: "Whether this image has its own pinned settings (custom) or rides the default.",
-  "Save to image": "Pin the current settings to this image. Un-pinned images use the default — settings are never inherited between images.",
-  "Reset image": "Drop this image's pinned settings — back to the default.",
+  Stored: "Whether this image has its own written config (custom) or follows the general dev-menu settings.",
+  "Save to image": "Give this image its own config (a copy of the current settings). Until then it follows the general menu settings, which apply to every image without its own config.",
+  "Reset image": "Drop this image's config — back to the general menu settings.",
   "Copy JSON": "Copy every setting as JSON to the clipboard.",
 };
 
@@ -1277,7 +1287,7 @@ function buildDevBar(): void {
   ctl(image, "Stored", pinStat);
   const updatePinStatus = (): void => {
     const pinned = !!imageParams[look.image];
-    pinStat.textContent = pinned ? "custom" : "default";
+    pinStat.textContent = pinned ? "custom" : "general";
     pinStat.style.background = pinned ? "#f4efdd" : "";
     pinStat.style.color = pinned ? "#14121a" : "";
     pinStat.style.padding = pinned ? "0 4px" : "";
@@ -1330,6 +1340,10 @@ function buildDevBar(): void {
   stepper(develop, "Saturation", () => look.cursorSat.toFixed(2),
     () => { look.cursorSat = Math.max(0, +(look.cursorSat - 0.1).toFixed(2)); },
     () => { look.cursorSat = Math.min(4, +(look.cursorSat + 0.1).toFixed(2)); });
+  // Posterise steps for the develop colour, same as the full-colour Levels but its own.
+  stepper(develop, "Levels", () => String(look.cursorLevels),
+    () => { look.cursorLevels = Math.max(2, look.cursorLevels - 1); },
+    () => { look.cursorLevels = Math.min(16, look.cursorLevels + 1); });
   stepper(develop, "Pop", () => look.cursorSharp.toFixed(2),
     () => { look.cursorSharp = Math.max(0, +(look.cursorSharp - 0.1).toFixed(2)); },
     () => { look.cursorSharp = Math.min(3, +(look.cursorSharp + 0.1).toFixed(2)); });
@@ -1412,12 +1426,19 @@ function buildDevBar(): void {
   const copy = document.createElement("button");
   copy.type = "button";
   copy.textContent = "Copy JSON";
+  const srcName = (key: string): string => (key === "field" ? "field" : (sampleSrc(key)?.split("/").pop() ?? key));
   copy.addEventListener("click", async () => {
+    // Each written image-config is tagged with its source file name, so the JSON
+    // names every image it pins, not just an internal key.
+    const images: Record<string, unknown> = {};
+    for (const [key, params] of Object.entries(imageParams)) {
+      images[key] = { source: srcName(key), ...params };
+    }
     const snapshot = {
-      current: look.image,
+      current: { image: look.image, source: srcName(look.image) },
       motion: { ease: mEase(), dur: motion.dur, fps: motion.fps },
-      default: DEFAULT_PARAMS, // the baseline every un-pinned image uses
-      images: imageParams, // only images with a pinned override
+      general, // the shared dev-menu config every un-pinned image uses
+      images, // images with their own written config (each tagged with its source file)
     };
     const json = JSON.stringify(snapshot, null, 2);
     try {

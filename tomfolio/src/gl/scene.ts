@@ -116,6 +116,7 @@ export function initScene(
     uDevResolve: { value: 1 }, // develop: how far a full press resolves toward the photo (0..1)
     uDevSat: { value: 1 }, // develop: saturation of the resolved colour (0 gray .. 2 boost)
     uDevSharp: { value: 0 }, // develop: local-contrast / unsharp pop
+    uDevLevels: { value: 4 }, // develop: posterise steps per RGB channel (own Levels)
     uDevBright: { value: 0 }, // develop: own brightness offset (on top of image B)
     uDevContrast: { value: 1 }, // develop: own contrast (on top of image C)
     uMotif: { value: 0 },
