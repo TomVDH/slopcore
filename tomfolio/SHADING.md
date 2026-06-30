@@ -24,7 +24,7 @@ and the reveal / develop / crossfade / motion behaviours.
 
 | Uniform | Units | Default | Range | Meaning |
 |---|---|---|---|---|
-| `uCell` | cell count | 150 | 60–320 | base screen frequency; on-screen mark size = `uRes.y / uCell` |
+| `uCell` | cell count | 150 | 16–600 | base screen frequency; on-screen mark size = `uRes.y / uCell` |
 | `uMotif` | enum | 1 | 0–4 | 0 dots, 1 disc, 2 x, 3 plus, 4 dash |
 | `uMotifWeight` | 0–1 | 0.62 | 0.05–1 | mark thickness / dot radius |
 | `uMotifAngle` | turns | 0 | 0–1 | mark rotation in its cell |
@@ -32,7 +32,8 @@ and the reveal / develop / crossfade / motion behaviours.
 | `uThreshold` | bias | 0.03 | −0.2–0.3 | Bayer threshold bias (`bayer4` mean = 0.5) |
 | `uColorway` | index | 10 (Heather) | 0–53 | palette select |
 | `uColorDither` | bool | 0 | 0/1 | 0 duotone (paper/ink), 1 full-colour ordered dither |
-| `uColorLevels` | steps | 4 | 2–8 | posterise steps per channel in colour mode |
+| `uColorLevels` | steps | 4 | 2–16 | posterise steps per channel in colour mode |
+| `uMarkBright` | gain | 0 | −1–1 | brightness of the dither **mark** colour, applied AFTER quantise (never alters the dither pattern) and scaled by the mark's own **root** value `+ uMarkBright·sqrt(value)` per channel — lifts bright marks, leaves shadows; distinct from `uImageBrightness` (source) |
 | `uToneBase` | 0–1 | 0.42/0.46 | — | procedural field base luminance |
 | `uToneContrast` | 0–1 | 0.34/0.30 | — | field grain contrast |
 | `uToneScale` | scale | 1.7/1.6 | — | field scale |
@@ -41,23 +42,36 @@ and the reveal / develop / crossfade / motion behaviours.
 | `uImage` / `uImageRes` | sampler | — | — | primary image slot + pixel size |
 | `uImage2` / `uImage2Res` | sampler | placeholder | — | second image slot (image→image crossfade) |
 | `uXfade` | 0–1 | 0 | 0–1 | 0 sample uImage, 1 sample uImage2 (no field flash) |
-| `uImageBrightness` | added | 0 | −0.5–0.5 | image luminance offset (before invert + threshold) |
-| `uImageContrast` | mult | 1 | 0.4–2.6 | image contrast around mid (before invert + threshold) |
-| `uInvert` | bool | 0 | 0/1 | polarity flip; resolved (in `artefact.ts`) from the Invert control: Off=0, On=1, **Auto** (default) = invert when `paperLum < inkLum` (dark-paper stock) so a natural photo reads positive on any colorway |
-| `uFadeMode` | enum | 2 | 0–2 | edge dissolve: 0 off, 1 simple radial, 2 cloud |
-| `uFadeScale` | freq | 1.2/3 | 1–8 | cloud-noise frequency (mode 2) |
+| `uImageBrightness` | added | 0 | −1–1 | image luminance offset (before invert + threshold) |
+| `uImageContrast` | mult | 1 | 0.1–5 | image contrast around mid (before invert + threshold) |
+| `uInvert` | bool | 0 | 0/1 | polarity flip, **duotone only** (full-colour never inverts — a colour negative reads as wrong colour). Resolved (in `artefact.ts`) from the Invert control: Off=0, On=1, **Auto** (default) = invert when `paperLum < inkLum` (dark-paper stock). The Invert + Auto rows hide while Full colour is on |
+| `uFadeMode` | enum | 2 | 0–2 | edge dissolve: 0 off, 1 simple radial, 2 cloud. Applied **through the Bayer dither** (`step(bayer4(cellId), cov)`) — cells drop in dither order, stippling the fade into the marks rather than an alpha overlay |
+| `uFadeScale` | freq | 1.2/3 | 0.5–20 | cloud-noise frequency **X** (mode 2; smaller = bigger billows) |
+| `uFadeScaleY` | freq | 1.2/3 | 0.5–20 | cloud-noise frequency **Y** (independent vertical stretch of the cloud) |
+| `uNoiseType` | enum | 0 | 0–2 | cloud mask noise: 0 fbm, 1 ridged (Musgrave-like creases), 2 voronoi (cellular). Selected via `fadeNoise()` |
+| `uCloudSpeed` | speed | 0.05 | 0–2 | cloud (mode 2) sideways scroll speed; 0 static. Continuous fbm offset = seamless, decoupled from `uDrift` |
+| `uFadePos` | vec2 | (0,0) | −1–2 each | dissolve **anchor** in [0,1] plate space (x scaled by aspect); 0,0 = bottom-left (default). Moves where the gradient/cloud fade originates |
+| `uMaskView` | bool | 0 | 0/1 | dev: output the raw fade coverage `cov` as grayscale (white = marks, black = ground), undithered — reveals the mask shape + moved anchor |
 | `uReveal` | 0–1 | 0 | 0–1 | crossfade dither → true-colour photo (natural light); cell ramps up |
 | `uImageState` | bool | 0 | 0/1 | dev: show the undithered adjusted source |
+| `uCursorView` | bool | 0 | 0/1 | dev: show raw cursor influence `infl` as grayscale (white = peak, black = none) — reveals ellipse shape + orientation |
 | `uCursorMode` | enum | 1 | 0–5 | 0 Off, 1 Clear, 2 Ink, 3 Bias, 4 Negative, 5 Develop |
-| `uCursorAmp` | 0–1.5 | 0.4 | 0–1.5 | cursor effect strength |
-| `uCursorRadius` | falloff | 2.2 | 0.6–6 | cursor disc falloff rate (larger = tighter) |
-| `uHold` | 0–1 | 0 | 0–1 | static persistence floor under the movement-decayed strength |
-| `uCursorEdge` | 0–1 | 0.25 | 0–0.8 | Negative-mode disc hardness |
-| `uDevCell` | cell count | 450 | 120–960 | Develop sub-grid cell count (same units as `uCell`) |
-| `uDevColor` | bool | 1 | 0/1 | Develop: 1 resolve to true-colour photo, 0 stay monotone |
+| `uCursorAmp` | strength | 0.4 | 0–5 | cursor effect strength |
+| `uCursorRadius` | falloff | 2.2 | 0.2–16 | cursor disc falloff rate (larger = tighter) |
+| `uHold` | floor | 0 | 0–3 | static persistence floor under the movement-decayed strength |
+| `uCursorEdge` | hardness | 0.25 | 0–2 | Negative-mode disc hardness |
+| `uDevCell` | cell count | 450 | 40–3000 | Develop **Detail**: sub-grid cell count (same units as `uCell`) |
+| `uDevColor` | 0–1 | 1 | 0–1 | Develop **Colorize** amount: 0 monochrome .. 1 full colour |
+| `uDevStage` | 0–1 | 0.45 | 0–1 | Develop **Stage**: press point where the finer dither ramps in |
+| `uDevResolve` | 0–1 | 1 | 0–1 | Develop **Resolve**: how fully a full press replaces the base marks with the fine dither (0 none, 1 full) |
+| `uDevSat` | mult | 1 | 0–4 | Develop **Saturation** of the dithered colour (0 gray, >1 boost) |
+| `uDevSharp` | 0–3 | 0 | 0–3 | Develop **Pop**: 4-tap unsharp / local-contrast boost in the develop region |
+| `uDevBright` | offset | 0 | −1–1 | Develop's own brightness, on top of the image grade, applied to the develop source before re-dithering |
+| `uDevContrast` | mult | 1 | 0.1–5 | Develop's own contrast, on top of the image grade |
 | `uCrossOn` / `uCrossSize` / `uCrossPos` | — | 1 / 0.075 / (0.62,0.58) | — | aviation-red registration cross |
 | `uPress` / `uPressFalloff` | — | 0.4 / 2.2 | — | **LEGACY / dead** — kept declared but unread; superseded by the cursor uniforms |
 | `uMouse` / `uMouseStrength` | runtime | (0,0) / 0 | — | cursor position + movement-decayed strength (scene.ts) |
+| `uMouseDir` | runtime | (0,1) | — | normalised pointer motion direction (unit vec2); lerped + renormalised each frame; stretch collapses to circle when `uMouseStrength = 0` |
 | `uRes` / `uTime` / `uEnergy` / `uScrollVel` | runtime | — | — | system |
 
 ## Cursor modes (`uCursorMode`)
@@ -70,8 +84,13 @@ built only from `p` (one value per cell) — never varies `cell`/`cellId` spatia
 - **2 Ink** — `lum -= amp·infl` + thickens `wEff`: presses denser, swollen marks in.
 - **3 Bias** — subtracts from the Bayer `threshold`: marks fill in the screen's own dot order.
 - **4 Negative** — local polarity flip via a `smoothstep(uCursorEdge, …)` disc.
-- **5 Develop** — local resolve: a finer **uniform sub-dither at `uDevCell`** blends in (Detail),
-  then (if `uDevColor`) crossfades to the true-colour photo. `max()`-combined with `uReveal`.
+- **5 Develop** — local resolve that lives **inside the dither** (not a photo overlay): the source
+  is graded — **Pop** (`uDevSharp`, 4-tap unsharp), **Saturation** (`uDevSat`), **Colorize**
+  (`uDevColor` blends mono↔colour) — and then **re-dithered at `uDevCell`** detail (**Detail**).
+  **Stage** (`uDevStage`) ramps the finer dither in, **Resolve** (`uDevResolve`) caps how fully it
+  replaces the base marks. So a press develops into a finer, fuller **dither** of the photo —
+  manipulating the source + marks directly. The only smooth-photo path is the global **Reveal**
+  (applied as a separate `mix()`, last).
 
 ## Behaviours
 
@@ -86,7 +105,18 @@ built only from `p` (one value per cell) — never varies `cell`/`cellId` spatia
   not an image one — an image-histogram heuristic (designed via workflow) was rejected because it
   renders dark photos as negatives. A dev-bar status row shows the Auto decision + stock.
 - **Motion** (DOM/GSAP, not a uniform): all dither/reveal tweens share one ease + duration via the
-  artefact `EASES` list + `motion` (dev-bar Motion group). Default **quint ease-out, 0.6s**.
+  artefact `EASES` list + `motion` (dev-bar Motion group). Default **quint ease-out, 0.6s**. The
+  Motion group also carries **FPS** — Cine = `gsap.ticker.fps(24)`, **Commo** = 17 (deliberately
+  choppy retro cadence), Fluid = uncapped (default Fluid; the ticker drives the whole render loop) —
+  and a **live ease preview**: an inline SVG of
+  `gsap.parseEase(selected)` with a playhead dot looping at the chosen duration.
+- **Cloud scroll** (`uCloudSpeed`): cloud fade (mode 2) scrolls sideways via a continuous horizontal
+  fbm offset (`+ vec2(uTime·uCloudSpeed, 0)`) — seamless / never-repeating, decoupled from `uDrift`.
+  Dev-bar Screen group: **Cloud anim** toggle + **Cloud speed**; push `uCloudSpeed = anim ? speed : 0`.
+- **Dev-bar layout**: a single floating **vertical panel** — collapsible (grip click / backtick) and
+  **free-draggable** anywhere by its grip header (position persisted as `{x,y}`, re-clamped on
+  restore). One scrolling column of all groups, so it never wraps. Settings export via Output >
+  **Copy JSON** (full `{look, motion}` snapshot to clipboard, prompt() fallback).
 
 ## Palette families (54)
 
@@ -97,6 +127,72 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 ## Changelog
 
 Newest first. Log EVERY shading change here.
+
+### 2026-06-30
+- **Cloud noise types + X/Y size**: `uNoiseType` (FBM / Ridged-Musgrave / Voronoi via `fadeNoise()`)
+  and `uFadeScaleY` (independent vertical cloud frequency) — new **Cloud** dev-bar group (split from
+  Screen) carrying Cloud X/Y, Noise, anim, speed, Fade X/Y; hidden when Fade = Off.
+- **Develop group + own B/C**: develop controls moved to a dedicated **Develop** group (split from
+  Cursor), hidden unless Mode = Develop; added `uDevBright`/`uDevContrast` (develop-region brightness
+  + contrast, on top of the image grade).
+- **Hover-to-change** toggle (DOM, beside Reveal): when on, hovering a menu item swaps the image.
+- **Plate border** now uses the colorway **ink** colour (was white) at **15px** (was 25px).
+- **Cursor field view** (`uCursorView`, Output > **Show cursor field**): renders raw `infl` as
+  grayscale (white = peak influence, black = none), bypassing dither and colour — shows the
+  ellipse shape, orientation, and falloff directly. Same pattern as `uMaskView` / `uImageState`.
+- **Velocity-aware cursor ellipse**: the isotropic influence disc
+  `infl = max(uMouseStrength,uHold)·exp(-md·uCursorRadius)` is now an ellipse oriented along the
+  pointer's motion vector. New uniform `uMouseDir` (unit vec2, runtime, scene.ts) carries the
+  normalised direction. Stretch = `1.0 + 1.5·uMouseStrength` (1.0 still → ~3.1 at full speed);
+  decays to a circle automatically when `uMouseStrength → 0` (Hold mode stays circular). Applies
+  to all cursor modes (Clear / Ink / Bias / Negative / Develop) via the shared `md` computation.
+  No new dev-bar control — stretch is content-derived from existing speed tracking.
+- **Fade mask viewer + movable anchor**: `uMaskView` (Output > **Show fade mask**) renders the raw
+  `cov` as grayscale so the gradient/cloud shape is directly visible; `uFadePos` (Screen > **Fade X /
+  Fade Y**) moves where the dissolve originates (default 0,0 = bottom-left).
+- **Dev-bar info-circles**: every control label carries a hover ⓘ with concise helper text (fixed
+  tooltip, `HELP` map in `artefact.ts`); action buttons get the same on hover.
+- **Develop is now integrated, not an overlay**: removed the smooth photo `devTarget` cross-fade.
+  Develop grades the source (Pop/Saturation/Colorize) then **re-dithers it** at `uDevCell`; Stage
+  ramps it in, Resolve caps how fully the fine dither replaces the base marks. The only smooth-photo
+  path is global Reveal. (Was: finer grain → faded a graded photo on top.)
+- **Full-colour never inverts**: dropped `uInvert` from the colour dither paths (main + fine + image
+  state); the **Invert + Auto rows hide while Full colour is on**. `uInvert` is now duotone-only.
+- **Image canvas fits the source's native aspect**: `#gl` width is set in JS to `plateHeight ×
+  imgAspect` (capped to 90% frame width), so photos show at original proportions / fill further
+  right instead of being cover-cropped into the fixed CSS box. Reverts to CSS default for the field.
+- **Dev bar → floating vertical panel**: replaced the bar↔rail dock toggle with one collapsible,
+  **free-draggable** vertical panel (grip header drags it anywhere; position persisted + clamped).
+  Output **Copy values → Copy JSON** now exports a full `{look, motion}` snapshot (clipboard +
+  prompt fallback).
+- **Cloud dissolve now stippled through the dither** (`step(bayer4(cellId), cov)`) — the cloud fade
+  drops cells in Bayer order, affecting the dither pixels instead of overlaying a smooth alpha.
+- **Mark brightness** `uMarkBright` (−1–1, def 0): brightens/darkens the dither mark colour itself
+  (palette ink / colour dot), separate from `uImageBrightness` (source). Base + develop, duotone + colour.
+- **Commo FPS 50 → 17** (deliberately choppy retro cadence).
+- **Pixel-cross custom cursor** + click "detonation" (DOM/GSAP) — a box-shadow crosshair tracks the
+  pointer (native hidden); clicking the plate bursts a ring of dither pixels + an elastic crosshair punch.
+- **Stepper values are drag-to-scrub** (drag the number ≈6px/step), reusing the clamped dec/inc.
+- **Wider ranges** across the artefact dev bar: Cell 16–600, Cloud 0.5–20, Cloud speed 0–2, Levels
+  2–16, Brightness ±1, Contrast 0.1–5, cursor Strength 0–5 / Radius 0.2–16 / Hold 0–3 / Edge 0–2,
+  Detail 40–3000, Stage 0–1, Saturation 0–4, Pop 0–3, Duration 0.05–5s. (Rig sliders keep their own.)
+- **FPS preset "Commo"** (50fps — the PAL Commodore-64 vertical refresh; NTSC C64 was ~59.8) added
+  alongside Fluid / Cine.
+- **Motif surfaced contextually** in the Colour group (full-colour) and Cursor group (Develop),
+  synced with the Screen Motif — the shader already applied `uMotif` in both paths.
+- **Develop fine-tuning** — new uniforms `uDevStage` (grain→photo handoff, def 0.45, 0.1–0.9),
+  `uDevResolve` (develop depth, def 1), `uDevSat` (saturation, def 1, 0–2), `uDevSharp` (4-tap
+  unsharp Pop, def 0). `uDevColor` is now a **0–1 Colorize amount** (was 0/1 toggle). `uDevCell`
+  range 120→**1200** (step 24). The two hardcoded develop smoothsteps are now driven by `uDevStage`;
+  Develop resolves to its OWN colour-graded target (colorize/sat/pop), separated from the global
+  Reveal (true source). Dev-bar Cursor group gains Stage/Resolve/Saturation/Pop + Colorize stepper.
+- **Animated cloud** — `uCloudSpeed` (def 0.05, 0–0.5): cloud fade (mode 2) scrolls sideways via a
+  continuous fbm horizontal offset (seamless, never-repeating), decoupled from `uDrift`. Screen
+  group: Cloud anim toggle + Cloud speed.
+- **FPS cadence** — Motion group Cine (24fps) / Fluid (uncapped) toggle via `gsap.ticker.fps()`.
+- **Ease preview** — live inline-SVG graph of the selected GSAP ease with a real-time playhead dot.
+- **Dev-bar layout toggle** — horizontal bar ↔ vertical side rail (full-height single-column scroll,
+  grip-drag to dock left/right, persisted) — fixes horizontal wrap/resize at high control counts.
 
 ### 2026-06-29
 - **Auto invert reintroduced** as Off/On/**Auto** (`look.invertMode`, default Auto). Auto is

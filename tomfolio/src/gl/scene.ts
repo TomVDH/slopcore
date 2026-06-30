@@ -102,7 +102,13 @@ export function initScene(
     uHold: { value: 0 }, // static floor under the decaying cursor strength
     uCursorEdge: { value: 0.25 }, // negative-mode disc hardness
     uDevCell: { value: 450 }, // develop sub-grid cell count (same units as uCell)
-    uDevColor: { value: 1 }, // develop: 1 resolve to true-colour photo, 0 stay monotone
+    uDevColor: { value: 1 }, // develop colorize amount: 0 monochrome .. 1 full colour
+    uDevStage: { value: 0.45 }, // develop: grain->photo handoff point (0..1 of the press)
+    uDevResolve: { value: 1 }, // develop: how far a full press resolves toward the photo (0..1)
+    uDevSat: { value: 1 }, // develop: saturation of the resolved colour (0 gray .. 2 boost)
+    uDevSharp: { value: 0 }, // develop: local-contrast / unsharp pop
+    uDevBright: { value: 0 }, // develop: own brightness offset (on top of image B)
+    uDevContrast: { value: 1 }, // develop: own contrast (on top of image C)
     uMotif: { value: 0 },
     uMotifWeight: { value: 0.5 },
     uMotifAngle: { value: 0 },
@@ -123,9 +129,16 @@ export function initScene(
     uImageContrast: { value: 1 },
     uFadeMode: { value: 0 },
     uFadeScale: { value: 3 },
+    uFadeScaleY: { value: 3 }, // cloud Y frequency (isotropic by default)
+    uNoiseType: { value: 0 }, // cloud noise: 0 fbm, 1 ridged, 2 voronoi
+    uCloudSpeed: { value: 0 }, // cloud sideways scroll speed (0 = static)
+    uFadePos: { value: new THREE.Vector2(0, 0) }, // dissolve anchor in [0,1] plate space
+    uMaskView: { value: 0 }, // dev: show the raw fade mask as grayscale
+    uCursorView: { value: 0 }, // dev: show raw cursor influence (infl) as grayscale
     uReveal: { value: 0 }, // 0 dithered, 1 full-res photo (crossfade)
     uColorDither: { value: 0 }, // 0 duotone, 1 full-colour ordered dither
     uColorLevels: { value: 4 }, // posterise steps per channel in colour mode
+    uMarkBright: { value: 0 }, // brightness offset on the dither mark colour (not the source)
   };
 
   const material = new THREE.ShaderMaterial({
@@ -146,6 +159,7 @@ export function initScene(
 
   // Mouse, lerped toward the pointer in shader space; strength decays.
   const mouseTarget = new THREE.Vector2(0, 0);
+  const dirTarget = new THREE.Vector2(0, 1);
   let strengthTarget = 0;
 
   function toShaderSpace(clientX: number, clientY: number): [number, number] {

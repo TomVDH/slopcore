@@ -38,7 +38,13 @@ export const pressFrag = /* glsl */ `
   uniform float uHold;         // static floor under the decaying cursor strength
   uniform float uCursorEdge;   // negative-mode disc hardness
   uniform float uDevCell;      // develop sub-grid cell count (same units as uCell)
-  uniform float uDevColor;     // develop: 1 resolve to true-colour photo, 0 stay monotone
+  uniform float uDevColor;     // develop colorize amount: 0 monochrome .. 1 full colour
+  uniform float uDevStage;     // develop: press point where grain hands off to photo (0..1)
+  uniform float uDevResolve;   // develop: how far a full press resolves toward the photo (0..1)
+  uniform float uDevSat;       // develop: saturation of the resolved colour (0 gray .. 2 boost)
+  uniform float uDevSharp;     // develop: local-contrast / unsharp pop in the develop region
+  uniform float uDevBright;    // develop: brightness offset on the develop source (on top of image B)
+  uniform float uDevContrast;  // develop: contrast on the develop source (on top of image C)
   uniform float uMotif;        // shape: 0 dots(solid) 1 disc 2 x 3 plus 4 dash
   uniform float uMotifWeight;  // mark thickness / dot radius
   uniform float uMotifAngle;   // rotation of the mark in its cell (0..1 turn)
@@ -58,10 +64,17 @@ export const pressFrag = /* glsl */ `
   uniform float uImageBrightness; // added to the sampled image luminance
   uniform float uImageContrast;   // contrast of the sampled image around mid-grey
   uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
-  uniform float uFadeScale;       // cloud-noise frequency for fade mode 2 (smaller = bigger billows)
+  uniform float uFadeScale;       // cloud-noise frequency X for fade mode 2 (smaller = bigger billows)
+  uniform float uFadeScaleY;      // cloud-noise frequency Y (independent stretch of the cloud)
+  uniform float uNoiseType;       // cloud noise: 0 fbm, 1 ridged (Musgrave-like), 2 voronoi (cellular)
+  uniform float uCloudSpeed;      // cloud mode 2: sideways scroll speed of the fbm (0 = static)
+  uniform vec2  uFadePos;         // dissolve anchor in [0,1] plate space (0,0 = bottom-left, default)
+  uniform float uMaskView;        // dev: 1 = show the raw fade mask (cov) as grayscale, undithered
+  uniform float uCursorView;      // dev: 1 = show raw cursor influence (infl) as grayscale
   uniform float uReveal;          // 0 dithered, 1 full-res photo; crossfades the dither -> source
   uniform float uColorDither;     // 0 duotone (paper/ink), 1 full-colour ordered dither of the photo
   uniform float uColorLevels;     // posterise steps per RGB channel in colour mode (2 = heavy dither)
+  uniform float uMarkBright;      // mark-colour brightness, scaled by the mark's own sqrt(value) — lifts bright marks, leaves shadows (not the source, not a flat shift)
 
   float hash(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -89,6 +102,41 @@ export const pressFrag = /* glsl */ `
       amp *= 0.5;
     }
     return v;
+  }
+
+  // Ridged multifractal (Musgrave-ish): creased, filament-like billows.
+  float ridged(vec2 p) {
+    float v = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 4; i++) {
+      float n = 1.0 - abs(vnoise(p) * 2.0 - 1.0);
+      v += amp * n * n;
+      p *= 2.02;
+      amp *= 0.5;
+    }
+    return v;
+  }
+
+  // Voronoi (cellular): distance to the nearest feature point — blobby cells.
+  float voronoi(vec2 p) {
+    vec2 g = floor(p);
+    vec2 f = fract(p);
+    float md = 1.5;
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec2 o = vec2(float(i), float(j));
+        vec2 fp = vec2(hash(g + o), hash(g + o + 31.7));
+        md = min(md, length(o + fp - f));
+      }
+    }
+    return clamp(md, 0.0, 1.0);
+  }
+
+  // Fade-mask noise selector: 0 fbm, 1 ridged (Musgrave-like), 2 voronoi (cellular).
+  float fadeNoise(vec2 p, float type) {
+    if (type > 1.5) return voronoi(p);
+    if (type > 0.5) return ridged(p);
+    return fbm(p);
   }
 
   // 2x2 Bayer cell: (0,0)=0 (1,0)=2 (0,1)=3 (1,1)=1
@@ -234,10 +282,15 @@ export const pressFrag = /* glsl */ `
     float cov = 1.0;
     if (uFadeMode > 0.5) {
       vec2 cuv = (cellId + 0.5) * cell / uRes;
-      vec2 fq  = vec2(cuv.x * uRes.x / max(uRes.y, 1.0), cuv.y);
+      float aspectF = uRes.x / max(uRes.y, 1.0);
+      vec2 anchor = vec2(uFadePos.x * aspectF, uFadePos.y); // move the dissolve origin
+      vec2 fq  = vec2(cuv.x * aspectF, cuv.y) - anchor;
       float fd = length(fq);
       if (uFadeMode > 1.5) {
-        fd += (fbm(cuv * uFadeScale + vec2(t * 0.6, -t * 0.4)) - 0.5) * 0.95;
+        // Sideways scroll of the fbm field (decoupled from uDrift). A continuous
+        // horizontal offset of an infinite noise field reads as a seamless,
+        // never-repeating cloud drift; uCloudSpeed 0 = static.
+        fd += (fadeNoise(cuv * vec2(uFadeScale, uFadeScaleY) + vec2(uTime * uCloudSpeed, 0.0), uNoiseType) - 0.5) * 0.95;
       }
       cov = 1.0 - smoothstep(0.3, 1.45, fd);
     }
@@ -296,15 +349,24 @@ export const pressFrag = /* glsl */ `
       // posterised per channel with the cell's Bayer value so it still reads as
       // a dither. Solid motif -> full-colour field; disc/X/etc -> colour halftone
       // marks. The colorway's paper stays the ground between marks.
+      // Full-colour never inverts: a negative of a colour photo reads as wrong
+      // colour, not a stylistic polarity flip. (uInvert applies to duotone only.)
       vec3 src = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-      src = mix(src, 1.0 - src, uInvert);
       float L = max(uColorLevels, 2.0);
       vec3 q = floor(src * (L - 1.0) + bayer4(cellId)) / (L - 1.0);
+      // Mark brightness scales with the pixel's own ROOT brightness (per channel),
+      // so bright marks lift while shadows stay put — it brightens the mark colour
+      // evenly, instead of flat-shifting every mark (which washed them into paper).
+      q = clamp(q + uMarkBright * sqrt(clamp(src, 0.0, 1.0)), 0.0, 1.0);
       col = mix(paper, q, motif);
     } else {
-      col = mix(paper, ink, inkAmt);
+      col = mix(paper, clamp(ink + uMarkBright * sqrt(ink), 0.0, 1.0), inkAmt);
     }
-    col = mix(paper, col, cov); // organic cloud fade of the marks into the ground
+    // Dissolve THROUGH the dither: the cloud coverage drops whole cells in the
+    // Bayer order, so the fade is stippled INTO the marks — it affects the dither
+    // pixels rather than overlaying a smooth alpha gradient. Mode 0 keeps cov = 1.
+    float covDith = step(bayer4(cellId), clamp(cov, 0.0, 1.0));
+    col = mix(paper, col, covDith);
 
     // Aviation-red registration cross (position / size / visibility editable).
     vec2 cd = abs(p - uCrossPos);
@@ -344,30 +406,41 @@ export const pressFrag = /* glsl */ `
       else if (uMotif < 2.5)                 fmotif = fX;
       else if (uMotif < 3.5)                 fmotif = fPlus;
       else if (uMotif > 3.5)                 fmotif = fDash;
-      vec3 fineCol;
-      if (uColorDither > 0.5) {
-        vec3 fsrc = clamp((fRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-        fsrc = mix(fsrc, 1.0 - fsrc, uInvert);
-        float fL = max(uColorLevels, 2.0);
-        vec3 fq = floor(fsrc * (fL - 1.0) + bayer4(fId)) / (fL - 1.0);
-        fineCol = mix(paper, fq, fmotif);
-      } else {
-        float fLum = dot(fRGB, vec3(0.299, 0.587, 0.114));
-        fLum = clamp((fLum - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
-        fLum = mix(fLum, 1.0 - fLum, uInvert);
-        float fon = step(bayer4(fId) + uThreshold, clamp(fLum, 0.0, 1.0));
-        fineCol = mix(paper, ink, (1.0 - fon) * fmotif);
-      }
-      col = mix(col, fineCol, smoothstep(0.04, 0.55, localRev)); // marks refine first
+      // Develop lives INSIDE the dither: grade the source (Pop unsharp, Saturation,
+      // Colorize) then re-dither THAT at uDevCell detail. A press resolves to a
+      // finer, fuller dither of the photo — it manipulates the source + marks
+      // directly, not a smooth photo laid over them (that's what global Reveal is).
+      vec2 fuv = (fBase - 0.5) * isc0 + 0.5;
+      vec3 fMean = (texture2D(uImage, fuv + vec2( 0.01, 0.0)).rgb
+                  + texture2D(uImage, fuv + vec2(-0.01, 0.0)).rgb
+                  + texture2D(uImage, fuv + vec2(0.0,  0.01)).rgb
+                  + texture2D(uImage, fuv + vec2(0.0, -0.01)).rgb) * 0.25;
+      vec3 fPop = fRGB + uDevSharp * 1.5 * (fRGB - fMean);              // Pop: local unsharp
+      float fGray = dot(clamp(fPop, 0.0, 1.0), vec3(0.299, 0.587, 0.114));
+      vec3 fGraded = clamp(mix(vec3(fGray), fPop, uDevSat), 0.0, 1.0);  // Saturation
+      fGraded = clamp((fGraded - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      fGraded = clamp((fGraded - 0.5) * uDevContrast + 0.5 + uDevBright, 0.0, 1.0); // develop's own B/C
+      float fL = max(uColorLevels, 2.0);
+      vec3 fq = floor(fGraded * (fL - 1.0) + bayer4(fId)) / (fL - 1.0);
+      fq = clamp(fq + uMarkBright * sqrt(clamp(fGraded, 0.0, 1.0)), 0.0, 1.0); // root-proportional lift
+      vec3 colourFine = mix(paper, fq, fmotif);                         // colour fine-dither
+      float fLum = clamp((fGray - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
+      fLum = clamp((fLum - 0.5) * uDevContrast + 0.5 + uDevBright, 0.0, 1.0);       // develop's own B/C
+      fLum = mix(fLum, 1.0 - fLum, uInvert);                            // duotone still inverts
+      float fon = step(bayer4(fId) + uThreshold, fLum);
+      vec3 monoFine = mix(paper, clamp(ink + uMarkBright * sqrt(ink), 0.0, 1.0), (1.0 - fon) * fmotif);
+      // Colorize blends mono <-> colour fine-dither; a full-colour base is always colour.
+      float fColorAmt = max(uColorDither, clamp(uDevColor, 0.0, 1.0));
+      vec3 fineCol = mix(monoFine, colourFine, fColorAmt);
+      // Stage ramps the develop in; Resolve caps how fully the fine dither takes over.
+      float devAmt = smoothstep(0.04, max(uDevStage, 0.06), localRev) * clamp(uDevResolve, 0.0, 1.0);
+      col = mix(col, fineCol, devAmt);
     }
 
-    // Resolve to the true-colour photo: the global Reveal always does; Develop
-    // does only when Colorize is on (uDevColor) — otherwise it stays monotone
-    // (just the finer sub-dither in the palette's own colours).
-    float devPhoto = (uDevColor > 0.5) ? smoothstep(0.45, 1.0, localRev) : 0.0;
-    float photoT = max(clamp(uReveal, 0.0, 1.0), devPhoto);
-    if (photoT > 0.001 && uImageOn > 0.5) {
-      col = mix(col, clamp(imgRGB, 0.0, 1.0), photoT);
+    // Global Reveal resolves the whole plate to the true natural-light photo
+    // (no invert / colorize / saturation — the real source), on top of Develop.
+    if (uReveal > 0.001 && uImageOn > 0.5) {
+      col = mix(col, clamp(imgRGB, 0.0, 1.0), clamp(uReveal, 0.0, 1.0));
     }
 
     // Image state (dev): the continuous-tone source the dither reads — current
@@ -376,12 +449,18 @@ export const pressFrag = /* glsl */ `
     if (uImageState > 0.5 && uImageOn > 0.5) {
       vec3 s = clamp((imgRGB - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
       if (uColorDither > 0.5) {
-        col = mix(s, 1.0 - s, uInvert);
+        col = s; // colour never inverts
       } else {
         float sl = dot(s, vec3(0.299, 0.587, 0.114));
         col = vec3(mix(sl, 1.0 - sl, uInvert));
       }
     }
+
+    // Mask view (dev): show the raw fade coverage as grayscale — white = marks
+    // kept, black = dissolved to ground — so the gradient / cloud shape (and its
+    // moved anchor) is directly visible, undithered.
+    if (uMaskView > 0.5) col = vec3(clamp(cov, 0.0, 1.0));
+    if (uCursorView > 0.5) col = vec3(clamp(infl, 0.0, 1.0));
 
     gl_FragColor = vec4(col, 1.0);
   }
