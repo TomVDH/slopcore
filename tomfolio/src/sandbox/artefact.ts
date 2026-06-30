@@ -71,6 +71,7 @@ const look = {
   fit: 0, // image fit: 0 cover (crop), 1 contain (letterbox)
   posX: 0.5, // image anchor X in [0,1] (0 left, 0.5 centre, 1 right)
   posY: 0.5, // image anchor Y in [0,1] (0 bottom, 0.5 centre, 1 top)
+  zoom: 1, // image zoom within the plate (1 = fit, >1 zoomed in, <1 zoomed out)
   invert: 0, // resolved 0/1 actually pushed to uInvert
   invertMode: 2, // Invert control: 0 Off, 1 On, 2 Auto (image-decided)
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
@@ -78,6 +79,7 @@ const look = {
   cloudSizeY: 1.2, // cloud-noise frequency Y (independent stretch)
   noiseType: 0, // cloud noise: 0 fbm, 1 ridged, 2 voronoi, 3 turbulence, 4 cracks
   fadeWarp: 0, // domain-warp amount on the cloud noise (organic swirl)
+  cloudW: 1, // cloud horizontal extent, independent of the image width (1 = plate)
   cloudAnim: 1, // cloud (mode 2): 1 scroll sideways, 0 static
   cloudSpeed: 0.05, // cloud sideways scroll speed
   fadePosX: 0, // dissolve anchor X in [0,1] (0 = left)
@@ -184,10 +186,12 @@ function applyCanvasWidth(): void {
   // — so cover/contain/position actually have room to act.
   canvas.style.width = `${Math.round(frame.clientWidth * look.plateWidth)}px`;
 }
+let onImageChange: (() => void) | null = null; // dev-bar image thumbnail hook
 function fitCanvas(im: HTMLImageElement | null): void {
   curImageEl = im;
   applyCanvasWidth();
   window.dispatchEvent(new Event("resize")); // scene re-measures uRes off the new box
+  onImageChange?.();
 }
 window.addEventListener("resize", applyCanvasWidth, { passive: true });
 
@@ -222,8 +226,10 @@ function pushTreatment(): void {
   scene.setParam("uFadeScaleY", look.cloudSizeY);
   scene.setParam("uNoiseType", look.noiseType);
   scene.setParam("uFadeWarp", look.fadeWarp);
+  scene.setParam("uCloudWidth", look.cloudW);
   scene.setParam("uFit", look.fit);
   scene.setParam("uImgAlign", [look.posX, look.posY]);
+  scene.setParam("uImgScale", look.zoom);
   scene.setParam("uCloudSpeed", look.cloudAnim ? look.cloudSpeed : 0);
   scene.setParam("uFadePos", [look.fadePosX, look.fadePosY]);
   scene.setParam("uMaskView", look.maskView);
@@ -588,6 +594,7 @@ const HELP: Record<string, string> = {
   "Cloud Y": "Cloud billow size vertically (independent stretch).",
   Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells), Turbulence (smoky), Cracks (Worley veins).",
   Warp: "Domain-warp the noise — swirls the mask into more organic, turbulent shapes (works on any Noise type).",
+  "Cloud W": "Horizontal extent of the cloud layer, independent of the image width — stretch the dissolve + texture wider/narrower than the photo.",
   "Cloud anim": "Scroll the cloud sideways, or hold it static.",
   "Cloud speed": "How fast the cloud drifts when animated.",
   "Fade X": "Move the dissolve's anchor left/right (0 = left edge).",
@@ -597,8 +604,9 @@ const HELP: Record<string, string> = {
   Levels: "Posterise steps per colour channel — lower = chunkier colour.",
   "Mark bright": "Brighten/darken the mark colour itself, vs the palette ink.",
   Fit: "How the photo fills the plate: Cover (fill + crop) or Contain (fit whole image, letterbox to ground).",
-  "Pos X": "Image anchor across: 0 left · 0.5 centre · 1 right (slides the crop / letterbox).",
-  "Pos Y": "Image anchor vertical: 0 bottom · 0.5 centre · 1 top.",
+  "Pos X": "Image anchor across: 0 left · 0.5 centre · 1 right. Goes negative / past 1 to bleed the photo off the edge (revealed area = ground).",
+  "Pos Y": "Image anchor vertical: 0 bottom · 0.5 centre · 1 top. Negative / >1 pushes it off the edge.",
+  Zoom: "Scale the photo in/out within the plate, on top of Fit. >1 crops in tighter, <1 shrinks it (surrounded by ground).",
   Brightness: "Source-image luminance, applied before dithering.",
   Contrast: "Source-image contrast, applied before dithering.",
   Invert: "Tone polarity. Auto flips it on dark-paper stocks. Duotone only.",
@@ -1024,15 +1032,73 @@ function buildDevBar(): void {
 
   // IMAGE — source photo tone.
   const image = group("Image");
+  // Image thumbnail (top of the group): the SOURCE photo, framed by the same
+  // Fit / Pos / Zoom mapping the shader uses — NOT the dithered plate. (A dithered
+  // mini goes nearly invisible on dark-paper palettes and hides what the photo is;
+  // the point of this preview is to see the picture and how it's cropped.) Live, so
+  // tweaking Fit / Pos / Zoom / Brightness / Contrast updates it; tone is the source
+  // (no dither / palette / invert) so it reads on any stock.
+  const imgThumb = document.createElement("canvas");
+  imgThumb.className = "art-thumb";
+  imgThumb.width = 200;
+  imgThumb.height = 64;
+  imgThumb.setAttribute("aria-hidden", "true");
+  image.appendChild(imgThumb);
+  const thumbCtx = imgThumb.getContext("2d");
+  const drawSourceThumb = (): void => {
+    if (!thumbCtx) return;
+    const tw = imgThumb.width, th = imgThumb.height;
+    thumbCtx.filter = "none";
+    thumbCtx.clearRect(0, 0, tw, th); // bare = thumb's --ground (letterbox / off-edge)
+    const im = curImageEl;
+    if (!im || !im.naturalWidth || !im.naturalHeight || !canvas) return;
+    const plateA = (canvas.width || 1) / (canvas.height || 1);
+    // The plate-aspect area, contain-fit into the thumb (so framing reads true).
+    let pw = tw, ph = tw / plateA;
+    if (ph > th) { ph = th; pw = th * plateA; }
+    const px = (tw - pw) / 2, py = (th - ph) / 2;
+    // Fit / Pos / Zoom — mirror of the shader's isc / iuv (see art.ts image block).
+    const imgW = im.naturalWidth, imgH = im.naturalHeight;
+    const r = (imgW / imgH) / plateA;
+    const cover = look.fit < 0.5;
+    let iscx: number, iscy: number;
+    if (cover) { if (r > 1) { iscx = 1 / r; iscy = 1; } else { iscx = 1; iscy = r; } }
+    else { if (r > 1) { iscx = 1; iscy = r; } else { iscx = 1 / r; iscy = 1; } }
+    const z = Math.max(look.zoom, 0.05); iscx /= z; iscy /= z;
+    const u0x = look.posX * (1 - iscx), u0y = look.posY * (1 - iscy);
+    // Visible source rect in image px (Y flipped: shader v=0 == image bottom).
+    let sx = u0x * imgW, sw = iscx * imgW;
+    let sy = (1 - (u0y + iscy)) * imgH, sh = iscy * imgH;
+    let dx = px, dy = py, dw = pw, dh = ph;
+    // Clamp the source rect into the image, shrinking dest in step — so contain
+    // letterbox + negative-Pos bleed fall back to the bare ground (matches the plate).
+    if (sx < 0) { const f = -sx / sw; dx += f * dw; dw -= f * dw; sw += sx; sx = 0; }
+    if (sx + sw > imgW) { const f = (sx + sw - imgW) / sw; dw -= f * dw; sw = imgW - sx; }
+    if (sy < 0) { const f = -sy / sh; dy += f * dh; dh -= f * dh; sh += sy; sy = 0; }
+    if (sy + sh > imgH) { const f = (sy + sh - imgH) / sh; dh -= f * dh; sh = imgH - sy; }
+    if (sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) return;
+    // Approximate the source brightness/contrast (the dither's own, not the palette).
+    const b = 1 + Math.max(-0.95, look.brightness);
+    thumbCtx.filter = `brightness(${b.toFixed(3)}) contrast(${Math.max(0, look.contrast).toFixed(3)})`;
+    try { thumbCtx.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); } catch { /* ignore */ }
+    thumbCtx.filter = "none";
+  };
+  onImageChange = drawSourceThumb;
+  drawSourceThumb();
+  window.setInterval(drawSourceThumb, 160); // keep it live (reflects Fit/Pos/Zoom/B/C)
   // Fit + position: how the photo maps into the plate. Pos X/Y anchor the crop
   // (cover) or the letterbox placement (contain). 0,0 = bottom-left; 0.5 = centre.
   select(image, "Fit", ["Cover", "Contain"], () => look.fit, (i) => { look.fit = i; });
   stepper(image, "Pos X", () => look.posX.toFixed(2),
-    () => { look.posX = Math.max(0, +(look.posX - 0.1).toFixed(2)); },
-    () => { look.posX = Math.min(1, +(look.posX + 0.1).toFixed(2)); });
+    () => { look.posX = Math.max(-1, +(look.posX - 0.1).toFixed(2)); },
+    () => { look.posX = Math.min(2, +(look.posX + 0.1).toFixed(2)); });
   stepper(image, "Pos Y", () => look.posY.toFixed(2),
-    () => { look.posY = Math.max(0, +(look.posY - 0.1).toFixed(2)); },
-    () => { look.posY = Math.min(1, +(look.posY + 0.1).toFixed(2)); });
+    () => { look.posY = Math.max(-1, +(look.posY - 0.1).toFixed(2)); },
+    () => { look.posY = Math.min(2, +(look.posY + 0.1).toFixed(2)); });
+  // Zoom: scale the photo in/out within the plate, on top of Cover/Contain.
+  stepper(image, "Zoom", () => `${look.zoom.toFixed(2)}×`,
+    () => { look.zoom = Math.max(0.2, +(look.zoom - 0.1).toFixed(2)); },
+    () => { look.zoom = Math.min(5, +(look.zoom + 0.1).toFixed(2)); });
   stepper(image, "Brightness", () => look.brightness.toFixed(2),
     () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
     () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });
@@ -1206,6 +1272,7 @@ function buildDevBar(): void {
     setNA(cloudYCtl, notCloud); // Cloud Y: cloud fade only
     setNA(noiseCtl, notCloud); // Noise type: cloud fade only
     setNA(warpCtl, notCloud); // Warp: cloud fade only
+    setNA(cloudWCtl, notCloud); // Cloud width: cloud fade only
     setNA(cloudAnimCtl, notCloud); // Cloud anim: cloud fade only
     setNA(cloudSpeedCtl, notCloud); // Cloud speed: cloud fade only
     setNA(fadeXCtl, look.fadeMode === 0); // Fade anchor: any fade mode

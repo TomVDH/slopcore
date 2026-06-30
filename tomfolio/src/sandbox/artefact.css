@@ -409,6 +409,16 @@ body.art {
   flex-direction: column;
   gap: 7px;
 }
+/* Group thumbnail (top of a group): live plate preview / noise-texture preview.
+   Both are <canvas> (200×64); height:auto keeps that ratio scaled to the group. */
+.art-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 1px;
+  border: 1px solid rgba(244, 239, 221, 0.14);
+  background: var(--ground, rgba(244, 239, 221, 0.04));
+}
 
 /* A control row: label left, widget right. */
 .art-ctl {

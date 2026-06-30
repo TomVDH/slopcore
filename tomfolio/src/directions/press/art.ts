@@ -71,12 +71,14 @@ export const pressFrag = /* glsl */ `
   uniform float uImageBrightness; // added to the sampled image luminance
   uniform float uImageContrast;   // contrast of the sampled image around mid-grey
   uniform float uFit;             // image fit: 0 cover (crop), 1 contain (letterbox)
-  uniform vec2  uImgAlign;        // image anchor in [0,1] (0.5,0.5 = centred; 0,0 = bottom-left)
+  uniform vec2  uImgAlign;        // image anchor (0.5,0.5 = centred); negative / >1 bleeds off-edge
+  uniform float uImgScale;        // image zoom within the plate (1 = fit, >1 in, <1 out)
   uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
   uniform float uFadeScale;       // cloud-noise frequency X for fade mode 2 (smaller = bigger billows)
   uniform float uFadeScaleY;      // cloud-noise frequency Y (independent stretch of the cloud)
   uniform float uNoiseType;       // cloud noise: 0 fbm 1 ridged 2 voronoi 3 turbulence 4 cracks
   uniform float uFadeWarp;        // domain-warp amount applied to the cloud noise (0 = none)
+  uniform float uCloudWidth;      // cloud horizontal extent, independent of the image (1 = plate)
   uniform float uCloudSpeed;      // cloud mode 2: sideways scroll speed of the fbm (0 = static)
   uniform vec2  uFadePos;         // dissolve anchor in [0,1] plate space (0,0 = bottom-left, default)
   uniform float uMaskView;        // dev: 1 = show the raw fade mask (cov) as grayscale, undithered
@@ -283,15 +285,18 @@ export const pressFrag = /* glsl */ `
     float r0 = imgA0 / plateA;
     // Fit: 0 cover (fill, crop the overflow) / 1 contain (fit whole image, letterbox).
     // uImgAlign anchors the crop window / letterbox position (0.5,0.5 = centered).
+    float zoom = max(uImgScale, 0.05); // Zoom: >1 samples a smaller region (in), <1 larger (out)
     vec2 isc0 = uFit < 0.5
       ? (r0 > 1.0 ? vec2(1.0 / r0, 1.0) : vec2(1.0, r0))
       : (r0 > 1.0 ? vec2(1.0, r0) : vec2(1.0 / r0, 1.0));
+    isc0 /= zoom;
     vec2 iuv = (baseUv - uImgAlign) * isc0 + uImgAlign;
     float imgA1 = uImage2Res.x / max(uImage2Res.y, 1.0);
     float r1 = imgA1 / plateA;
     vec2 isc1 = uFit < 0.5
       ? (r1 > 1.0 ? vec2(1.0 / r1, 1.0) : vec2(1.0, r1))
       : (r1 > 1.0 ? vec2(1.0, r1) : vec2(1.0 / r1, 1.0));
+    isc1 /= zoom;
     vec2 iuv2 = (baseUv - uImgAlign) * isc1 + uImgAlign;
     // Contain letterbox: 1 inside the image, 0 in the bars (rendered as ground below).
     float inImg = step(0.0, iuv.x) * step(iuv.x, 1.0) * step(0.0, iuv.y) * step(iuv.y, 1.0);
@@ -353,6 +358,10 @@ export const pressFrag = /* glsl */ `
     float cov = 1.0;
     if (uFadeMode > 0.5) {
       vec2 cuv = (cellId + 0.5) * cell / uRes;
+      // Cloud width: scale the cloud's horizontal coordinate (around centre)
+      // independent of the image/plate, so the dissolve + texture can be set
+      // wider/narrower than the photo box. 1 = locked to the plate.
+      cuv.x = 0.5 + (cuv.x - 0.5) / max(uCloudWidth, 0.05);
       float aspectF = uRes.x / max(uRes.y, 1.0);
       vec2 anchor = vec2(uFadePos.x * aspectF, uFadePos.y); // move the dissolve origin
       vec2 fq  = vec2(cuv.x * aspectF, cuv.y) - anchor;

@@ -138,11 +138,13 @@ export function initScene(
     uImageContrast: { value: 1 },
     uFit: { value: 0 }, // 0 cover (crop), 1 contain (letterbox)
     uImgAlign: { value: new THREE.Vector2(0.5, 0.5) }, // image anchor in [0,1]
+    uImgScale: { value: 1 }, // image zoom within the plate
     uFadeMode: { value: 0 },
     uFadeScale: { value: 3 },
     uFadeScaleY: { value: 3 }, // cloud Y frequency (isotropic by default)
     uNoiseType: { value: 0 }, // cloud noise: 0 fbm, 1 ridged, 2 voronoi, 3 turbulence, 4 cracks
     uFadeWarp: { value: 0 }, // domain-warp amount on the cloud noise
+    uCloudWidth: { value: 1 }, // cloud horizontal extent, independent of the image
     uCloudSpeed: { value: 0 }, // cloud sideways scroll speed (0 = static)
     uFadePos: { value: new THREE.Vector2(0, 0) }, // dissolve anchor in [0,1] plate space
     uMaskView: { value: 0 }, // dev: show the raw fade mask as grayscale
