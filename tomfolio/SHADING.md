@@ -20,6 +20,46 @@ and the reveal / develop / crossfade / motion behaviours.
   3. `COLORS` (`src/sandbox/artefact.ts`)
   4. the rig `uColorway` select `options` (`src/sandbox/rig.ts`)
 
+## How the shader works
+
+One fullscreen **fragment shader** (`pressFrag`) on a single three.js quad does everything —
+no CPU image processing, no second pass. The one idea: **ink where dark, on an ordered grid.**
+A 4×4 **Bayer** matrix gives every cell a fixed threshold; a cell becomes an ink mark when its
+tone falls below that threshold. Ordered (not random) thresholds turn flat tones into clean
+regular dots. `1.0 = paper (ground)`, `0.0 = ink (mark)`; the colorway's paper *is* the plate
+ground, so a faded mark is just ground — no CSS mask, no seam.
+
+```mermaid
+flowchart TD
+    FC["gl_FragCoord / vUv"] --> CELL["1 · Cell quantise<br/>cell = uRes.y / uCell<br/>fId = floor(fragCoord / cell)"]
+    SRC[("uImage · uImage2")] --> FIT["2 · Fit / Pos / Zoom<br/>isc cover|contain ; /= uImgScale<br/>iuv = (uv − uImgAlign)·isc + uImgAlign"]
+    FIT --> TONE["3-4 · Tone + grade<br/>lum = dot(rgb,.299/.587/.114)<br/>brightness · contrast"]
+    CELL --> TONE
+    TONE --> INV["5 · Invert (duotone)<br/>lum = mix(lum, 1−lum, uInvert)<br/>Auto: paper darker than ink ⇒ 1"]
+    INV --> MODE{"uColorDither?"}
+    MODE -- "0 duotone" --> MONO["6a · Threshold<br/>on = step(bayer4+uThreshold, lum)"]
+    MODE -- "1 colour" --> COLR["6b · Posterise<br/>floor(src·(L−1)+bayer4)/(L−1)<br/>L = uColorLevels"]
+    MONO --> MOTIF["7 · Motif mask<br/>Disc · X · Plus · Dash"]
+    COLR --> MOTIF
+    MOTIF --> MB["8 · Mark brightness<br/>+ uMarkBright·sqrt(tone)"]
+    MB --> FADE["9 · Cloud dissolve<br/>covDith = step(bayer4(fId), cov)<br/>stippled INTO the marks"]
+    NOISE[("fade noise: fbm/ridged/<br/>voronoi/turbulence/cracks")] --> FADE
+    FADE --> DEV["10 · Develop lens (cursor 5)<br/>local finer re-dither<br/>uDevCell/Levels/Color/Sat/Sharp"]
+    DEV --> REV["11 · Global Reveal → photo"]
+    REV --> OUT(["gl_FragColor"])
+```
+
+1. **Cell quantise** — square grid; all fragments in a cell agree on the tone, so marks stay crisp.
+2. **Fit/Pos/Zoom** — photo mapped into a fixed plate box; outside `[0,1]` → `inImg=0` → ground (letterbox / off-edge bleed).
+3–4. **Tone + grade** — sample at the cell centre, luma, brightness/contrast.
+5. **Invert** — duotone only; on dark stocks you ink the *highlights* so the photo reads naturally. Auto flips when `paperLum < inkLum` (why a mostly-dark photo reads sparse on a dark stock).
+6. **Dither** — duotone thresholds, full-colour posterises per channel; both keyed by the *same* `bayer4(fId)`.
+7. **Motif** — the mark *shape* is a per-cell distance field (Disc/X/Plus/Dash), rotated + stroke-thinned.
+8. **Mark brightness** — root-proportional lift so bright marks glow without washing shadows.
+9. **Cloud dissolve** — the fade is *stippled into the dither* (drops whole cells in Bayer order), driven by an animated, domain-warped noise field with its own width + scroll.
+10. **Develop lens** — under the cursor, a finer sub-grid re-dithers the graded source in place (its own Colorize/Saturation/Pop/**Levels** + Stage→Resolve ramps).
+11. **Global Reveal** — resolves the whole plate to the true natural-light photo.
+
 ## Uniform inventory
 
 | Uniform | Units | Default | Range | Meaning |
