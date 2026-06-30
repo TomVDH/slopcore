@@ -1,0 +1,161 @@
+/* -------------------------------------------------------
+   CURSOR SHELF — 5 block cursor iterations.
+   All tiles share the same 10×10 inverting square base.
+   What differs: timing, stagger, emotional character.
+------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body.cshelf {
+  min-height: 100dvh;
+  background: #2a2636;
+  color: #f4efdd;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+/* ---- Header ---- */
+.cshelf-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 18px 24px 16px;
+  border-bottom: 2px solid rgba(244, 239, 221, 0.1);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  pointer-events: none;
+}
+
+.cshelf-sub {
+  opacity: 0.26;
+  letter-spacing: 0.08em;
+}
+
+/* ---- Grid: 5 equal columns ---- */
+.cshelf-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 100dvh;
+  padding-top: 53px;
+}
+
+.cshelf-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 20px;
+  border-right: 2px solid rgba(244, 239, 221, 0.08);
+  overflow: hidden;
+}
+
+.cshelf-tile:last-child { border-right: none; }
+
+.cshelf-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(244, 239, 221, 0);
+  transition: background 0.06s;
+  pointer-events: none;
+}
+
+.cshelf-tile.is-active::before { background: rgba(244, 239, 221, 0.02); }
+
+/* ---- Tile text ---- */
+.cshelf-label {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.cshelf-desc {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  line-height: 1.9;
+  opacity: 0.24;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ---- Demo elements ---- */
+.cshelf-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.cshelf-btn {
+  background: none;
+  border: 2px solid rgba(244, 239, 221, 0.18);
+  color: #f4efdd;
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  padding: 10px 24px;
+  cursor: inherit;
+  transition: border-color 0.06s;
+}
+
+.cshelf-btn:hover { border-color: rgba(244, 239, 221, 0.7); }
+
+.cshelf-link {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(244, 239, 221, 0.3);
+  text-decoration: none;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(244, 239, 221, 0.14);
+  padding-bottom: 1px;
+  cursor: inherit;
+  transition: color 0.06s, border-color 0.06s;
+}
+
+.cshelf-link:hover { color: #f4efdd; border-color: rgba(244, 239, 221, 0.55); }
+
+/* ---- Hide native cursor in active tiles ---- */
+.cshelf-tile.is-active,
+.cshelf-tile.is-active * { cursor: none !important; }
+
+/* =====================================================
+   THE BLOCK CURSOR — shared base, five emotional lives
+===================================================== */
+
+.cshelf-cur {
+  position: fixed;
+  left: 0; top: 0;
+  pointer-events: none;
+  z-index: 60;
+  will-change: transform;
+}
+
+/* 10×10 inverting square — same element for all 5 variants */
+.cshelf-cur-block {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: #f4efdd;
+  mix-blend-mode: difference;
+}
+
+/* Stamp — positioned via JS (left/top at center), no margin.
+   Default transform-origin 50% 50% lets GSAP scale animations
+   work from the stamp's own center.                          */
+.cshelf-stamp {
+  position: fixed;
+  background: #f4efdd;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  z-index: 57;
+}

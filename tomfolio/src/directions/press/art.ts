@@ -18,6 +18,7 @@ export const pressFrag = /* glsl */ `
   uniform vec2  uRes;
   uniform float uTime;
   uniform vec2  uMouse;
+  uniform vec2  uMouseDir;
   uniform float uMouseStrength;
   uniform float uEnergy;
   uniform float uScrollVel;
@@ -204,8 +205,12 @@ export const pressFrag = /* glsl */ `
     // value per cell, never local/gl_FragCoord), so a whole cell agrees and the
     // marks reorganize under the pointer instead of shattering. uHold is a
     // static floor so the effect can persist while the pointer is still.
-    float md = length(p - uMouse);
-    float infl = max(uMouseStrength, uHold) * exp(-md * uCursorRadius);
+    vec2 d        = p - uMouse;
+    float dAlong  = dot(d, uMouseDir);
+    float dAcross = dot(d, vec2(-uMouseDir.y, uMouseDir.x));
+    float stretch = 1.0 + 1.5 * uMouseStrength;
+    float md      = length(vec2(dAlong / stretch, dAcross));
+    float infl    = max(uMouseStrength, uHold) * exp(-md * uCursorRadius);
     if (uCursorMode > 0.5 && uCursorMode < 1.5) {
       lum += uCursorAmp * infl;            // Clear: lift ink, open paper
     } else if (uCursorMode > 1.5 && uCursorMode < 2.5) {

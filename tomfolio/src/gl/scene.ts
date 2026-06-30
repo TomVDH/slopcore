@@ -82,6 +82,7 @@ export function initScene(
     },
     uTime: { value: reducedMotion ? 20.0 : 0.0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
+    uMouseDir: { value: new THREE.Vector2(0, 1) },
     uMouseStrength: { value: 0 },
     uEnergy: { value: 1 },
     uScrollVel: { value: 0 },
@@ -171,6 +172,9 @@ export function initScene(
         const dt = Math.max(now - lastT, 1);
         const speed = Math.hypot(e.clientX - lastX, e.clientY - lastY) / dt;
         strengthTarget = Math.min(strengthTarget + speed * 0.35, 1.4);
+        if (speed > 0.05) {
+          dirTarget.set(e.clientX - lastX, e.clientY - lastY).normalize();
+        }
         lastX = e.clientX;
         lastY = e.clientY;
         lastT = now;
@@ -194,6 +198,8 @@ export function initScene(
     strengthTarget *= Math.exp(-deltaTime * 0.0022);
     uniforms.uMouseStrength.value +=
       (strengthTarget - uniforms.uMouseStrength.value) * k;
+    const kDir = 1 - Math.exp(-deltaTime * 0.012);
+    uniforms.uMouseDir.value.lerp(dirTarget, kDir).normalize();
 
     render(reducedMotion ? 20.0 : time);
 

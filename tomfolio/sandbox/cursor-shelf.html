@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CURSOR SHELF / block iterations</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#2a2636" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="cshelf">
+    <header class="cshelf-header">
+      <span>CURSOR SHELF</span>
+      <span class="cshelf-sub">hover each tile — click to fire</span>
+    </header>
+    <div class="cshelf-grid">
+
+      <div class="cshelf-tile" data-cursor="snap" data-group="default">
+        <div class="cshelf-family">DEFAULT</div>
+        <div class="cshelf-label">SNAP</div>
+        <div class="cshelf-desc">2.4× recoil<br>26px · 90ms cut</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="strike" data-group="default">
+        <div class="cshelf-family">DEFAULT</div>
+        <div class="cshelf-label">STRIKE</div>
+        <div class="cshelf-desc">3.5× recoil<br>16px · 40ms cut</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="scar" data-group="default">
+        <div class="cshelf-family">DEFAULT</div>
+        <div class="cshelf-label">SCAR</div>
+        <div class="cshelf-desc">2.4× recoil<br>26px · mark at 500ms</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="echo" data-group="echo">
+        <div class="cshelf-family">ECHO</div>
+        <div class="cshelf-label">ECHO</div>
+        <div class="cshelf-desc">4 stamps · 90ms stagger<br>all cut at 700ms</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="chord" data-group="echo">
+        <div class="cshelf-family">ECHO</div>
+        <div class="cshelf-label">CHORD</div>
+        <div class="cshelf-desc">4 stamps at once<br>cut at 150ms</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="cascade" data-group="echo">
+        <div class="cshelf-family">ECHO</div>
+        <div class="cshelf-label">CASCADE</div>
+        <div class="cshelf-desc">each stamp lives alone<br>100ms apart · 140ms life</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="impact" data-group="blend">
+        <div class="cshelf-family">BLEND</div>
+        <div class="cshelf-label">IMPACT</div>
+        <div class="cshelf-desc">3.5× recoil + geometry<br>3 stamps · 80ms cut</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+    </div>
+    <script type="module" src="/src/sandbox/cursor-shelf.ts"></script>
+  </body>
+</html>

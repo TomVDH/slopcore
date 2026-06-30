@@ -59,6 +59,7 @@ export default defineConfig({
         letterpress: entry("./sandbox/letterpress.html"),
         rig: entry("./sandbox/rig.html"),
         artefact: entry("./sandbox/artefact.html"),
+        "cursor-shelf": entry("./sandbox/cursor-shelf.html"),
       },
     },
   },
