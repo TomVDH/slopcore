@@ -583,6 +583,85 @@ function flash(btn: HTMLElement, msg: string): void {
   }, 1100);
 }
 
+/* ---- JS port of the shader's fade-mask noise, for the dev-bar noise thumbnail.
+   Mirrors `fadeNoise`/fbm/ridged/voronoi/turbulence/worleyEdge in art.ts so the
+   preview matches the plate. Evaluated on a tiny grid, on change (never per-frame). */
+const nfr = (v: number): number => v - Math.floor(v);
+function nhash(x: number, y: number): number {
+  let px = nfr(x * 123.34), py = nfr(y * 456.21);
+  const dt = px * (px + 45.32) + py * (py + 45.32);
+  px += dt; py += dt;
+  return nfr(px * py);
+}
+function nvnoise(x: number, y: number): number {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const fx = x - ix, fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+  const a = nhash(ix, iy), b = nhash(ix + 1, iy), c = nhash(ix, iy + 1), d = nhash(ix + 1, iy + 1);
+  const m0 = a + (b - a) * ux, m1 = c + (d - c) * ux;
+  return m0 + (m1 - m0) * uy;
+}
+function noct(x: number, y: number, mode: number): number {
+  // mode: 0 fbm, 1 ridged, 2 turbulence
+  let v = 0, amp = mode === 1 ? 0.5 : 0.55;
+  for (let i = 0; i < 4; i++) {
+    const s = nvnoise(x, y);
+    if (mode === 1) { const n = 1 - Math.abs(s * 2 - 1); v += amp * n * n; }
+    else if (mode === 2) { v += amp * Math.abs(s * 2 - 1); }
+    else { v += amp * s; }
+    x *= 2.02; y *= 2.02; amp *= 0.5;
+  }
+  return v;
+}
+function ncell(x: number, y: number, edge: boolean): number {
+  const gx = Math.floor(x), gy = Math.floor(y), fx = x - gx, fy = y - gy;
+  let f1 = 1.5, f2 = 1.5;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+    const hx = nhash(gx + i, gy + j), hy = nhash(gx + i + 31.7, gy + j + 31.7);
+    const d = Math.hypot(i + hx - fx, j + hy - fy);
+    if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) { f2 = d; }
+  }
+  return edge ? Math.min(Math.max((f2 - f1) * 1.4, 0), 1) : Math.min(Math.max(f1, 0), 1);
+}
+function nfadeNoise(x: number, y: number, type: number, warp: number): number {
+  if (warp > 0.001) {
+    const wx = noct(x + 1.7, y + 9.2, 0), wy = noct(x + 8.3, y + 2.8, 0);
+    x += (wx - 0.5) * warp * 2; y += (wy - 0.5) * warp * 2;
+  }
+  if (type > 3.5) return ncell(x, y, true);   // cracks (Worley F2-F1)
+  if (type > 2.5) return noct(x, y, 2);        // turbulence
+  if (type > 1.5) return ncell(x, y, false);   // voronoi
+  if (type > 0.5) return noct(x, y, 1);        // ridged
+  return noct(x, y, 0);                         // fbm
+}
+function renderNoiseThumb(c: HTMLCanvasElement): void {
+  const ctx = c.getContext("2d");
+  if (!ctx) return;
+  const W = c.width, H = c.height;
+  const sx = look.cloudSize, sy = look.cloudSizeY, type = look.noiseType, warp = look.fadeWarp;
+  const cw = Math.max(look.cloudW, 0.05); // cloud-width scale on x (mirrors the shader)
+  // First pass: sample; second pass: normalise to the full range so faint noise
+  // types (fbm/ridged top out ~0.5) still read clearly in the thumbnail.
+  const vals = new Float32Array(W * H);
+  let mn = Infinity, mx = -Infinity;
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      const cx = (px / W - 0.5) / cw + 0.5;
+      const v = nfadeNoise(cx * sx, (1 - py / H) * sy, type, warp);
+      vals[py * W + px] = v;
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+  }
+  const span = Math.max(mx - mn, 1e-4);
+  const out = ctx.createImageData(W, H);
+  for (let i = 0; i < vals.length; i++) {
+    const g = Math.round(Math.min(Math.max((vals[i] - mn) / span, 0), 1) * 255);
+    out.data[i * 4] = g; out.data[i * 4 + 1] = g; out.data[i * 4 + 2] = g; out.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(out, 0, 0);
+}
+
 // Concise helper text per control label — shown in the hover info-circles (and
 // the same copy documents each setting). Keyed by the control's label.
 const HELP: Record<string, string> = {
@@ -984,16 +1063,29 @@ function buildDevBar(): void {
   // CLOUD — the dissolve mask (fade Simple/Cloud): X/Y size, noise type, motion, anchor.
   const cloud = group("Cloud");
   const cloudGroupEl = cloud.parentElement as HTMLElement; // wrapper, hidden when Fade = Off
+  // Noise thumbnail (top of the group): a live grayscale preview of the current
+  // cloud texture. JS port of fadeNoise; re-rendered on any noise change, never
+  // per-frame. Separate from the in-screen "Show fade mask" button.
+  const noiseThumb = document.createElement("canvas");
+  noiseThumb.className = "art-thumb";
+  noiseThumb.width = 200;
+  noiseThumb.height = 64;
+  cloud.appendChild(noiseThumb);
+  const drawNoise = (): void => renderNoiseThumb(noiseThumb);
+  drawNoise();
   const cloudCtl = stepper(cloud, "Cloud X", () => look.cloudSize.toFixed(1),
     () => { look.cloudSize = Math.max(0.5, +(look.cloudSize - 0.5).toFixed(1)); },
-    () => { look.cloudSize = Math.min(20, +(look.cloudSize + 0.5).toFixed(1)); });
+    () => { look.cloudSize = Math.min(20, +(look.cloudSize + 0.5).toFixed(1)); }, drawNoise);
   const cloudYCtl = stepper(cloud, "Cloud Y", () => look.cloudSizeY.toFixed(1),
     () => { look.cloudSizeY = Math.max(0.5, +(look.cloudSizeY - 0.5).toFixed(1)); },
-    () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); });
-  const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; });
+    () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); }, drawNoise);
+  const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; }, drawNoise);
   const warpCtl = stepper(cloud, "Warp", () => look.fadeWarp.toFixed(2),
     () => { look.fadeWarp = Math.max(0, +(look.fadeWarp - 0.1).toFixed(2)); },
-    () => { look.fadeWarp = Math.min(3, +(look.fadeWarp + 0.1).toFixed(2)); });
+    () => { look.fadeWarp = Math.min(3, +(look.fadeWarp + 0.1).toFixed(2)); }, drawNoise);
+  const cloudWCtl = stepper(cloud, "Cloud W", () => `${look.cloudW.toFixed(2)}×`,
+    () => { look.cloudW = Math.max(0.2, +(look.cloudW - 0.1).toFixed(2)); },
+    () => { look.cloudW = Math.min(5, +(look.cloudW + 0.1).toFixed(2)); }, drawNoise);
   const cloudAnimCtl = toggle(cloud, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
   const cloudSpeedCtl = stepper(cloud, "Cloud speed", () => look.cloudSpeed.toFixed(2),
     () => { look.cloudSpeed = Math.max(0, +(look.cloudSpeed - 0.02).toFixed(2)); },
