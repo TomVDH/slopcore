@@ -206,7 +206,9 @@ function applyColorwayChrome(i: number): void {
   const pal = PALETTES[i] ?? PALETTES[10];
   document.body.style.setProperty("--ground", pal.paper);
   document.body.style.setProperty("--ink", pal.ink);
-  document.body.style.setProperty("--accent", pal.accent); // drives the cursor (accent + invert)
+  // Cursor matches the FONT colour (the colorway ink), per palette — Heather =
+  // cream. Dedicated --art-cursor token, separate from the system brand --accent.
+  document.body.style.setProperty("--art-cursor", pal.ink);
 }
 
 function pushTreatment(): void {
@@ -575,6 +577,7 @@ if (!reduced && window.matchMedia("(pointer: fine)").matches) {
   setX(window.innerWidth / 2);
   setY(window.innerHeight / 2);
 
+  // Solid accent everywhere — no inversion.
   window.addEventListener("pointermove", (e) => { setX(e.clientX); setY(e.clientY); });
   document.addEventListener("pointerleave", () => { cur.style.opacity = "0"; });
   document.addEventListener("pointerenter", () => { cur.style.opacity = ""; });

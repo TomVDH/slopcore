@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------
    ARTEFACT — corner field.
 
-   An empty viewport, inset 25px so the deep gray-purple ground reads as
-   a framed plate over a white margin. The Presswerk dither is anchored in
+   An empty viewport, inset 10px so the deep gray-purple ground reads as
+   a framed plate over an ink-coloured margin. The Presswerk dither is anchored in
    the bottom-left; the shader's organic cloud edge (uFade) dissolves the
    marks into the ground (Heather paper == ground, so there is no plate
    seam) — no CSS mask. A right-aligned menu of big display headers
@@ -11,21 +11,27 @@
 ------------------------------------------------------------------- */
 
 body.art {
+  /* Colour tokens — two layers, kept distinct:
+     1. COLORWAY chrome (per palette, set by JS in applyColorwayChrome):
+        --ground = paper (plate + frame), --ink = ink (menu text / marks / border),
+        --art-cursor = the colorway ink (cursor matches the FONT colour).
+     2. BRAND accent: the system's one accent (registration red #e61919) from
+        :root in system/tokens.css — left untouched, no per-colorway override. */
   --ground: #2a2636; /* colorway paper — drives the plate ground (set by JS) */
   --ink: #f4efdd; /* colorway ink — drives the menu text (set by JS) */
-  --accent: #c8f542; /* colorway accent — drives the cursor (set by JS) */
+  --art-cursor: #f4efdd; /* cursor colour = font/ink colour (set by JS); Heather default */
   min-height: 100dvh;
   margin: 0;
-  background: var(--ink); /* the 15px frame margin — matches the colorway ink (font) */
+  background: var(--ink); /* the 10px frame margin — matches the colorway ink (font) */
   color: var(--ink);
   overflow: hidden;
   cursor: default;
 }
 
-/* The framed plate: 25px white margin on all sides. */
+/* The framed plate: 10px ink-coloured margin on all sides. */
 .art-frame {
   position: fixed;
-  inset: 15px;
+  inset: 10px;
   overflow: hidden;
   background: var(--ground); /* colorway paper; must == the shader's paper to blend */
 }
@@ -216,8 +222,8 @@ body.art {
 .art-has-cursor * {
   cursor: none !important;
 }
-/* Solid accent: the block reads as the colorway accent exactly (no blend), so
-   the cursor stays synced with the colour theme on every surface. */
+/* Solid brand accent everywhere (--art-cursor = the system registration red),
+   no blend / no inversion on any surface. */
 .art-cursor {
   position: fixed;
   left: 0;
@@ -225,7 +231,7 @@ body.art {
   width: 10px;
   height: 10px;
   margin: -5px 0 0 -5px;
-  background: var(--accent);
+  background: var(--art-cursor);
   pointer-events: none;
   z-index: 60;
   will-change: transform;
@@ -233,7 +239,7 @@ body.art {
 /* PULSE stamp — centered via left/top (no margin) so GSAP scale uses its own center */
 .art-stamp {
   position: fixed;
-  background: var(--accent);
+  background: var(--art-cursor);
   pointer-events: none;
   z-index: 57;
 }
