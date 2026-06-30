@@ -253,6 +253,37 @@ function pushTreatment(): void {
   applyColorwayChrome(look.colorway);
 }
 
+// ---- Per-image parameters ---------------------------------------------------
+// Settings are NOT inherited between images. Each image either has an explicit
+// override — pinned via the dev bar's "Save to image" button — or falls back to
+// DEFAULT_PARAMS (the baseline captured from `look` at load). Editing is live and
+// transient until pinned; switching an image loads its override or the default,
+// never the previously-viewed image's look. The override map is in Copy JSON.
+const PARAM_SKIP = new Set(["image", "maskView", "cursorView", "imageState", "reveal", "invert"]);
+function snapshotParams(): Record<string, number> {
+  const p: Record<string, number> = {};
+  for (const [k, v] of Object.entries(look)) {
+    if (!PARAM_SKIP.has(k) && typeof v === "number") p[k] = v;
+  }
+  return p;
+}
+const DEFAULT_PARAMS = snapshotParams(); // baseline; what every un-pinned image uses
+const imageParams: Record<string, Record<string, number>> = {}; // explicit overrides only
+let refreshControls: (() => void) | null = null; // dev-bar display refresh hook
+// Load an image's treatment: default first, then its pinned override on top (so a
+// new param key always has a default). Never inherits another image's look.
+function applyImageParams(key: string): void {
+  Object.assign(look, DEFAULT_PARAMS, imageParams[key] ?? {});
+  refreshControls?.();
+}
+function pinCurrentImageParams(): void { imageParams[look.image] = snapshotParams(); }
+function clearCurrentImageParams(): void {
+  delete imageParams[look.image];
+  Object.assign(look, DEFAULT_PARAMS);
+  refreshControls?.();
+  if (scene) pushTreatment();
+}
+
 // Reveal: smoothly crossfade the dither <-> full-res photo AND ramp the cell
 // frequency up 32x so the marks shrink and resolve into the image. `rev.v` is
 // the tweened amount [0..1]; `look.reveal` is the 0/1 target the button flips.
@@ -370,6 +401,8 @@ function pushImageOn(): void {
 // the uImageOn crossfade (the field is not a photo).
 function goImage(key: string): void {
   look.image = key;
+  applyImageParams(key); // load this image's pinned override, else the default + refresh dev bar
+  if (scene) pushTreatment(); // apply the loaded treatment to the shader
   if (!scene) return;
   const targetSrc = key === "field" ? null : sampleSrc(key);
   const tok = ++txToken;
@@ -709,6 +742,9 @@ const HELP: Record<string, string> = {
   Reveal: "Crossfade the whole plate to the true natural-light photo.",
   "Image state": "Peek the undithered, brightness/contrast-adjusted source.",
   "Show fade mask": "Show the fade mask itself — white = marks, black = ground.",
+  Stored: "Whether this image has its own pinned settings (custom) or rides the default.",
+  "Save to image": "Pin the current settings to this image. Un-pinned images use the default — settings are never inherited between images.",
+  "Reset image": "Drop this image's pinned settings — back to the default.",
   "Copy JSON": "Copy every setting as JSON to the clipboard.",
 };
 
@@ -897,6 +933,9 @@ function buildDevBar(): void {
   };
 
   // A dropdown for multi-option params (motif, colorway, fade).
+  // Controls register a "refresh display from look" closure so a programmatic
+  // look change (e.g. switching to an image with its own params) re-syncs the UI.
+  const syncers: Array<() => void> = [];
   const select = (
     into: HTMLElement,
     label: string,
@@ -914,6 +953,7 @@ function buildDevBar(): void {
       sel.appendChild(o);
     });
     sel.value = String(get());
+    syncers.push(() => { sel.value = String(get()); });
     sel.addEventListener("change", () => {
       set(parseInt(sel.value, 10));
       pushTreatment();
@@ -940,6 +980,7 @@ function buildDevBar(): void {
     const val = document.createElement("span");
     val.className = "art-ctl-v";
     val.textContent = get();
+    syncers.push(() => { val.textContent = get(); });
     const plus = document.createElement("button");
     plus.type = "button";
     plus.className = "art-step-b";
@@ -988,6 +1029,7 @@ function buildDevBar(): void {
       btn.classList.toggle("is-on", on());
     };
     sync();
+    syncers.push(sync);
     btn.addEventListener("click", () => { flip(); pushTreatment(); sync(); after?.(); });
     return ctl(into, label, btn);
   };
@@ -1008,6 +1050,7 @@ function buildDevBar(): void {
       btn.classList.toggle("is-on", get() === 1);
     };
     sync();
+    syncers.push(sync);
     btn.addEventListener("click", () => { set((get() + 1) % states.length); pushTreatment(); sync(); });
     return ctl(into, label, btn);
   };
@@ -1217,6 +1260,30 @@ function buildDevBar(): void {
   };
   onAutoResolved = updateAutoStatus;
   updateAutoStatus();
+  // Per-image persistence: settings are live/transient until pinned here. "Stored"
+  // shows whether this image carries its own override or rides the default; Save
+  // pins the current look to it; Reset drops the override back to the default.
+  const pinStat = document.createElement("span");
+  pinStat.className = "art-ctl-v is-name";
+  ctl(image, "Stored", pinStat);
+  const updatePinStatus = (): void => {
+    const pinned = !!imageParams[look.image];
+    pinStat.textContent = pinned ? "custom" : "default";
+    pinStat.style.background = pinned ? "#f4efdd" : "";
+    pinStat.style.color = pinned ? "#14121a" : "";
+    pinStat.style.padding = pinned ? "0 4px" : "";
+  };
+  syncers.push(updatePinStatus); // re-evaluate on image switch (refreshControls runs syncers)
+  const pinBtn = document.createElement("button");
+  pinBtn.type = "button";
+  pinBtn.textContent = "Save to image";
+  pinBtn.addEventListener("click", () => { pinCurrentImageParams(); updatePinStatus(); flash(pinBtn, "Saved ✓"); });
+  action(image, pinBtn);
+  const resetBtn = document.createElement("button");
+  resetBtn.type = "button";
+  resetBtn.textContent = "Reset image";
+  resetBtn.addEventListener("click", () => { clearCurrentImageParams(); updatePinStatus(); flash(resetBtn, "Default ✓"); });
+  action(image, resetBtn);
 
   // CURSOR — how the pointer presses into the dither. Edge applies to Negative;
   // Detail + Colorize apply to Develop (others are hidden for the active mode).
@@ -1338,8 +1405,10 @@ function buildDevBar(): void {
   copy.textContent = "Copy JSON";
   copy.addEventListener("click", async () => {
     const snapshot = {
-      look,
+      current: look.image,
       motion: { ease: mEase(), dur: motion.dur, fps: motion.fps },
+      default: DEFAULT_PARAMS, // the baseline every un-pinned image uses
+      images: imageParams, // only images with a pinned override
     };
     const json = JSON.stringify(snapshot, null, 2);
     try {
@@ -1374,6 +1443,9 @@ function buildDevBar(): void {
     setNA(cursorMotifCtl, notDev); // Cursor-group Motif: Develop only
     developGroupEl.style.display = notDev ? "none" : ""; // whole Develop group is Develop-only
   }
+  // Re-sync every control's display from `look`, then re-evaluate contextual hides.
+  // Called when an image's saved params are loaded (goImage → applyImageParams).
+  refreshControls = (): void => { for (const s of syncers) s(); refreshNA(); };
   refreshNA();
 
   document.body.appendChild(bar);
