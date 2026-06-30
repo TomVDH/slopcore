@@ -35,7 +35,7 @@ The dither shading is the heart of this project. **Every change to the shading M
 
 Process, non-negotiable:
 
-1. Log it in **[`SHADING.md`](SHADING.md)** — the canonical, in-repo shading record (full uniform inventory + changelog). Add a changelog entry (what changed, why, before/after of any uniform or behaviour) and update the inventory **in the same commit** as the shading change. Mirror to the vault record [[projects/tomfolio/shading]] once the vault is linked (`/adjudant connect`).
+1. Log it in **[`SHADING.md`](SHADING.md)** — the canonical, in-repo shading record (full uniform inventory + changelog). Add a changelog entry (what changed, why, before/after of any uniform or behaviour) and update the inventory **in the same commit** as the shading change. Mirror to the **vault** note `projects/tomfolio/notes/shading.md`. **Vault location** (Obsidian's own iCloud container, not the project's — auto-discovery fails, pass it explicitly): `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Claude Cabinet/` (project folder `projects/tomfolio/`). For adjudant: `--vault-path "…/Claude Cabinet"`.
 2. The baseline inventory below is a quick-reference summary; `SHADING.md` is the authoritative source of truth for the current shader state.
 3. **Same units throughout for the same concept.** Cell density is always a *cell count* (`uCell`, `uDevCell`); polarity is always `uInvert`; etc. Never mix units (no multipliers where the sibling control uses absolute counts).
 

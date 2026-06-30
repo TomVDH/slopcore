@@ -43,7 +43,7 @@ and the reveal / develop / crossfade / motion behaviours.
 | `uXfade` | 0–1 | 0 | 0–1 | 0 sample uImage, 1 sample uImage2 (no field flash) |
 | `uImageBrightness` | added | 0 | −0.5–0.5 | image luminance offset (before invert + threshold) |
 | `uImageContrast` | mult | 1 | 0.4–2.6 | image contrast around mid (before invert + threshold) |
-| `uInvert` | bool | 0 | 0/1 | **manual** polarity flip (no auto) |
+| `uInvert` | bool | 0 | 0/1 | polarity flip; resolved (in `artefact.ts`) from the Invert control: Off=0, On=1, **Auto** (default) = invert when `paperLum < inkLum` (dark-paper stock) so a natural photo reads positive on any colorway |
 | `uFadeMode` | enum | 2 | 0–2 | edge dissolve: 0 off, 1 simple radial, 2 cloud |
 | `uFadeScale` | freq | 1.2/3 | 1–8 | cloud-noise frequency (mode 2) |
 | `uReveal` | 0–1 | 0 | 0–1 | crossfade dither → true-colour photo (natural light); cell ramps up |
@@ -80,8 +80,11 @@ built only from `p` (one value per cell) — never varies `cell`/`cellId` spatia
   passes through a negative — while the cell count ramps geometrically (`REVEAL_CELL_MULT`).
 - **Image → image** is a true crossfade through `uImage2`/`uXfade` (two slots, promote on complete);
   **field ↔ image** uses `uImageOn`. No procedural-field flash between photos.
-- **Invert** is manual (`uInvert`); field + image tone share it. (An auto-by-palette polarity was
-  added 2026-06-29 and reverted same day — "no auto".)
+- **Invert** is an Off / On / **Auto** control (`look.invertMode`), resolving to `uInvert`. Auto
+  (default) is **palette-based**: invert when `paperLum < inkLum` (dark-paper stock), so a natural
+  photo reads positive on any colorway with no manual toggling. Polarity is a *palette* property,
+  not an image one — an image-histogram heuristic (designed via workflow) was rejected because it
+  renders dark photos as negatives. A dev-bar status row shows the Auto decision + stock.
 - **Motion** (DOM/GSAP, not a uniform): all dither/reveal tweens share one ease + duration via the
   artefact `EASES` list + `motion` (dev-bar Motion group). Default **quint ease-out, 0.6s**.
 
@@ -96,6 +99,11 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-29
+- **Auto invert reintroduced** as Off/On/**Auto** (`look.invertMode`, default Auto). Auto is
+  palette-based (`paperLum < inkLum` → invert) — correct natural polarity on every colorway; a
+  dev-bar status row reports it. NOTE: a workflow-designed image-histogram ("mass-to-ground")
+  heuristic was built and then REJECTED — it inverts dark photos (renders them as negatives);
+  natural polarity is a palette property, not an image one.
 - **Detail by cell count.** `uDevFine` (multiplier) → `uDevCell` (absolute cell count, same units
   as `uCell`); Develop fine cell = `uRes.y / uDevCell`. Default 450, range 120–960 step 12.
 - **Dev bar:** clipping-proof layout — divisor-of-6 column counts (6/3/2/1 by breakpoint), viewport

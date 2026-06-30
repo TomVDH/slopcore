@@ -57,7 +57,8 @@ const look = {
   tone: 0.5,
   brightness: 0, // image brightness (added)
   contrast: 1, // image contrast (around mid)
-  invert: 0,
+  invert: 0, // resolved 0/1 actually pushed to uInvert
+  invertMode: 2, // Invert control: 0 Off, 1 On, 2 Auto (image-decided)
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
   cloudSize: 1.2, // cloud-noise frequency (mode 2) — smaller = bigger billows
   reveal: 0, // 0 dithered, 1 full-res photo in natural light (Reveal tweens between)
@@ -88,6 +89,50 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
+/* ---- Auto invert: pick the natural polarity for the current palette ----
+   The dither inks the dark tones (lum below the Bayer mid -> ink mark, else
+   paper), so whether an un-inverted photo reads as a positive or as a negative
+   depends on the PALETTE, not the image: when the ink (marks) is lighter than
+   the paper (ground) — a dark-paper colorway — the bright parts of a photo must
+   map to the ink, which means inverting. Auto applies exactly that, so a natural
+   photo reads right on any colorway with no manual toggling. (Polarity is a
+   palette property — image content does NOT change which polarity reads natural;
+   the workflow's image-histogram heuristic renders dark photos as negatives, so
+   it was rejected. Image content only matters as deliberate artistic intent,
+   which is what manual On/Off is for.) */
+interface AutoResult { invert: number; paperLum: number; inkLum: number; gap: number; }
+let lastAuto: AutoResult | null = null;
+let onAutoResolved: (() => void) | null = null;
+
+function lumaHex(hex: string): number {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+// Resolve look.invert (0/1) from the Invert control mode (0 Off, 1 On, 2 Auto).
+// Auto inverts when the palette's paper is darker than its ink (dark-paper stock).
+function resolveAuto(): void {
+  if (look.invertMode !== 2) {
+    look.invert = look.invertMode === 1 ? 1 : 0;
+    lastAuto = null;
+  } else {
+    const pal = PALETTES[look.colorway] ?? PALETTES[10];
+    const paperLum = lumaHex(pal.paper);
+    const inkLum = lumaHex(pal.ink);
+    look.invert = paperLum < inkLum ? 1 : 0;
+    lastAuto = { invert: look.invert, paperLum, inkLum, gap: Math.abs(inkLum - paperLum) };
+  }
+  onAutoResolved?.();
+}
+
+function pushAutoInvert(): void {
+  resolveAuto();
+  if (scene) scene.setParam("uInvert", look.invert);
+}
+
 let curImageSrc: string | null = null;
 let txToken = 0;
 const cur = { uImageOn: 0 }; // tweened field<->image crossfade amount
@@ -113,6 +158,7 @@ function pushTreatment(): void {
   scene.setParam("uMotifTone", look.tone);
   scene.setParam("uImageBrightness", look.brightness);
   scene.setParam("uImageContrast", look.contrast);
+  resolveAuto(); // refresh resolved polarity (Auto re-evaluates for the current palette)
   scene.setParam("uInvert", look.invert);
   scene.setParam("uFadeMode", look.fadeMode);
   scene.setParam("uFadeScale", look.cloudSize);
@@ -212,16 +258,19 @@ function goImage(key: string): void {
         xf.v = 0;
         pushImageOn();
         pushXfade();
+        pushAutoInvert();
       });
     } else {
       cur.uImageOn = 0;
       pushImageOn();
+      pushAutoInvert();
     }
     return;
   }
 
   // To the field: fade the image out and leave the procedural field.
   if (!targetSrc) {
+    pushAutoInvert();
     gsap.to(cur, { uImageOn: 0, duration: motion.dur, ease: mEase(), onUpdate: pushImageOn });
     return;
   }
@@ -241,6 +290,7 @@ function goImage(key: string): void {
       }
       xf.v = 0;
       pushXfade();
+      pushAutoInvert();
       gsap.to(cur, { uImageOn: 1, duration: motion.dur, ease: mEase(), onUpdate: pushImageOn });
     })();
     return;
@@ -253,6 +303,7 @@ function goImage(key: string): void {
     scene.setImage2(im);
     xf.v = 0;
     pushXfade();
+    pushAutoInvert(); // decide polarity for the incoming image as the crossfade begins
     gsap.to(xf, {
       v: 1,
       duration: motion.dur,
@@ -488,6 +539,26 @@ function buildDevBar(): void {
     return ctl(into, label, btn);
   };
 
+  // A 3-state cycle button (e.g. Off / On / Auto). Lit only for the explicit "On" (index 1).
+  const cycle3 = (
+    into: HTMLElement,
+    label: string,
+    states: readonly string[],
+    get: () => number,
+    set: (i: number) => void,
+  ): HTMLElement => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "art-toggle";
+    const sync = (): void => {
+      btn.textContent = states[get()];
+      btn.classList.toggle("is-on", get() === 1);
+    };
+    sync();
+    btn.addEventListener("click", () => { set((get() + 1) % states.length); pushTreatment(); sync(); });
+    return ctl(into, label, btn);
+  };
+
   // A full-width action button (the Output column).
   const action = (into: HTMLElement, btn: HTMLButtonElement): void => {
     const w = document.createElement("div");
@@ -542,7 +613,24 @@ function buildDevBar(): void {
   stepper(image, "Contrast", () => look.contrast.toFixed(2),
     () => { look.contrast = Math.max(0.4, +(look.contrast - 0.1).toFixed(2)); },
     () => { look.contrast = Math.min(2.6, +(look.contrast + 0.1).toFixed(2)); });
-  toggle(image, "Invert", () => !!look.invert, () => { look.invert ^= 1; });
+  cycle3(image, "Invert", ["Off", "On", "Auto"], () => look.invertMode, (i) => { look.invertMode = i; });
+  // Auto status (shown only in Auto mode): whether Auto inverted, and why — the
+  // palette stock. "ON · dark" inverts on a dark-paper colorway; "OFF · light".
+  const autoStat = document.createElement("span");
+  autoStat.className = "art-ctl-v is-name";
+  const autoRow = ctl(image, "Auto", autoStat);
+  const updateAutoStatus = (): void => {
+    setNA(autoRow, look.invertMode !== 2);
+    if (look.invertMode !== 2 || !lastAuto) return;
+    const r = lastAuto;
+    autoStat.textContent = `${r.invert ? "ON" : "OFF"} · ${r.paperLum < r.inkLum ? "dark" : "light"}`;
+    autoStat.title = `paper ${r.paperLum.toFixed(2)} · ink ${r.inkLum.toFixed(2)} · gap ${r.gap.toFixed(2)}`;
+    autoStat.style.background = r.invert ? "#f4efdd" : "";
+    autoStat.style.color = r.invert ? "#14121a" : "";
+    autoStat.style.padding = r.invert ? "0 4px" : "";
+  };
+  onAutoResolved = updateAutoStatus;
+  updateAutoStatus();
 
   // CURSOR — how the pointer presses into the dither. Edge applies to Negative;
   // Detail + Colorize apply to Develop (others are hidden for the active mode).
