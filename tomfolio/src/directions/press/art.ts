@@ -70,10 +70,13 @@ export const pressFrag = /* glsl */ `
   uniform float uInvert;          // 0 normal, 1 invert tone polarity (ink <-> paper)
   uniform float uImageBrightness; // added to the sampled image luminance
   uniform float uImageContrast;   // contrast of the sampled image around mid-grey
+  uniform float uFit;             // image fit: 0 cover (crop), 1 contain (letterbox)
+  uniform vec2  uImgAlign;        // image anchor in [0,1] (0.5,0.5 = centred; 0,0 = bottom-left)
   uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
   uniform float uFadeScale;       // cloud-noise frequency X for fade mode 2 (smaller = bigger billows)
   uniform float uFadeScaleY;      // cloud-noise frequency Y (independent stretch of the cloud)
-  uniform float uNoiseType;       // cloud noise: 0 fbm, 1 ridged (Musgrave-like), 2 voronoi (cellular)
+  uniform float uNoiseType;       // cloud noise: 0 fbm 1 ridged 2 voronoi 3 turbulence 4 cracks
+  uniform float uFadeWarp;        // domain-warp amount applied to the cloud noise (0 = none)
   uniform float uCloudSpeed;      // cloud mode 2: sideways scroll speed of the fbm (0 = static)
   uniform vec2  uFadePos;         // dissolve anchor in [0,1] plate space (0,0 = bottom-left, default)
   uniform float uMaskView;        // dev: 1 = show the raw fade mask (cov) as grayscale, undithered
@@ -139,8 +142,45 @@ export const pressFrag = /* glsl */ `
     return clamp(md, 0.0, 1.0);
   }
 
-  // Fade-mask noise selector: 0 fbm, 1 ridged (Musgrave-like), 2 voronoi (cellular).
+  // Turbulence: abs-valued fbm — smokier, sharper billows than plain fbm.
+  float turbulence(vec2 p) {
+    float v = 0.0;
+    float amp = 0.55;
+    for (int i = 0; i < 4; i++) {
+      v += amp * abs(vnoise(p) * 2.0 - 1.0);
+      p *= 2.02;
+      amp *= 0.5;
+    }
+    return v;
+  }
+
+  // Worley cracks (F2 - F1): the gap between the two nearest feature points —
+  // bright veins / cracks running along the cell boundaries.
+  float worleyEdge(vec2 p) {
+    vec2 g = floor(p);
+    vec2 f = fract(p);
+    float f1 = 1.5, f2 = 1.5;
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec2 o = vec2(float(i), float(j));
+        vec2 fp = vec2(hash(g + o), hash(g + o + 31.7));
+        float d = length(o + fp - f);
+        if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) { f2 = d; }
+      }
+    }
+    return clamp((f2 - f1) * 1.4, 0.0, 1.0);
+  }
+
+  // Fade-mask noise selector + universal domain WARP: uFadeWarp swirls the sample
+  // coords through fbm before evaluating, so ANY type reads more organic/turbulent.
+  // 0 fbm, 1 ridged (Musgrave-like), 2 voronoi, 3 turbulence, 4 cracks (Worley F2-F1).
   float fadeNoise(vec2 p, float type) {
+    if (uFadeWarp > 0.001) {
+      vec2 w = vec2(fbm(p + vec2(1.7, 9.2)), fbm(p + vec2(8.3, 2.8)));
+      p += (w - 0.5) * (uFadeWarp * 2.0);
+    }
+    if (type > 3.5) return worleyEdge(p);
+    if (type > 2.5) return turbulence(p);
     if (type > 1.5) return voronoi(p);
     if (type > 0.5) return ridged(p);
     return fbm(p);
@@ -240,11 +280,21 @@ export const pressFrag = /* glsl */ `
     vec2 baseUv = (cellId + 0.5) * cell / uRes;
     float plateA = uRes.x / uRes.y;
     float imgA0 = uImageRes.x / max(uImageRes.y, 1.0);
-    vec2 isc0 = imgA0 > plateA ? vec2(plateA / imgA0, 1.0) : vec2(1.0, imgA0 / plateA);
-    vec2 iuv = (baseUv - 0.5) * isc0 + 0.5;
+    float r0 = imgA0 / plateA;
+    // Fit: 0 cover (fill, crop the overflow) / 1 contain (fit whole image, letterbox).
+    // uImgAlign anchors the crop window / letterbox position (0.5,0.5 = centered).
+    vec2 isc0 = uFit < 0.5
+      ? (r0 > 1.0 ? vec2(1.0 / r0, 1.0) : vec2(1.0, r0))
+      : (r0 > 1.0 ? vec2(1.0, r0) : vec2(1.0 / r0, 1.0));
+    vec2 iuv = (baseUv - uImgAlign) * isc0 + uImgAlign;
     float imgA1 = uImage2Res.x / max(uImage2Res.y, 1.0);
-    vec2 isc1 = imgA1 > plateA ? vec2(plateA / imgA1, 1.0) : vec2(1.0, imgA1 / plateA);
-    vec2 iuv2 = (baseUv - 0.5) * isc1 + 0.5;
+    float r1 = imgA1 / plateA;
+    vec2 isc1 = uFit < 0.5
+      ? (r1 > 1.0 ? vec2(1.0 / r1, 1.0) : vec2(1.0, r1))
+      : (r1 > 1.0 ? vec2(1.0, r1) : vec2(1.0 / r1, 1.0));
+    vec2 iuv2 = (baseUv - uImgAlign) * isc1 + uImgAlign;
+    // Contain letterbox: 1 inside the image, 0 in the bars (rendered as ground below).
+    float inImg = step(0.0, iuv.x) * step(iuv.x, 1.0) * step(0.0, iuv.y) * step(iuv.y, 1.0);
     vec3 imgRGB = mix(texture2D(uImage, iuv).rgb, texture2D(uImage2, iuv2).rgb, clamp(uXfade, 0.0, 1.0));
     float img = dot(imgRGB, vec3(0.299, 0.587, 0.114));
     img = clamp((img - 0.5) * uImageContrast + 0.5 + uImageBrightness, 0.0, 1.0);
@@ -388,6 +438,8 @@ export const pressFrag = /* glsl */ `
     } else {
       col = mix(paper, clamp(ink + uMarkBright * sqrt(ink), 0.0, 1.0), inkAmt);
     }
+    // Contain letterbox: outside the fitted image, show bare ground (paper).
+    col = mix(col, paper, (1.0 - inImg) * uImageOn);
     // Dissolve THROUGH the dither: the cloud coverage drops whole cells in the
     // Bayer order, so the fade is stippled INTO the marks — it affects the dither
     // pixels rather than overlaying a smooth alpha gradient. Mode 0 keeps cov = 1.
@@ -414,8 +466,8 @@ export const pressFrag = /* glsl */ `
       vec2 fId = floor(gl_FragCoord.xy / fcell);
       vec2 fLocal = fract(gl_FragCoord.xy / fcell);
       vec2 fBase = (fId + 0.5) * fcell / uRes;
-      vec3 fRGB = mix(texture2D(uImage, (fBase - 0.5) * isc0 + 0.5).rgb,
-                      texture2D(uImage2, (fBase - 0.5) * isc1 + 0.5).rgb,
+      vec3 fRGB = mix(texture2D(uImage, (fBase - uImgAlign) * isc0 + uImgAlign).rgb,
+                      texture2D(uImage2, (fBase - uImgAlign) * isc1 + uImgAlign).rgb,
                       clamp(uXfade, 0.0, 1.0));
       float faa = clamp(0.9 / fcell, 0.001, 0.25);
       vec2 flc = fLocal - 0.5;
@@ -437,7 +489,7 @@ export const pressFrag = /* glsl */ `
       // Colorize) then re-dither THAT at uDevCell detail. A press resolves to a
       // finer, fuller dither of the photo — it manipulates the source + marks
       // directly, not a smooth photo laid over them (that's what global Reveal is).
-      vec2 fuv = (fBase - 0.5) * isc0 + 0.5;
+      vec2 fuv = (fBase - uImgAlign) * isc0 + uImgAlign;
       vec3 fMean = (texture2D(uImage, fuv + vec2( 0.01, 0.0)).rgb
                   + texture2D(uImage, fuv + vec2(-0.01, 0.0)).rgb
                   + texture2D(uImage, fuv + vec2(0.0,  0.01)).rgb
@@ -467,7 +519,7 @@ export const pressFrag = /* glsl */ `
     // Global Reveal resolves the whole plate to the true natural-light photo
     // (no invert / colorize / saturation — the real source), on top of Develop.
     if (uReveal > 0.001 && uImageOn > 0.5) {
-      col = mix(col, clamp(imgRGB, 0.0, 1.0), clamp(uReveal, 0.0, 1.0));
+      col = mix(col, mix(paper, clamp(imgRGB, 0.0, 1.0), inImg), clamp(uReveal, 0.0, 1.0));
     }
 
     // Image state (dev): the continuous-tone source the dither reads — current

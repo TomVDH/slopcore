@@ -44,11 +44,14 @@ and the reveal / develop / crossfade / motion behaviours.
 | `uXfade` | 0–1 | 0 | 0–1 | 0 sample uImage, 1 sample uImage2 (no field flash) |
 | `uImageBrightness` | added | 0 | −1–1 | image luminance offset (before invert + threshold) |
 | `uImageContrast` | mult | 1 | 0.1–5 | image contrast around mid (before invert + threshold) |
+| `uFit` | enum | 0 | 0/1 | image fit into the plate: 0 cover (fill, crop overflow), 1 contain (fit whole image, letterbox to ground via `inImg` mask) |
+| `uImgAlign` | vec2 | (0.5,0.5) | 0–1 each | image anchor: slides the cover crop / contain letterbox. 0,0 = bottom-left, 1,1 = top-right. `iuv = (baseUv − uImgAlign)·isc + uImgAlign` |
 | `uInvert` | bool | 0 | 0/1 | polarity flip, **duotone only** (full-colour never inverts — a colour negative reads as wrong colour). Resolved (in `artefact.ts`) from the Invert control: Off=0, On=1, **Auto** (default) = invert when `paperLum < inkLum` (dark-paper stock). The Invert + Auto rows hide while Full colour is on |
 | `uFadeMode` | enum | 2 | 0–2 | edge dissolve: 0 off, 1 simple radial, 2 cloud. Applied **through the Bayer dither** (`step(bayer4(cellId), cov)`) — cells drop in dither order, stippling the fade into the marks rather than an alpha overlay |
 | `uFadeScale` | freq | 1.2/3 | 0.5–20 | cloud-noise frequency **X** (mode 2; smaller = bigger billows) |
 | `uFadeScaleY` | freq | 1.2/3 | 0.5–20 | cloud-noise frequency **Y** (independent vertical stretch of the cloud) |
-| `uNoiseType` | enum | 0 | 0–2 | cloud mask noise: 0 fbm, 1 ridged (Musgrave-like creases), 2 voronoi (cellular). Selected via `fadeNoise()` |
+| `uNoiseType` | enum | 0 | 0–4 | cloud mask noise: 0 fbm, 1 ridged (Musgrave creases), 2 voronoi (cellular), 3 turbulence (smoky), 4 cracks (Worley F2−F1 veins). Selected via `fadeNoise()` |
+| `uFadeWarp` | amount | 0 | 0–3 | domain-warp applied to the cloud noise before evaluation (fbm-driven coord swirl) — reshapes ANY noise type into more organic/turbulent forms |
 | `uCloudSpeed` | speed | 0.05 | 0–2 | cloud (mode 2) sideways scroll speed; 0 static. Continuous fbm offset = seamless, decoupled from `uDrift` |
 | `uFadePos` | vec2 | (0,0) | −1–2 each | dissolve **anchor** in [0,1] plate space (x scaled by aspect); 0,0 = bottom-left (default). Moves where the gradient/cloud fade originates |
 | `uMaskView` | bool | 0 | 0/1 | dev: output the raw fade coverage `cov` as grayscale (white = marks, black = ground), undithered — reveals the mask shape + moved anchor |
@@ -133,6 +136,31 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-30
+- **Image fit + position**: `uFit` (cover/contain) and `uImgAlign` (anchor vec2) — cover crops, contain
+  fits the whole image and letterboxes to ground (`inImg` mask on the main composite + Reveal); the
+  anchor slides the crop/letterbox (`(baseUv − uImgAlign)·isc + uImgAlign`), applied to main + develop.
+  Image-group **Fit / Pos X / Pos Y** controls.
+- **More cloud noise + Warp**: added `turbulence()` (smoky abs-fbm) and `worleyEdge()` (Worley F2−F1
+  cracks/veins) → `uNoiseType` now 0–4 (fbm/ridged/voronoi/turbulence/cracks). New `uFadeWarp`
+  domain-warps the sample coords through fbm before any noise type, so the mask reads organic.
+  Cloud-group **Noise** (5 options) + **Warp** stepper.
+- **Motif distinctness fix**: X / Plus / Dash were drawn with the same `wEff` half-width as the disc
+  radius, but their distance fields (`min(dia,dib)` ~0.35 max) saturate well below `wEff`'s 0.5 cap —
+  so at the default weight the strokes filled the whole cell and read identically to solid Dots. Gave
+  the strokes a thinner `strokeW = clamp(wEff*0.4, 0.05, 0.18)` (base + develop fine block) so they
+  render as crisp lines. (Motifs still need a low-ish Cell to resolve; tiny cells blur any shape.)
+- **Plate box + Width** (`look.plateWidth`, not a uniform): the `#gl` canvas is now a FIXED box —
+  full height × (Width × viewport width), default 66% — **decoupled from the photo aspect** (it used
+  to auto-fit the image, which left no room for Fit/Pos to act). The photo fits into the box via the
+  shader `uFit` / `uImgAlign`. Screen-group Width stepper (%).
+- **Ellipse fix (scale + saturation)**: the velocity ellipse read as a plate-spanning blown-out beam
+  at speed (captured via `uCursorView`; corroborated by a gemineye review). Three causes, all fixed:
+  (1) **area was growing** — `squash = max(0.45, 1/√stretch)` scaled footprint by `√stretch`; now
+  `squash = 1/stretch` (exact area preservation, redistributes into a needle). (2) **base disc too
+  loose** — `uCursorRadius` default `2.2 → 9.0` (still tunable 0.2–16; the disc was plate-scale before
+  any stretch). (3) **core clamped flat** — amplitude `max(uMouseStrength,uHold)` reaches 1.4 and pegged
+  the centre to white; now `clamp(..., 0, 1)`. Stretch multiplier eased `2.5 → 1.4` (≈2.96× at full
+  speed). Y-direction sign in `dirTarget` (scene.ts) negated to map screen-down → shader-up.
 - **Cloud noise types + X/Y size**: `uNoiseType` (FBM / Ridged-Musgrave / Voronoi via `fadeNoise()`)
   and `uFadeScaleY` (independent vertical cloud frequency) — new **Cloud** dev-bar group (split from
   Screen) carrying Cloud X/Y, Noise, anim, speed, Fade X/Y; hidden when Fade = Off.

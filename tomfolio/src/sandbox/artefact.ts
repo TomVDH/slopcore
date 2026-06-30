@@ -62,17 +62,22 @@ const look = {
   motif: 1,
   colorway: 10,
   cell: 150,
+  plateWidth: 0.66, // plate box width as a fraction of the viewport (the photo fits into it via Fit/Pos)
   weight: 0.62,
   angle: 0,
   tone: 0.5,
   brightness: 0, // image brightness (added)
   contrast: 1, // image contrast (around mid)
+  fit: 0, // image fit: 0 cover (crop), 1 contain (letterbox)
+  posX: 0.5, // image anchor X in [0,1] (0 left, 0.5 centre, 1 right)
+  posY: 0.5, // image anchor Y in [0,1] (0 bottom, 0.5 centre, 1 top)
   invert: 0, // resolved 0/1 actually pushed to uInvert
   invertMode: 2, // Invert control: 0 Off, 1 On, 2 Auto (image-decided)
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
   cloudSize: 1.2, // cloud-noise frequency X (mode 2) — smaller = bigger billows
   cloudSizeY: 1.2, // cloud-noise frequency Y (independent stretch)
-  noiseType: 0, // cloud noise: 0 fbm, 1 ridged (Musgrave-like), 2 voronoi
+  noiseType: 0, // cloud noise: 0 fbm, 1 ridged, 2 voronoi, 3 turbulence, 4 cracks
+  fadeWarp: 0, // domain-warp amount on the cloud noise (organic swirl)
   cloudAnim: 1, // cloud (mode 2): 1 scroll sideways, 0 static
   cloudSpeed: 0.05, // cloud sideways scroll speed
   fadePosX: 0, // dissolve anchor X in [0,1] (0 = left)
@@ -170,14 +175,14 @@ let curImageEl: HTMLImageElement | null = null;
 function applyCanvasWidth(): void {
   if (!canvas) return;
   const frame = canvas.parentElement as HTMLElement | null;
-  if (!curImageEl || !curImageEl.naturalWidth || !frame || !frame.clientHeight) {
-    canvas.style.width = ""; // no image, or frame not laid out yet — fall back to CSS (never 0px)
+  if (!frame || !frame.clientWidth) {
+    canvas.style.width = ""; // frame not laid out yet — fall back to CSS (never 0px)
     return;
   }
-  const aspect = curImageEl.naturalWidth / curImageEl.naturalHeight;
-  const want = frame.clientHeight * aspect;
-  const cap = frame.clientWidth * 0.9; // keep a sliver of ground for the menu
-  canvas.style.width = `${Math.round(Math.min(want, cap))}px`;
+  // The plate is a FIXED box: full height × (Width × viewport width). The photo is
+  // fitted into it by the shader (Image > Fit / Pos), independent of its own aspect
+  // — so cover/contain/position actually have room to act.
+  canvas.style.width = `${Math.round(frame.clientWidth * look.plateWidth)}px`;
 }
 function fitCanvas(im: HTMLImageElement | null): void {
   curImageEl = im;
@@ -216,6 +221,9 @@ function pushTreatment(): void {
   scene.setParam("uFadeScale", look.cloudSize);
   scene.setParam("uFadeScaleY", look.cloudSizeY);
   scene.setParam("uNoiseType", look.noiseType);
+  scene.setParam("uFadeWarp", look.fadeWarp);
+  scene.setParam("uFit", look.fit);
+  scene.setParam("uImgAlign", [look.posX, look.posY]);
   scene.setParam("uCloudSpeed", look.cloudAnim ? look.cloudSpeed : 0);
   scene.setParam("uFadePos", [look.fadePosX, look.fadePosY]);
   scene.setParam("uMaskView", look.maskView);
@@ -574,10 +582,12 @@ function flash(btn: HTMLElement, msg: string): void {
 const HELP: Record<string, string> = {
   Motif: "Mark shape: solid, disc (round halftone dot), X, plus, or dash.",
   Cell: "Screen frequency. Lower = bigger dots, higher = finer grain.",
+  Width: "Plate box width as a % of the viewport (full height). The photo fits into this box via Image > Fit / Pos.",
   Fade: "Edge dissolve of the plate: off, a simple radial, or the animated cloud.",
   "Cloud X": "Cloud billow size across — lower = bigger, softer billows.",
   "Cloud Y": "Cloud billow size vertically (independent stretch).",
-  Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells).",
+  Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells), Turbulence (smoky), Cracks (Worley veins).",
+  Warp: "Domain-warp the noise — swirls the mask into more organic, turbulent shapes (works on any Noise type).",
   "Cloud anim": "Scroll the cloud sideways, or hold it static.",
   "Cloud speed": "How fast the cloud drifts when animated.",
   "Fade X": "Move the dissolve's anchor left/right (0 = left edge).",
@@ -586,6 +596,9 @@ const HELP: Record<string, string> = {
   "Full colour": "Dither the photo's real RGB instead of duotone paper/ink.",
   Levels: "Posterise steps per colour channel — lower = chunkier colour.",
   "Mark bright": "Brighten/darken the mark colour itself, vs the palette ink.",
+  Fit: "How the photo fills the plate: Cover (fill + crop) or Contain (fit whole image, letterbox to ground).",
+  "Pos X": "Image anchor across: 0 left · 0.5 centre · 1 right (slides the crop / letterbox).",
+  "Pos Y": "Image anchor vertical: 0 bottom · 0.5 centre · 1 top.",
   Brightness: "Source-image luminance, applied before dithering.",
   Contrast: "Source-image contrast, applied before dithering.",
   Invert: "Tone polarity. Auto flips it on dark-paper stocks. Duotone only.",
@@ -952,6 +965,12 @@ function buildDevBar(): void {
   stepper(screen, "Cell", () => String(look.cell),
     () => { look.cell = Math.max(16, look.cell - 12); },
     () => { look.cell = Math.min(600, look.cell + 12); });
+  // Plate width: the plate box as a fraction of the viewport width (full height).
+  // The photo fits into this box via Image > Fit / Pos. Re-sizes #gl (not a uniform).
+  stepper(screen, "Width", () => `${Math.round(look.plateWidth * 100)}%`,
+    () => { look.plateWidth = Math.max(0.2, +(look.plateWidth - 0.05).toFixed(2)); },
+    () => { look.plateWidth = Math.min(1, +(look.plateWidth + 0.05).toFixed(2)); },
+    () => fitCanvas(curImageEl));
   select(screen, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
 
   // CLOUD — the dissolve mask (fade Simple/Cloud): X/Y size, noise type, motion, anchor.
@@ -963,7 +982,10 @@ function buildDevBar(): void {
   const cloudYCtl = stepper(cloud, "Cloud Y", () => look.cloudSizeY.toFixed(1),
     () => { look.cloudSizeY = Math.max(0.5, +(look.cloudSizeY - 0.5).toFixed(1)); },
     () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); });
-  const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi"], () => look.noiseType, (i) => { look.noiseType = i; });
+  const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; });
+  const warpCtl = stepper(cloud, "Warp", () => look.fadeWarp.toFixed(2),
+    () => { look.fadeWarp = Math.max(0, +(look.fadeWarp - 0.1).toFixed(2)); },
+    () => { look.fadeWarp = Math.min(3, +(look.fadeWarp + 0.1).toFixed(2)); });
   const cloudAnimCtl = toggle(cloud, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
   const cloudSpeedCtl = stepper(cloud, "Cloud speed", () => look.cloudSpeed.toFixed(2),
     () => { look.cloudSpeed = Math.max(0, +(look.cloudSpeed - 0.02).toFixed(2)); },
@@ -1002,6 +1024,15 @@ function buildDevBar(): void {
 
   // IMAGE — source photo tone.
   const image = group("Image");
+  // Fit + position: how the photo maps into the plate. Pos X/Y anchor the crop
+  // (cover) or the letterbox placement (contain). 0,0 = bottom-left; 0.5 = centre.
+  select(image, "Fit", ["Cover", "Contain"], () => look.fit, (i) => { look.fit = i; });
+  stepper(image, "Pos X", () => look.posX.toFixed(2),
+    () => { look.posX = Math.max(0, +(look.posX - 0.1).toFixed(2)); },
+    () => { look.posX = Math.min(1, +(look.posX + 0.1).toFixed(2)); });
+  stepper(image, "Pos Y", () => look.posY.toFixed(2),
+    () => { look.posY = Math.max(0, +(look.posY - 0.1).toFixed(2)); },
+    () => { look.posY = Math.min(1, +(look.posY + 0.1).toFixed(2)); });
   stepper(image, "Brightness", () => look.brightness.toFixed(2),
     () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
     () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });
@@ -1174,6 +1205,7 @@ function buildDevBar(): void {
     setNA(cloudCtl, notCloud); // Cloud X: cloud fade only
     setNA(cloudYCtl, notCloud); // Cloud Y: cloud fade only
     setNA(noiseCtl, notCloud); // Noise type: cloud fade only
+    setNA(warpCtl, notCloud); // Warp: cloud fade only
     setNA(cloudAnimCtl, notCloud); // Cloud anim: cloud fade only
     setNA(cloudSpeedCtl, notCloud); // Cloud speed: cloud fade only
     setNA(fadeXCtl, look.fadeMode === 0); // Fade anchor: any fade mode
