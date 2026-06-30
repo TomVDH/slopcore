@@ -721,14 +721,30 @@ function buildDevBar(): void {
   });
 
   // A labeled column. Controls stack vertically inside it as [label · widget].
+  // Foldable groups: click a group header to collapse its controls. The folded
+  // set persists across reloads.
+  const FOLD_STORE = "artefact:devbar-folds";
+  let folded: Set<string>;
+  try { folded = new Set(JSON.parse(localStorage.getItem(FOLD_STORE) || "[]") as string[]); }
+  catch { folded = new Set(); }
   const group = (label: string): HTMLElement => {
     const g = document.createElement("div");
     g.className = "art-group";
-    const l = document.createElement("span");
+    const l = document.createElement("button");
+    l.type = "button";
     l.className = "art-group-l";
     l.textContent = label;
     const ctls = document.createElement("div");
     ctls.className = "art-group-ctls";
+    g.classList.toggle("is-folded", folded.has(label));
+    l.setAttribute("aria-expanded", String(!folded.has(label)));
+    l.addEventListener("click", () => {
+      if (folded.has(label)) folded.delete(label); else folded.add(label);
+      const isFolded = folded.has(label);
+      g.classList.toggle("is-folded", isFolded);
+      l.setAttribute("aria-expanded", String(!isFolded));
+      try { localStorage.setItem(FOLD_STORE, JSON.stringify([...folded])); } catch { /* ignore */ }
+    });
     g.append(l, ctls);
     row.appendChild(g);
     return ctls;

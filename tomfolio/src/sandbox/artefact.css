@@ -372,11 +372,37 @@ body.art {
   flex-direction: column;
   gap: 9px;
 }
+/* Foldable group header: click to collapse the group's controls. */
 .art-group-l {
-  font-size: 0.55rem;
+  appearance: none;
+  width: 100%;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: 600 0.55rem var(--font-mono, ui-monospace, monospace);
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(244, 239, 221, 0.4);
+  color: rgba(244, 239, 221, 0.42);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.art-group-l:hover {
+  color: rgba(244, 239, 221, 0.85);
+}
+.art-group-l::before {
+  content: "▾";
+  display: inline-block;
+  width: 1em;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+.art-group.is-folded .art-group-l::before {
+  content: "▸";
+}
+.art-group.is-folded .art-group-ctls {
+  display: none;
 }
 .art-group-ctls {
   display: flex;
