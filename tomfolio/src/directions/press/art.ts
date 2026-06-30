@@ -351,10 +351,15 @@ export const pressFrag = /* glsl */ `
     float dax = abs(lc.x);                              // vertical centerline
     float day = abs(lc.y);                              // horizontal centerline
 
+    // Disc is a round dot of radius wEff. X / plus / dash are STROKES — they get a
+    // thinner half-width so they read as crisp lines and never saturate into a
+    // solid block (min(dia,dib) tops out ~0.35; at wEff up to 0.5 the X filled the
+    // whole cell, making it identical to solid Dots).
+    float strokeW = clamp(wEff * 0.4, 0.05, 0.18);
     float mDisc = 1.0 - smoothstep(wEff - aa, wEff + aa, rad);
-    float mX    = 1.0 - smoothstep(wEff - aa, wEff + aa, min(dia, dib));
-    float mPlus = 1.0 - smoothstep(wEff - aa, wEff + aa, min(dax, day));
-    float mDash = 1.0 - smoothstep(wEff - aa, wEff + aa, day);
+    float mX    = 1.0 - smoothstep(strokeW - aa, strokeW + aa, min(dia, dib));
+    float mPlus = 1.0 - smoothstep(strokeW - aa, strokeW + aa, min(dax, day));
+    float mDash = 1.0 - smoothstep(strokeW - aa, strokeW + aa, day);
 
     // 0 dots(solid) 1 disc 2 x 3 plus 4 dash
     float motif = 1.0;
@@ -418,10 +423,11 @@ export const pressFrag = /* glsl */ `
       float fcs = cos(fang), fsn = sin(fang);
       flc = mat2(fcs, -fsn, fsn, fcs) * flc;
       vec2 frl = flc + 0.5;
+      float fStrokeW = clamp(wEff * 0.4, 0.05, 0.18); // thinner stroke (see base motif block)
       float fDisc = 1.0 - smoothstep(wEff - faa, wEff + faa, length(flc));
-      float fX    = 1.0 - smoothstep(wEff - faa, wEff + faa, min(abs(frl.x - frl.y), abs(frl.x + frl.y - 1.0)) * 0.7071);
-      float fPlus = 1.0 - smoothstep(wEff - faa, wEff + faa, min(abs(flc.x), abs(flc.y)));
-      float fDash = 1.0 - smoothstep(wEff - faa, wEff + faa, abs(flc.y));
+      float fX    = 1.0 - smoothstep(fStrokeW - faa, fStrokeW + faa, min(abs(frl.x - frl.y), abs(frl.x + frl.y - 1.0)) * 0.7071);
+      float fPlus = 1.0 - smoothstep(fStrokeW - faa, fStrokeW + faa, min(abs(flc.x), abs(flc.y)));
+      float fDash = 1.0 - smoothstep(fStrokeW - faa, fStrokeW + faa, abs(flc.y));
       float fmotif = 1.0;
       if      (uMotif > 0.5 && uMotif < 1.5) fmotif = fDisc;
       else if (uMotif < 2.5)                 fmotif = fX;
