@@ -179,6 +179,23 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-30
+- **Dev-bar consolidation + cloud-dissolve controls + image colorspace + boundary overlays.**
+  - **Image colorspace fix:** image textures now upload as `NoColorSpace` (was `SRGBColorSpace`) —
+    the GPU was auto-decoding sRGB→linear on sample while the shader outputs without re-encoding, so
+    photos read ~gamma DARKER than source. Now true to source.
+  - **Cloud-dissolve size/softness exposed:** new `uFadeReach` (default 1.45) + `uFadeSoft` (1.15)
+    parameterise the previously-hardcoded `smoothstep(0.3, 1.45, fd)` → `smoothstep(reach-soft, reach)`.
+  - **Fade group:** the whole edge dissolve now lives in one **Fade** group (renamed from Cloud):
+    mode · Fade X/Y (position) · Reach (size) · Softness · Feather/Curve/Depth (right-edge) · cloud
+    texture. The right-edge taper is back INSIDE the fade block (part of the mask — only with a fade on).
+  - **Fluo boundary overlays (dev):** `uShowCanvas`/`uShowImage`/`uShowCloud` draw thin fluo borders —
+    canvas/plate edge (green), fitted-image rect edge (magenta), mask contour cov~0.5 (yellow). Output
+    group toggles. In `PARAM_SKIP` (not in JSON).
+  - **Dev-bar UX:** inactive (`.is-na`) controls now **grey out instead of hiding**, so contextual
+    controls never disappear; palette swatch readout (paper/ink/accent) above the Colour switcher.
+  - **Nomenclature:** `Cell`+`Detail` → **`Cells`** (same unit); fade mode `Fade` → **`Type`**;
+    cursor `Edge` → **`Hardness`**; `Show fade mask`/`Show cursor field` → **`Fade mask`**/**`Cursor field`**.
+  - **JSON coverage confirmed complete:** 47 real settings round-trip; only 8 dev/transient flags excluded.
 - **Right-edge falloff — reworked + shapeable.** The `uEdgeFade` / "Feather" taper now anchors to
   the **plate** (`baseUv.x`), **right edge only** — it was image-space (`iuv.x`, both edges), which
   is invisible whenever a wide image is cover-cropped (the photo's own right edge sits off-plate;

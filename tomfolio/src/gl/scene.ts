@@ -154,8 +154,13 @@ export function initScene(
     uCloudWidth: { value: 1 }, // cloud horizontal extent, independent of the image
     uCloudSpeed: { value: 0 }, // cloud sideways scroll speed (0 = static)
     uFadePos: { value: new THREE.Vector2(0, 0) }, // dissolve anchor in [0,1] plate space
+    uFadeReach: { value: 1.45 }, // dissolve reach (distance at which the fade completes)
+    uFadeSoft: { value: 1.15 }, // dissolve softness (gradient band width; reach-soft = inner)
     uMaskView: { value: 0 }, // dev: show the raw fade mask as grayscale
     uCursorView: { value: 0 }, // dev: show raw cursor influence (infl) as grayscale
+    uShowCanvas: { value: 0 }, // dev: fluo canvas/plate boundary
+    uShowImage: { value: 0 }, // dev: fluo fitted-image boundary
+    uShowCloud: { value: 0 }, // dev: fluo mask contour
     uReveal: { value: 0 }, // 0 dithered, 1 full-res photo (crossfade)
     uColorDither: { value: 0 }, // 0 duotone, 1 full-colour ordered dither
     uColorLevels: { value: 4 }, // posterise steps per channel in colour mode
@@ -348,7 +353,11 @@ export function initScene(
       resU.value.set(1, 1);
     } else {
       const tex = new THREE.Texture(source);
-      tex.colorSpace = THREE.SRGBColorSpace;
+      // Sample at the raw stored (sRGB) bytes — NO color-space decode. This shader
+      // authors every colour in display space and outputs without a linear<->sRGB
+      // encode, so an sRGB-tagged texture (auto-decoded to linear on sample) would
+      // read ~gamma DARKER than the source. NoColorSpace keeps the photo true.
+      tex.colorSpace = THREE.NoColorSpace;
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
       tex.wrapS = THREE.ClampToEdgeWrapping;

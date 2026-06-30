@@ -446,6 +446,21 @@ body.art {
   background: var(--ground, rgba(244, 239, 221, 0.04));
 }
 
+/* Palette readout: three swatches (paper / ink / accent) of the CURRENT colorway,
+   above the Palette switcher in the Colour group. Display only. */
+.art-chips {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+.art-chip {
+  flex: 1;
+  height: 18px;
+  border: 0;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4); /* edge definition on pale palettes */
+}
+
 /* A control row: label left, widget right. */
 .art-ctl {
   display: flex;
@@ -497,7 +512,10 @@ body.art {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 .art-ctl.is-na {
-  display: none; /* control does not apply to the current mode */
+  /* Doesn't apply to the current mode: greyed + inert, but still VISIBLE so contextual
+     controls (e.g. the Fade falloff with no mask on) never disappear on you. */
+  opacity: 0.32;
+  pointer-events: none;
 }
 .art-ctl-act {
   display: block;

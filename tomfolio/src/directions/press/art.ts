@@ -85,8 +85,13 @@ export const pressFrag = /* glsl */ `
   uniform float uCloudWidth;      // cloud horizontal extent, independent of the image (1 = plate)
   uniform float uCloudSpeed;      // cloud mode 2: sideways scroll speed of the fbm (0 = static)
   uniform vec2  uFadePos;         // dissolve anchor in [0,1] plate space (0,0 = bottom-left, default)
+  uniform float uFadeReach;       // dissolve reach: distance from the anchor at which the fade completes
+  uniform float uFadeSoft;        // dissolve softness: width of the gradient band before the reach
   uniform float uMaskView;        // dev: 1 = show the raw fade mask (cov) as grayscale, undithered
   uniform float uCursorView;      // dev: 1 = show raw cursor influence (infl) as grayscale
+  uniform float uShowCanvas;      // dev: 1 = fluo border on the canvas/plate edge (green)
+  uniform float uShowImage;       // dev: 1 = fluo border on the fitted image's edge (magenta)
+  uniform float uShowCloud;       // dev: 1 = fluo line on the mask contour, cov~0.5 (yellow)
   uniform float uReveal;          // 0 dithered, 1 full-res photo; crossfades the dither -> source
   uniform float uColorDither;     // 0 duotone (paper/ink), 1 full-colour ordered dither of the photo
   uniform float uColorLevels;     // posterise steps per RGB channel in colour mode (2 = heavy dither)
@@ -320,11 +325,10 @@ export const pressFrag = /* glsl */ `
         // never-repeating cloud drift; uCloudSpeed 0 = static.
         fd += (fadeNoise(cuv * vec2(uFadeScale, uFadeScaleY) + vec2(uTime * uCloudSpeed, 0.0), uNoiseType) - 0.5) * 0.95;
       }
-      cov = 1.0 - smoothstep(0.3, 1.45, fd);
-      // Edge taper: dissolve the visible RIGHT edge of the PLATE into the ground over
-      // the last uEdgeFade of the plate width — a clean vertical fade-off on the right.
-      // Anchored to the plate (baseUv), NOT the photo (iuv): a wide cover-cropped image's
-      // own right edge sits off-plate, so an image-space taper would never show. Image only.
+      cov = 1.0 - smoothstep(uFadeReach - uFadeSoft, uFadeReach, fd);
+      // Right-edge taper — PART OF THE MASK (only runs when a fade is on). Dissolves the
+      // visible RIGHT edge of the plate into the ground over the last uEdgeFade of the
+      // plate width. Anchored to baseUv (plate), not the photo (off-plate when cropped).
       if (uImageOn > 0.5 && uEdgeFade > 0.001) {
         float et = smoothstep(0.0, uEdgeFade, 1.0 - baseUv.x); // 0 at the right edge, 1 inside
         et = pow(et, max(uEdgeCurve, 0.05));                   // Curve: shape the ramp
@@ -509,6 +513,19 @@ export const pressFrag = /* glsl */ `
     // moved anchor) is directly visible, undithered.
     if (uMaskView > 0.5) col = vec3(clamp(cov, 0.0, 1.0));
     if (uCursorView > 0.5) col = vec3(clamp(infl, 0.0, 1.0));
+
+    // Dev boundary overlays (fluo), drawn on top: the mask contour (cov~0.5, yellow),
+    // the fitted image's rect edge (magenta), and the canvas/plate edge (green).
+    vec2 pxB = 1.5 / uRes; // ~1.5px line in plate (baseUv) space
+    if (uShowCloud > 0.5 && uFadeMode > 0.5 && abs(cov - 0.5) < 0.05) col = vec3(1.0, 0.93, 0.0);
+    if (uShowImage > 0.5 && uImageOn > 0.5) {
+      vec2 pxI = pxB * abs(isc0); // 1.5px plate line, measured in image (iuv) units
+      bool ex = (abs(iuv.x) < pxI.x || abs(iuv.x - 1.0) < pxI.x) && iuv.y > -pxI.y && iuv.y < 1.0 + pxI.y;
+      bool ey = (abs(iuv.y) < pxI.y || abs(iuv.y - 1.0) < pxI.y) && iuv.x > -pxI.x && iuv.x < 1.0 + pxI.x;
+      if (ex || ey) col = vec3(1.0, 0.0, 0.85);
+    }
+    if (uShowCanvas > 0.5 && (baseUv.x < pxB.x || baseUv.x > 1.0 - pxB.x || baseUv.y < pxB.y || baseUv.y > 1.0 - pxB.y))
+      col = vec3(0.25, 1.0, 0.1);
 
     gl_FragColor = vec4(col, 1.0);
   }

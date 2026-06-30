@@ -84,8 +84,13 @@ const look = {
   cloudSpeed: 0.01, // cloud sideways scroll speed
   fadePosX: 0.4, // dissolve anchor X in [0,1] (0 = left)
   fadePosY: 0, // dissolve anchor Y in [0,1] (0 = bottom)
+  fadeReach: 1.45, // dissolve reach: distance at which the fade fully completes (bigger = more solid)
+  fadeSoft: 1.15, // dissolve softness: width of the gradient band (bigger = more gradual)
   maskView: 0, // dev: 1 = show the raw fade mask as grayscale
   cursorView: 0, // dev: 1 = show raw cursor influence (infl) as grayscale
+  showCanvas: 0, // dev: 1 = fluo border on the canvas/plate edge
+  showImage: 0, // dev: 1 = fluo border on the fitted image's edge
+  showCloud: 0, // dev: 1 = fluo line on the mask contour
   reveal: 0, // 0 dithered, 1 full-res photo in natural light (Reveal tweens between)
   imageState: 0, // dev: 1 shows the adjusted source the dither reads, undithered
   colorDither: 0, // 0 duotone (palette), 1 full-colour ordered dither
@@ -227,7 +232,10 @@ const PARAM_UNIFORMS: ReadonlyArray<readonly [string, keyof typeof look]> = [
   ["uFadeScaleY", "cloudSizeY"], ["uNoiseType", "noiseType"], ["uFadeWarp", "fadeWarp"],
   ["uCloudWidth", "cloudW"], ["uFit", "fit"], ["uImgScale", "zoom"], ["uEdgeFade", "edgeFade"],
   ["uEdgeCurve", "edgeCurve"], ["uEdgeDepth", "edgeDepth"],
-  ["uMaskView", "maskView"], ["uCursorView", "cursorView"], ["uColorDither", "colorDither"],
+  ["uFadeReach", "fadeReach"], ["uFadeSoft", "fadeSoft"],
+  ["uMaskView", "maskView"], ["uCursorView", "cursorView"],
+  ["uShowCanvas", "showCanvas"], ["uShowImage", "showImage"], ["uShowCloud", "showCloud"],
+  ["uColorDither", "colorDither"],
   ["uColorLevels", "colorLevels"], ["uMarkBright", "markBright"], ["uCursorMode", "cursorMode"],
   ["uCursorAmp", "cursorAmp"], ["uCursorRadius", "cursorRadius"], ["uHold", "cursorHold"],
   ["uCursorEdge", "cursorEdge"], ["uDevCell", "cursorDetail"], ["uDevColor", "cursorColorize"],
@@ -257,7 +265,7 @@ function pushTreatment(): void {
 // visiting an un-pinned image shows `general`, returning to a written one reads its
 // config back. Editing auto-persists to the current context (the image's own config
 // if it has one, else `general`). Full readout — general + per-image — in Copy JSON.
-const PARAM_SKIP = new Set(["image", "maskView", "cursorView", "imageState", "reveal", "invert"]);
+const PARAM_SKIP = new Set(["image", "maskView", "cursorView", "showCanvas", "showImage", "showCloud", "imageState", "reveal", "invert"]);
 function snapshotParams(): Record<string, number> {
   const p: Record<string, number> = {};
   for (const [k, v] of Object.entries(look)) {
@@ -715,9 +723,9 @@ function renderNoiseThumb(c: HTMLCanvasElement): void {
 // the same copy documents each setting). Keyed by the control's label.
 const HELP: Record<string, string> = {
   Motif: "Mark shape: solid, disc (round halftone dot), X, plus, or dash.",
-  Cell: "Screen frequency (cell count; same units as Develop > Detail). Lower = bigger dots, higher = finer grain.",
+  Cells: "Dither cell count = density. Lower = bigger dots, higher = finer grain. (Develop's Cells = the resolve sub-grid; same unit.)",
   Width: "Plate box width as a % of the viewport (full height). The photo fits into this box via Image > Fit / Pos.",
-  Fade: "Edge dissolve of the plate: off, a simple radial, or the animated cloud.",
+  Type: "The mask: Off (no dissolve / full-bleed), Simple (radial gradient), or the animated Cloud.",
   Margin: "Colour of the frame margin around the plate: the body ink, or the colorway's own accent.",
   "Billow X": "Cloud billow size across — lower = bigger, softer billows.",
   "Billow Y": "Cloud billow size vertically (independent stretch).",
@@ -728,6 +736,8 @@ const HELP: Record<string, string> = {
   "Cloud speed": "How fast the cloud drifts when animated.",
   "Fade X": "Move the dissolve's anchor left/right (0 = left edge).",
   "Fade Y": "Move the dissolve's anchor down/up (0 = bottom edge).",
+  Reach: "Dissolve REACH (size) — how far the fade extends from the anchor before it's fully gone. Bigger = more of the plate stays solid; smaller = dissolves closer in.",
+  Softness: "Dissolve SOFTNESS — width of the fade's gradient band. Bigger = a softer, more gradual edge; smaller = a sharper cut.",
   Palette: "Paper + ink colourway (54 presets).",
   "Full colour": "Dither the photo's real RGB instead of duotone paper/ink.",
   Levels: "Posterise steps per colour channel — lower = chunkier colour.",
@@ -747,8 +757,7 @@ const HELP: Record<string, string> = {
   Strength: "Cursor effect intensity.",
   Falloff: "Cursor disc falloff rate — LOWER = bigger / softer disc, higher = tighter.",
   Hold: "Static floor so the effect persists when the pointer stops.",
-  Edge: "Negative-mode disc hardness.",
-  Detail: "Develop sub-grid cell count under the pointer (same units as Screen > Cell).",
+  Hardness: "Negative cursor mode: hardness of the polarity-flip edge.",
   Stage: "Where the finer develop dither ramps in during a press.",
   Resolve: "How fully a full press replaces base marks with fine dither.",
   Colorize: "Develop in mono (0) up to the photo's true colour (1).",
@@ -761,8 +770,11 @@ const HELP: Record<string, string> = {
   FPS: "Frame cap: Fluid (uncapped), Cine 24, Commo 17.",
   Reveal: "Crossfade the whole plate to the true natural-light photo.",
   "Image state": "Peek the undithered, brightness/contrast-adjusted source.",
-  "Show fade mask": "Show the fade mask itself — white = marks, black = ground.",
-  "Show cursor field": "Show the raw cursor influence as grayscale — white = full influence, black = none.",
+  "Fade mask": "Show the fade mask itself — white = marks, black = ground.",
+  "Cursor field": "Show the raw cursor influence as grayscale — white = full influence, black = none.",
+  "Canvas edge": "Dev overlay: a fluo GREEN border on the canvas/plate edge.",
+  "Image edge": "Dev overlay: a fluo MAGENTA border on the fitted image's edge (sits off-plate when cover-cropped).",
+  "Mask edge": "Dev overlay: a fluo YELLOW line on the mask contour — where the dissolve is half-covered.",
   Stored: "Whether this image has its own written config (custom) or follows the general dev-menu settings.",
   "Save to image": "Give this image its own config (a copy of the current settings). Until then it follows the general menu settings, which apply to every image without its own config.",
   "Reset image": "Drop this image's config — back to the general menu settings.",
@@ -1110,10 +1122,10 @@ function buildDevBar(): void {
     return row;
   };
 
-  // SCREEN — the dither marks + edge dissolve (Cloud only applies to Cloud fade).
+  // SCREEN — just the dither marks: motif, density (Cell), plate width, margin colour.
   const screen = group("Screen");
   addMotif(screen);
-  stepper(screen, "Cell", () => String(look.cell),
+  stepper(screen, "Cells", () => String(look.cell),
     () => { look.cell = Math.max(16, look.cell - 12); },
     () => { look.cell = Math.min(600, look.cell + 12); });
   // Plate width: the plate box as a fraction of the viewport width (full height).
@@ -1122,57 +1134,92 @@ function buildDevBar(): void {
     () => { look.plateWidth = Math.max(0.2, +(look.plateWidth - 0.05).toFixed(2)); },
     () => { look.plateWidth = Math.min(1, +(look.plateWidth + 0.05).toFixed(2)); },
     () => fitCanvas(curImageEl));
-  select(screen, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
-  // Frame margin colour: the body (ink) or the brand accent (registration red).
+  // Frame margin colour: the body (ink) or the colorway's own accent.
   select(screen, "Margin", ["Body", "Accent"], () => look.marginAccent, (i) => { look.marginAccent = i; });
 
-  // CLOUD — the dissolve mask (fade Simple/Cloud): X/Y size, noise type, motion, anchor.
-  const cloud = group("Cloud");
-  const cloudGroupEl = cloud.parentElement as HTMLElement; // wrapper, hidden when Fade = Off
-  // Noise thumbnail (top of the group): a live grayscale preview of the current
-  // cloud texture. JS port of fadeNoise; re-rendered on any noise change, never
-  // per-frame. Separate from the in-screen "Show fade mask" button.
+  // FADE — everything about how the plate dissolves into the ground: mode (master
+  // switch), the dissolve shape (anchor / reach / softness), the right-edge taper,
+  // and (Cloud mode only) the cloud texture. Mode always shows; the rest gates off it.
+  const fade = group("Fade");
+  // Mode: Off (full-bleed), Simple (radial gradient), or the animated Cloud.
+  select(fade, "Type", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
+  // Dissolve shape — position (anchor), size (Reach), Softness. Any fade mode.
+  const fadeXCtl = stepper(fade, "Fade X", () => look.fadePosX.toFixed(2),
+    () => { look.fadePosX = Math.max(-1, +(look.fadePosX - 0.05).toFixed(2)); },
+    () => { look.fadePosX = Math.min(2, +(look.fadePosX + 0.05).toFixed(2)); });
+  const fadeYCtl = stepper(fade, "Fade Y", () => look.fadePosY.toFixed(2),
+    () => { look.fadePosY = Math.max(-1, +(look.fadePosY - 0.05).toFixed(2)); },
+    () => { look.fadePosY = Math.min(2, +(look.fadePosY + 0.05).toFixed(2)); });
+  const fadeReachCtl = stepper(fade, "Reach", () => look.fadeReach.toFixed(2),
+    () => { look.fadeReach = Math.max(0.1, +(look.fadeReach - 0.05).toFixed(2)); },
+    () => { look.fadeReach = Math.min(4, +(look.fadeReach + 0.05).toFixed(2)); });
+  const fadeSoftCtl = stepper(fade, "Softness", () => look.fadeSoft.toFixed(2),
+    () => { look.fadeSoft = Math.max(0.05, +(look.fadeSoft - 0.05).toFixed(2)); },
+    () => { look.fadeSoft = Math.min(3, +(look.fadeSoft + 0.05).toFixed(2)); });
+  // Right-edge taper (part of the mask — shows when Fade ≠ Off): Feather (width) ·
+  // Curve (ramp shape) · Depth (dissolve amount).
+  const featherCtl = stepper(fade, "Feather", () => look.edgeFade.toFixed(2),
+    () => { look.edgeFade = Math.max(0, +(look.edgeFade - 0.02).toFixed(2)); },
+    () => { look.edgeFade = Math.min(0.5, +(look.edgeFade + 0.02).toFixed(2)); });
+  const curveCtl = stepper(fade, "Curve", () => look.edgeCurve.toFixed(2),
+    () => { look.edgeCurve = Math.max(0.1, +(look.edgeCurve - 0.1).toFixed(2)); },
+    () => { look.edgeCurve = Math.min(5, +(look.edgeCurve + 0.1).toFixed(2)); });
+  const depthCtl = stepper(fade, "Depth", () => look.edgeDepth.toFixed(2),
+    () => { look.edgeDepth = Math.max(0, +(look.edgeDepth - 0.1).toFixed(2)); },
+    () => { look.edgeDepth = Math.min(1, +(look.edgeDepth + 0.1).toFixed(2)); });
+  // Cloud texture (Cloud mode only): a live noise preview + its shape controls.
   const noiseThumb = document.createElement("canvas");
   noiseThumb.className = "art-thumb";
   noiseThumb.width = 200;
   noiseThumb.height = 64;
-  cloud.appendChild(noiseThumb);
+  fade.appendChild(noiseThumb);
   const drawNoise = (): void => renderNoiseThumb(noiseThumb);
   drawNoise();
-  const cloudCtl = stepper(cloud, "Billow X", () => look.cloudSize.toFixed(1),
+  const cloudCtl = stepper(fade, "Billow X", () => look.cloudSize.toFixed(1),
     () => { look.cloudSize = Math.max(0.5, +(look.cloudSize - 0.5).toFixed(1)); },
     () => { look.cloudSize = Math.min(20, +(look.cloudSize + 0.5).toFixed(1)); }, drawNoise);
-  const cloudYCtl = stepper(cloud, "Billow Y", () => look.cloudSizeY.toFixed(1),
+  const cloudYCtl = stepper(fade, "Billow Y", () => look.cloudSizeY.toFixed(1),
     () => { look.cloudSizeY = Math.max(0.5, +(look.cloudSizeY - 0.5).toFixed(1)); },
     () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); }, drawNoise);
-  const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; }, drawNoise);
-  const warpCtl = stepper(cloud, "Warp", () => look.fadeWarp.toFixed(2),
+  const noiseCtl = select(fade, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; }, drawNoise);
+  const warpCtl = stepper(fade, "Warp", () => look.fadeWarp.toFixed(2),
     () => { look.fadeWarp = Math.max(0, +(look.fadeWarp - 0.1).toFixed(2)); },
     () => { look.fadeWarp = Math.min(3, +(look.fadeWarp + 0.1).toFixed(2)); }, drawNoise);
-  const cloudWCtl = stepper(cloud, "Cloud width", () => `${look.cloudW.toFixed(2)}×`,
+  const cloudWCtl = stepper(fade, "Cloud width", () => `${look.cloudW.toFixed(2)}×`,
     () => { look.cloudW = Math.max(0.2, +(look.cloudW - 0.1).toFixed(2)); },
     () => { look.cloudW = Math.min(5, +(look.cloudW + 0.1).toFixed(2)); }, drawNoise);
-  const cloudAnimCtl = toggle(cloud, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
-  const cloudSpeedCtl = stepper(cloud, "Cloud speed", () => look.cloudSpeed.toFixed(2),
+  const cloudAnimCtl = toggle(fade, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
+  const cloudSpeedCtl = stepper(fade, "Cloud speed", () => look.cloudSpeed.toFixed(2),
     () => { look.cloudSpeed = Math.max(0, +(look.cloudSpeed - 0.02).toFixed(2)); },
     () => { look.cloudSpeed = Math.min(2, +(look.cloudSpeed + 0.02).toFixed(2)); });
-  // Dissolve anchor: move where the gradient/cloud fade originates (0,0 = bottom-left).
-  const fadeXCtl = stepper(cloud, "Fade X", () => look.fadePosX.toFixed(2),
-    () => { look.fadePosX = Math.max(-1, +(look.fadePosX - 0.05).toFixed(2)); },
-    () => { look.fadePosX = Math.min(2, +(look.fadePosX + 0.05).toFixed(2)); });
-  const fadeYCtl = stepper(cloud, "Fade Y", () => look.fadePosY.toFixed(2),
-    () => { look.fadePosY = Math.max(-1, +(look.fadePosY - 0.05).toFixed(2)); },
-    () => { look.fadePosY = Math.min(2, +(look.fadePosY + 0.05).toFixed(2)); });
 
   // COLOUR — palette + full-colour mode (Levels only applies in full colour).
   const colour = group("Colour");
+  // Palette readout: three swatches (paper / ink / accent) of the CURRENT colorway,
+  // so the chosen palette's colours are visible above the switcher. Display only.
+  const chipsWrap = document.createElement("div");
+  chipsWrap.className = "art-chips";
+  const swatches = (["paper", "ink", "accent"] as const).map((key) => {
+    const s = document.createElement("span");
+    s.className = "art-chip";
+    chipsWrap.appendChild(s);
+    return { key, el: s };
+  });
+  colour.appendChild(chipsWrap);
+  const syncChips = (): void => {
+    const pal = PALETTES[look.colorway] ?? PALETTES[10];
+    for (const { key, el } of swatches) { el.style.background = pal[key]; el.title = `${key}: ${pal[key]}`; }
+  };
+  syncers.push(syncChips);
+  syncChips();
   // Palette is a ‹ name › stepper that wraps around all 24 colorways. The
   // stepper's +/- already run pushTreatment() (which pushes uColorway and runs
   // applyColorwayChrome), so the chrome and shader stay in lockstep.
   const nColors = COLORS.length;
   const palRow = stepper(colour, "Palette", () => COLORS[look.colorway],
     () => { look.colorway = (look.colorway - 1 + nColors) % nColors; },
-    () => { look.colorway = (look.colorway + 1) % nColors; });
+    () => { look.colorway = (look.colorway + 1) % nColors; },
+    () => syncChips());
   const palBtns = palRow.querySelectorAll<HTMLButtonElement>(".art-step-b");
   if (palBtns[0]) palBtns[0].textContent = "‹";
   if (palBtns[1]) palBtns[1].textContent = "›";
@@ -1257,16 +1304,6 @@ function buildDevBar(): void {
   stepper(image, "Zoom", () => `${look.zoom.toFixed(2)}×`,
     () => { look.zoom = Math.max(0.2, +(look.zoom - 0.1).toFixed(2)); },
     () => { look.zoom = Math.min(5, +(look.zoom + 0.1).toFixed(2)); });
-  // Right-edge falloff: Feather (width) · Curve (ramp shape) · Depth (dissolve amount).
-  stepper(image, "Feather", () => look.edgeFade.toFixed(2),
-    () => { look.edgeFade = Math.max(0, +(look.edgeFade - 0.02).toFixed(2)); },
-    () => { look.edgeFade = Math.min(0.5, +(look.edgeFade + 0.02).toFixed(2)); });
-  stepper(image, "Curve", () => look.edgeCurve.toFixed(2),
-    () => { look.edgeCurve = Math.max(0.1, +(look.edgeCurve - 0.1).toFixed(2)); },
-    () => { look.edgeCurve = Math.min(5, +(look.edgeCurve + 0.1).toFixed(2)); });
-  stepper(image, "Depth", () => look.edgeDepth.toFixed(2),
-    () => { look.edgeDepth = Math.max(0, +(look.edgeDepth - 0.1).toFixed(2)); },
-    () => { look.edgeDepth = Math.min(1, +(look.edgeDepth + 0.1).toFixed(2)); });
   stepper(image, "Brightness", () => look.brightness.toFixed(2),
     () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
     () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });
@@ -1332,14 +1369,14 @@ function buildDevBar(): void {
   stepper(cursor, "Hold", () => look.cursorHold.toFixed(2),
     () => { look.cursorHold = Math.max(0, +(look.cursorHold - 0.1).toFixed(2)); },
     () => { look.cursorHold = Math.min(3, +(look.cursorHold + 0.1).toFixed(2)); });
-  const edgeCtl = stepper(cursor, "Edge", () => look.cursorEdge.toFixed(2),
+  const edgeCtl = stepper(cursor, "Hardness", () => look.cursorEdge.toFixed(2),
     () => { look.cursorEdge = Math.max(0, +(look.cursorEdge - 0.05).toFixed(2)); },
     () => { look.cursorEdge = Math.min(2, +(look.cursorEdge + 0.05).toFixed(2)); });
 
   // DEVELOP — the look of cursor mode 5 (Develop): all hidden unless Mode = Develop.
   const develop = group("Develop");
   const developGroupEl = develop.parentElement as HTMLElement; // wrapper, hidden when not Develop
-  stepper(develop, "Detail", () => String(look.cursorDetail),
+  stepper(develop, "Cells", () => String(look.cursorDetail),
     () => { look.cursorDetail = Math.max(40, look.cursorDetail - 24); },
     () => { look.cursorDetail = Math.min(3000, look.cursorDetail + 24); });
   stepper(develop, "Stage", () => look.cursorStage.toFixed(2),
@@ -1411,7 +1448,7 @@ function buildDevBar(): void {
   // shape and moved anchor are directly visible — white = marks, black = ground.
   const maskCtl = document.createElement("button");
   maskCtl.type = "button";
-  maskCtl.textContent = "Show fade mask";
+  maskCtl.textContent = "Fade mask";
   maskCtl.classList.toggle("is-on", !!look.maskView);
   maskCtl.setAttribute("aria-pressed", String(!!look.maskView));
   maskCtl.addEventListener("click", () => {
@@ -1425,7 +1462,7 @@ function buildDevBar(): void {
   // influence, black = none — so the ellipse shape and orientation are directly visible.
   const cursorViewCtl = document.createElement("button");
   cursorViewCtl.type = "button";
-  cursorViewCtl.textContent = "Show cursor field";
+  cursorViewCtl.textContent = "Cursor field";
   cursorViewCtl.classList.toggle("is-on", !!look.cursorView);
   cursorViewCtl.setAttribute("aria-pressed", String(!!look.cursorView));
   cursorViewCtl.addEventListener("click", () => {
@@ -1435,6 +1472,20 @@ function buildDevBar(): void {
     cursorViewCtl.setAttribute("aria-pressed", String(!!look.cursorView));
   });
   action(output, cursorViewCtl);
+  // Boundary overlays (dev): fluo borders for the canvas (green), the fitted image
+  // (magenta), and the mask contour (yellow), so the coordinate spaces are visible.
+  const boundToggle = (label: string, field: "showCanvas" | "showImage" | "showCloud", uniform: string): void => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = label;
+    const sync = (): void => { btn.classList.toggle("is-on", !!look[field]); btn.setAttribute("aria-pressed", String(!!look[field])); };
+    sync();
+    btn.addEventListener("click", () => { look[field] ^= 1; if (scene) scene.setParam(uniform, look[field]); sync(); });
+    action(output, btn);
+  };
+  boundToggle("Canvas edge", "showCanvas", "uShowCanvas");
+  boundToggle("Image edge", "showImage", "uShowImage");
+  boundToggle("Mask edge", "showCloud", "uShowCloud");
   // Copy a full, reload-restorable snapshot of the settings as JSON. Clipboard
   // first; if that's blocked, drop into a prompt() so it's still selectable/copyable.
   const copy = document.createElement("button");
@@ -1470,18 +1521,25 @@ function buildDevBar(): void {
     setNA(levelsCtl, !look.colorDither); // Levels: full-colour only
     setNA(colourMotifCtl, !look.colorDither); // Colour-group Motif: full-colour only
     updateAutoStatus(); // Invert/Auto rows: duotone-only (hidden in full colour)
-    // Cloud group: hidden entirely when Fade = Off; cloud-noise rows only in Cloud mode.
-    cloudGroupEl.style.display = look.fadeMode === 0 ? "none" : "";
+    // Fade group: Mode is the always-visible master switch. Dissolve shape (anchor /
+    // reach / softness / right-edge) shows for any fade; cloud texture only in Cloud.
+    const fadeOff = look.fadeMode === 0;
     const notCloud = look.fadeMode !== 2;
-    setNA(cloudCtl, notCloud); // Cloud X: cloud fade only
-    setNA(cloudYCtl, notCloud); // Cloud Y: cloud fade only
-    setNA(noiseCtl, notCloud); // Noise type: cloud fade only
-    setNA(warpCtl, notCloud); // Warp: cloud fade only
-    setNA(cloudWCtl, notCloud); // Cloud width: cloud fade only
-    setNA(cloudAnimCtl, notCloud); // Cloud anim: cloud fade only
-    setNA(cloudSpeedCtl, notCloud); // Cloud speed: cloud fade only
-    setNA(fadeXCtl, look.fadeMode === 0); // Fade anchor: any fade mode
-    setNA(fadeYCtl, look.fadeMode === 0);
+    setNA(fadeXCtl, fadeOff);
+    setNA(fadeYCtl, fadeOff);
+    setNA(fadeReachCtl, fadeOff);
+    setNA(fadeSoftCtl, fadeOff);
+    setNA(featherCtl, fadeOff); // right-edge taper: part of the mask (any fade mode)
+    setNA(curveCtl, fadeOff);
+    setNA(depthCtl, fadeOff);
+    noiseThumb.style.display = notCloud ? "none" : ""; // cloud-texture preview
+    setNA(cloudCtl, notCloud); // Billow X
+    setNA(cloudYCtl, notCloud); // Billow Y
+    setNA(noiseCtl, notCloud); // Noise type
+    setNA(warpCtl, notCloud); // Warp
+    setNA(cloudWCtl, notCloud); // Cloud width
+    setNA(cloudAnimCtl, notCloud); // Cloud anim
+    setNA(cloudSpeedCtl, notCloud); // Cloud speed
     setNA(edgeCtl, look.cursorMode !== 4); // Edge: Negative only
     const notDev = look.cursorMode !== 5;
     setNA(cursorMotifCtl, notDev); // Cursor-group Motif: Develop only
