@@ -60,6 +60,8 @@ export default defineConfig({
         rig: entry("./sandbox/rig.html"),
         artefact: entry("./sandbox/artefact.html"),
         "cursor-shelf": entry("./sandbox/cursor-shelf.html"),
+        "cursor-colour": entry("./sandbox/cursor-colour.html"),
+        "cursor-particles": entry("./sandbox/cursor-particles.html"),
       },
     },
   },

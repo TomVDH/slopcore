@@ -57,7 +57,7 @@ and the reveal / develop / crossfade / motion behaviours.
 | `uCursorView` | bool | 0 | 0/1 | dev: show raw cursor influence `infl` as grayscale (white = peak, black = none) — reveals ellipse shape + orientation |
 | `uCursorMode` | enum | 1 | 0–5 | 0 Off, 1 Clear, 2 Ink, 3 Bias, 4 Negative, 5 Develop |
 | `uCursorAmp` | strength | 0.4 | 0–5 | cursor effect strength |
-| `uCursorRadius` | falloff | 2.2 | 0.2–16 | cursor disc falloff rate (larger = tighter) |
+| `uCursorRadius` | falloff | 9.0 | 0.2–16 | cursor disc falloff rate (larger = tighter) |
 | `uHold` | floor | 0 | 0–3 | static persistence floor under the movement-decayed strength |
 | `uCursorEdge` | hardness | 0.25 | 0–2 | Negative-mode disc hardness |
 | `uDevCell` | cell count | 450 | 40–3000 | Develop **Detail**: sub-grid cell count (same units as `uCell`) |
@@ -76,8 +76,12 @@ and the reveal / develop / crossfade / motion behaviours.
 
 ## Cursor modes (`uCursorMode`)
 
-One shared per-cell influence scalar `infl = max(uMouseStrength, uHold) * exp(-md * uCursorRadius)`,
+One shared per-cell influence scalar `infl = clamp(max(uMouseStrength, uHold), 0, 1) * exp(-md * uCursorRadius)`,
 built only from `p` (one value per cell) — never varies `cell`/`cellId` spatially (that shatters the grid).
+`md` is the **velocity ellipse** distance: `length(vec2(dAlong/stretch, dAcross/squash))` with
+`stretch = 1 + 1.4·uMouseStrength` and **area-preserving** `squash = 1/stretch` — the disc stretches
+along motion and tightens perpendicular by the same factor, so it stays a local comet (constant area)
+rather than ballooning. Amplitude is clamped to [0,1] so the core never pegs to a flat blown-out slab.
 
 - **0 Off** — no effect.
 - **1 Clear** (default) — `lum += amp·infl`: lifts ink, opens paper under the cursor.

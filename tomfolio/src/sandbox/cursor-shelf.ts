@@ -13,8 +13,7 @@ function makeBlock(): HTMLDivElement {
   return el;
 }
 
-// Stamp centered on (x, y). Positioned without margin so GSAP scale
-// uses the element's own center (default transform-origin 50% 50%).
+// Stamp centered on (x, y). No margin — transform-origin 50% 50% is the click center.
 function makeStamp(x: number, y: number, size: number): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "cshelf-stamp";
@@ -36,18 +35,22 @@ function addHoverTargets(
     t.addEventListener("pointerenter", onEnter);
     t.addEventListener("pointerleave", onLeave);
   });
-  return () => {
-    targets.forEach((t) => {
-      t.removeEventListener("pointerenter", onEnter);
-      t.removeEventListener("pointerleave", onLeave);
-    });
-  };
+  return () => targets.forEach((t) => {
+    t.removeEventListener("pointerenter", onEnter);
+    t.removeEventListener("pointerleave", onLeave);
+  });
 }
 
+// 24fps frame unit. All BLEND timings are multiples of this.
+const F = 1000 / 24; // ≈ 41.67ms per frame
+const f = (n: number) => Math.round(n * F);
+
 // ================================================================
-// 1. DEFAULT — instant hard stamp. The reference.
+// DEFAULT FAMILY
 // ================================================================
-function mountDefault(tile: HTMLElement): Cursor {
+
+// SNAP — 2.4× recoil, 26px stamp, 90ms cut.
+function mountSnap(tile: HTMLElement): Cursor {
   const cur = makeBlock();
   const setX = gsap.quickSetter(cur, "x", "px");
   const setY = gsap.quickSetter(cur, "y", "px");
@@ -70,75 +73,79 @@ function mountDefault(tile: HTMLElement): Cursor {
     unmount() {
       tile.removeEventListener("pointermove", onMove);
       tile.removeEventListener("pointerdown", onDown);
-      cleanTargets();
-      cur.remove();
+      cleanTargets(); cur.remove();
     },
   };
 }
 
-// ================================================================
-// 2. BREATHE — alive at rest; holds breath on hover.
-// ================================================================
-function mountBreathe(tile: HTMLElement): Cursor {
+// SCAR — same recoil as SNAP, mark lingers 500ms.
+function mountScar(tile: HTMLElement): Cursor {
   const cur = makeBlock();
   const setX = gsap.quickSetter(cur, "x", "px");
   const setY = gsap.quickSetter(cur, "y", "px");
 
-  gsap.set(cur, { scale: 0.7 });
-  let breathe = gsap.to(cur, {
-    scale: 1.3, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: -1,
-  });
-
   const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
-
-  // Hover: pause mid-breath, settle to neutral — it holds still.
-  const onEnter = () => {
-    breathe.pause();
-    gsap.killTweensOf(cur, "scale");
-    gsap.to(cur, { scale: 1.0, duration: 0.3, ease: "sine.out" });
-  };
-  const onLeave = () => breathe.play();
+  const onEnter = () => gsap.to(cur, { scale: 1.6, duration: 0.05, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.05, ease: "none" });
   const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
 
   const onDown = (e: PointerEvent) => {
-    breathe.pause();
     gsap.killTweensOf(cur, "scale");
+    gsap.fromTo(cur, { scale: 2.4 }, { scale: 1, duration: 0.08, ease: "power2.out" });
     const stamp = makeStamp(e.clientX, e.clientY, 26);
-    // Exhale (expand) then slow settle, then breathing restarts.
-    gsap.to(cur, {
-      scale: 2.2, duration: 0.18, ease: "sine.out",
-      onComplete: () => {
-        gsap.to(cur, {
-          scale: 0.7, duration: 0.65, ease: "sine.inOut",
-          onComplete: () => {
-            breathe.kill();
-            breathe = gsap.to(cur, {
-              scale: 1.3, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: -1,
-            });
-          },
-        });
-      },
-    });
-    // Stamp cuts after a slow beat — not instant.
-    window.setTimeout(() => stamp.remove(), 320);
+    window.setTimeout(() => stamp.remove(), 500);
   };
 
   tile.addEventListener("pointermove", onMove);
   tile.addEventListener("pointerdown", onDown);
   return {
     unmount() {
-      breathe.kill();
       tile.removeEventListener("pointermove", onMove);
       tile.removeEventListener("pointerdown", onDown);
-      cleanTargets();
-      cur.remove();
+      cleanTargets(); cur.remove();
+    },
+  };
+}
+
+// WEIGHT — tracks normally; click compresses 350ms then hard-snaps.
+function mountWeight(tile: HTMLElement): Cursor {
+  const cur = makeBlock();
+  const setX = gsap.quickSetter(cur, "x", "px");
+  const setY = gsap.quickSetter(cur, "y", "px");
+
+  const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
+  const onEnter = () => gsap.to(cur, { scale: 1.6, duration: 0.05, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.05, ease: "none" });
+  const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
+
+  const onDown = (e: PointerEvent) => {
+    gsap.killTweensOf(cur, "scale");
+    gsap.to(cur, {
+      scale: 0.45, duration: 0.35, ease: "power2.in",
+      onComplete: () => {
+        gsap.set(cur, { scale: 2.4 });
+        gsap.to(cur, { scale: 1, duration: 0.1, ease: "power3.out" });
+        const stamp = makeStamp(e.clientX, e.clientY, 26);
+        window.setTimeout(() => stamp.remove(), 90);
+      },
+    });
+  };
+
+  tile.addEventListener("pointermove", onMove);
+  tile.addEventListener("pointerdown", onDown);
+  return {
+    unmount() {
+      tile.removeEventListener("pointermove", onMove);
+      tile.removeEventListener("pointerdown", onDown);
+      cleanTargets(); cur.remove();
     },
   };
 }
 
 // ================================================================
-// 3. ECHO — 4 concentric stamps build in; all cut together.
+// ECHO
 // ================================================================
+
 function mountEcho(tile: HTMLElement): Cursor {
   const cur = makeBlock();
   const setX = gsap.quickSetter(cur, "x", "px");
@@ -152,15 +159,12 @@ function mountEcho(tile: HTMLElement): Cursor {
   const onDown = (e: PointerEvent) => {
     gsap.killTweensOf(cur, "scale");
     gsap.fromTo(cur, { scale: 1.5 }, { scale: 1, duration: 0.14, ease: "power2.out" });
-
-    // 4 concentric stamps appear at 90ms intervals, all cut simultaneously.
     const SIZES = [26, 40, 54, 70];
-    const CUT_AT = 700;
     const stamps: HTMLDivElement[] = [];
     SIZES.forEach((size, i) => {
       window.setTimeout(() => stamps.push(makeStamp(e.clientX, e.clientY, size)), i * 90);
     });
-    window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, CUT_AT);
+    window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, 700);
   };
 
   tile.addEventListener("pointermove", onMove);
@@ -169,101 +173,105 @@ function mountEcho(tile: HTMLElement): Cursor {
     unmount() {
       tile.removeEventListener("pointermove", onMove);
       tile.removeEventListener("pointerdown", onDown);
-      cleanTargets();
-      cur.remove();
+      cleanTargets(); cur.remove();
     },
   };
 }
 
 // ================================================================
-// 4. WEIGHT — heavy lag; slow windup before stamp fires.
+// BLEND FAMILY — all timings at 24fps (multiples of F ≈ 41.67ms)
+//
+// Frame table:
+//   f(1) =  42ms   f(2) =  83ms   f(3) = 125ms   f(4) = 167ms
+//   f(6) = 250ms   f(8) = 333ms   f(10)= 417ms   f(12)= 500ms
+//   f(14)= 583ms   f(16)= 667ms
 // ================================================================
-function mountWeight(tile: HTMLElement): Cursor {
-  const cur = makeBlock();
 
-  let curX = 0, curY = 0, tgtX = 0, tgtY = 0;
-  let initialized = false;
-
-  // Frame-delta-aware lerp; k ≈ 0.07 per frame at 60fps.
-  const tickFn = (_time: number, delta: number) => {
-    if (!initialized) return;
-    const t = 1 - Math.pow(0.93, delta / 16.67);
-    curX += (tgtX - curX) * t;
-    curY += (tgtY - curY) * t;
-    gsap.set(cur, { x: Math.round(curX), y: Math.round(curY) });
-  };
-  gsap.ticker.add(tickFn);
-
-  const onMove = (e: PointerEvent) => {
-    if (!initialized) {
-      curX = tgtX = e.clientX;
-      curY = tgtY = e.clientY;
-      gsap.set(cur, { x: curX, y: curY });
-      initialized = true;
-    }
-    tgtX = e.clientX;
-    tgtY = e.clientY;
-  };
-
-  const onEnter = () => gsap.to(cur, { scale: 1.5, duration: 0.5, ease: "sine.out" });
-  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.35, ease: "sine.out" });
-  const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
-
-  const onDown = () => {
-    // Slow windup: compress for 350ms then hard snap-stamp at the lag position.
-    gsap.killTweensOf(cur, "scale");
-    gsap.to(cur, {
-      scale: 0.45, duration: 0.35, ease: "power2.in",
-      onComplete: () => {
-        gsap.set(cur, { scale: 2.4 });
-        gsap.to(cur, { scale: 1, duration: 0.1, ease: "power3.out" });
-        const stamp = makeStamp(Math.round(curX), Math.round(curY), 26);
-        window.setTimeout(() => stamp.remove(), 90);
-      },
-    });
-  };
-
-  tile.addEventListener("pointermove", onMove);
-  tile.addEventListener("pointerdown", onDown);
-  return {
-    unmount() {
-      gsap.ticker.remove(tickFn);
-      tile.removeEventListener("pointermove", onMove);
-      tile.removeEventListener("pointerdown", onDown);
-      cleanTargets();
-      cur.remove();
-    },
-  };
-}
-
-// ================================================================
-// 5. SPRING — physical reverb; one large stamp slowly shrinks away.
-// ================================================================
-function mountSpring(tile: HTMLElement): Cursor {
+// BURST — 2.4× recoil + 3 concentric stamps appear at t=0, all cut at f4 (167ms).
+// SNAP violence × ECHO geometry, everything simultaneous and fast.
+function mountBurst(tile: HTMLElement): Cursor {
   const cur = makeBlock();
   const setX = gsap.quickSetter(cur, "x", "px");
   const setY = gsap.quickSetter(cur, "y", "px");
 
   const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
-  const onEnter = () => gsap.to(cur, { scale: 1.4, duration: 0.12, ease: "power2.out" });
-  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.12, ease: "power2.out" });
+  const onEnter = () => gsap.to(cur, { scale: 1.6, duration: 0.05, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.05, ease: "none" });
   const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
 
   const onDown = (e: PointerEvent) => {
     gsap.killTweensOf(cur, "scale");
-    // Compress → big overshoot → two damped rebounds → settle.
-    const tl = gsap.timeline();
-    tl.to(cur, { scale: 0.32, duration: 0.22, ease: "power2.in" });
-    tl.to(cur, { scale: 2.0,  duration: 0.18, ease: "power2.out" });
-    tl.to(cur, { scale: 0.72, duration: 0.15, ease: "power2.in" });
-    tl.to(cur, { scale: 1.22, duration: 0.13, ease: "power2.out" });
-    tl.to(cur, { scale: 1.0,  duration: 0.22, ease: "power1.inOut" });
+    gsap.fromTo(cur, { scale: 2.4 }, { scale: 1, duration: f(2) / 1000, ease: "power2.out" });
+    const stamps = [20, 36, 54].map((size) => makeStamp(e.clientX, e.clientY, size));
+    window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, f(4));
+  };
 
-    // Large stamp shrinks slowly away — gravity, not a cut.
-    const stamp = makeStamp(e.clientX, e.clientY, 62);
-    gsap.to(stamp, {
-      scale: 0, duration: 0.72, ease: "power2.out",
-      onComplete: () => stamp.remove(),
+  tile.addEventListener("pointermove", onMove);
+  tile.addEventListener("pointerdown", onDown);
+  return {
+    unmount() {
+      tile.removeEventListener("pointermove", onMove);
+      tile.removeEventListener("pointerdown", onDown);
+      cleanTargets(); cur.remove();
+    },
+  };
+}
+
+// PULSE — 1.8× recoil + 3 stamps staggered every f2 (83ms), all cut at f12 (500ms).
+// Measured build — slower recoil, rhythmic geometry.
+function mountPulse(tile: HTMLElement): Cursor {
+  const cur = makeBlock();
+  const setX = gsap.quickSetter(cur, "x", "px");
+  const setY = gsap.quickSetter(cur, "y", "px");
+
+  const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
+  const onEnter = () => gsap.to(cur, { scale: 1.4, duration: 0.07, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.07, ease: "none" });
+  const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
+
+  const onDown = (e: PointerEvent) => {
+    gsap.killTweensOf(cur, "scale");
+    gsap.fromTo(cur, { scale: 1.8 }, { scale: 1, duration: f(2) / 1000, ease: "power2.out" });
+    const SIZES = [26, 42, 60];
+    const stamps: HTMLDivElement[] = [];
+    SIZES.forEach((size, i) => {
+      window.setTimeout(() => stamps.push(makeStamp(e.clientX, e.clientY, size)), f(i * 2));
+    });
+    window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, f(12));
+  };
+
+  tile.addEventListener("pointermove", onMove);
+  tile.addEventListener("pointerdown", onDown);
+  return {
+    unmount() {
+      tile.removeEventListener("pointermove", onMove);
+      tile.removeEventListener("pointerdown", onDown);
+      cleanTargets(); cur.remove();
+    },
+  };
+}
+
+// SCATTER — 3× recoil + 4 stamps staggered every f1 (42ms), each lives exactly f3 (125ms).
+// Rapid-fire rings, each its own short lifetime — a hard echo at film speed.
+function mountScatter(tile: HTMLElement): Cursor {
+  const cur = makeBlock();
+  const setX = gsap.quickSetter(cur, "x", "px");
+  const setY = gsap.quickSetter(cur, "y", "px");
+
+  const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
+  const onEnter = () => gsap.to(cur, { scale: 1.6, duration: 0.04, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.04, ease: "none" });
+  const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
+
+  const onDown = (e: PointerEvent) => {
+    gsap.killTweensOf(cur, "scale");
+    gsap.fromTo(cur, { scale: 3.0 }, { scale: 1, duration: f(1) / 1000, ease: "power3.out" });
+    const SIZES = [26, 40, 54, 70];
+    SIZES.forEach((size, i) => {
+      window.setTimeout(() => {
+        const s = makeStamp(e.clientX, e.clientY, size);
+        window.setTimeout(() => s.remove(), f(3));
+      }, f(i));
     });
   };
 
@@ -273,8 +281,96 @@ function mountSpring(tile: HTMLElement): Cursor {
     unmount() {
       tile.removeEventListener("pointermove", onMove);
       tile.removeEventListener("pointerdown", onDown);
-      cleanTargets();
-      cur.remove();
+      cleanTargets(); cur.remove();
+    },
+  };
+}
+
+// REVERB — 2.4× recoil + 4 stamps build outward every f2, peel back inward every f2.
+// Appear:  26px@f0, 40px@f2, 54px@f4, 70px@f6.
+// Vanish:  70px@f10, 54px@f12, 40px@f14, 26px@f16.
+// Outer ring lives 4 frames; inner ring lives 16 frames. Architecture dismantles itself.
+function mountReverb(tile: HTMLElement): Cursor {
+  const cur = makeBlock();
+  const setX = gsap.quickSetter(cur, "x", "px");
+  const setY = gsap.quickSetter(cur, "y", "px");
+
+  const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
+  const onEnter = () => gsap.to(cur, { scale: 1.3, duration: 0.08, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.08, ease: "none" });
+  const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
+
+  const onDown = (e: PointerEvent) => {
+    gsap.killTweensOf(cur, "scale");
+    gsap.fromTo(cur, { scale: 2.4 }, { scale: 1, duration: f(2) / 1000, ease: "power2.out" });
+
+    const SIZES       = [26, 40, 54, 70];
+    const APPEAR_F    = [ 0,  2,  4,  6]; // frames from click: when each appears
+    const VANISH_F    = [16, 14, 12, 10]; // frames from click: when each vanishes
+
+    SIZES.forEach((size, i) => {
+      const appearAt = f(APPEAR_F[i]);
+      const lifetime = f(VANISH_F[i]) - appearAt;
+      window.setTimeout(() => {
+        const s = makeStamp(e.clientX, e.clientY, size);
+        window.setTimeout(() => s.remove(), lifetime);
+      }, appearAt);
+    });
+  };
+
+  tile.addEventListener("pointermove", onMove);
+  tile.addEventListener("pointerdown", onDown);
+  return {
+    unmount() {
+      tile.removeEventListener("pointermove", onMove);
+      tile.removeEventListener("pointerdown", onDown);
+      cleanTargets(); cur.remove();
+    },
+  };
+}
+
+// DELAY — SNAP fires instantly (26px cuts at f2), then 2-frame silence,
+// then ECHO stamps arrive at f4/f6/f8, all cut at f16.
+// Two separated events: the hit, then the echo.
+function mountDelay(tile: HTMLElement): Cursor {
+  const cur = makeBlock();
+  const setX = gsap.quickSetter(cur, "x", "px");
+  const setY = gsap.quickSetter(cur, "y", "px");
+
+  const onMove = (e: PointerEvent) => { setX(e.clientX); setY(e.clientY); };
+  const onEnter = () => gsap.to(cur, { scale: 1.4, duration: 0.06, ease: "none" });
+  const onLeave = () => gsap.to(cur, { scale: 1, duration: 0.06, ease: "none" });
+  const cleanTargets = addHoverTargets(tile, onEnter, onLeave);
+
+  const onDown = (e: PointerEvent) => {
+    gsap.killTweensOf(cur, "scale");
+
+    // Phase 1: SNAP — immediate recoil + single stamp, cut at f2.
+    gsap.fromTo(cur, { scale: 2.4 }, { scale: 1, duration: f(2) / 1000, ease: "power2.out" });
+    const snapStamp = makeStamp(e.clientX, e.clientY, 26);
+    window.setTimeout(() => snapStamp.remove(), f(2)); // cuts at 83ms
+
+    // f2 silence (83ms → 167ms): nothing visible.
+
+    // Phase 2: ECHO — arrives at f4, staggered every f2, all cut at f16.
+    const ECHO_SIZES = [36, 52, 70];
+    const echoStamps: HTMLDivElement[] = [];
+    ECHO_SIZES.forEach((size, i) => {
+      window.setTimeout(
+        () => echoStamps.push(makeStamp(e.clientX, e.clientY, size)),
+        f(4 + i * 2), // f4 = 167ms, f6 = 250ms, f8 = 333ms
+      );
+    });
+    window.setTimeout(() => { echoStamps.forEach((s) => s.remove()); }, f(16)); // 667ms
+  };
+
+  tile.addEventListener("pointermove", onMove);
+  tile.addEventListener("pointerdown", onDown);
+  return {
+    unmount() {
+      tile.removeEventListener("pointermove", onMove);
+      tile.removeEventListener("pointerdown", onDown);
+      cleanTargets(); cur.remove();
     },
   };
 }
@@ -282,11 +378,15 @@ function mountSpring(tile: HTMLElement): Cursor {
 // ---- Wire tiles ----
 
 const MOUNTS: Record<string, (tile: HTMLElement) => Cursor> = {
-  default: mountDefault,
-  breathe: mountBreathe,
-  echo: mountEcho,
+  snap: mountSnap,
+  scar: mountScar,
   weight: mountWeight,
-  spring: mountSpring,
+  echo: mountEcho,
+  burst: mountBurst,
+  pulse: mountPulse,
+  scatter: mountScatter,
+  reverb: mountReverb,
+  delay: mountDelay,
 };
 
 if (

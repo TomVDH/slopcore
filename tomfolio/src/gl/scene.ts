@@ -10,6 +10,12 @@ import * as THREE from "three";
 import { gsap } from "gsap";
 import { fragmentShader, vertexShader } from "./shaders";
 
+// Cursor-trail length — MUST match `const int TRAIL_N` in the pressFrag shader.
+const TRAIL_N = 16;
+// How often (ms) a new trail sample is recorded. Fixed cadence keeps the trail's
+// temporal length framerate-independent (faster motion -> longer spatial trail).
+const TRAIL_SAMPLE_MS = 22;
+
 export interface GlScene {
   ready: Promise<void>;
   setEnergy(value: number): void;
@@ -84,6 +90,9 @@ export function initScene(
     uMouse: { value: new THREE.Vector2(0, 0) },
     uMouseDir: { value: new THREE.Vector2(0, 1) },
     uMouseStrength: { value: 0 },
+    // Recent pointer path, newest first (uTrail[0] = current). Recorded by the
+    // frame loop; the shader draws cursor influence as the distance to it.
+    uTrail: { value: Array.from({ length: TRAIL_N }, () => new THREE.Vector2(0, 0)) },
     uEnergy: { value: 1 },
     uScrollVel: { value: 0 },
     // Editable dither parameters (defaults reproduce the original plate).
@@ -98,7 +107,7 @@ export function initScene(
     uPressFalloff: { value: 2.2 },
     uCursorMode: { value: 1 }, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
     uCursorAmp: { value: 0.4 }, // cursor effect strength (was uPress)
-    uCursorRadius: { value: 2.2 }, // disc falloff rate (was uPressFalloff)
+    uCursorRadius: { value: 9.0 }, // disc falloff rate (larger = tighter); was uPressFalloff
     uHold: { value: 0 }, // static floor under the decaying cursor strength
     uCursorEdge: { value: 0.25 }, // negative-mode disc hardness
     uDevCell: { value: 450 }, // develop sub-grid cell count (same units as uCell)
@@ -161,6 +170,8 @@ export function initScene(
   const mouseTarget = new THREE.Vector2(0, 0);
   const dirTarget = new THREE.Vector2(0, 1);
   let strengthTarget = 0;
+  let trailInit = false; // seed the whole trail on the first real pointer move
+  let trailAccum = 0; // ms since the last recorded trail sample
 
   function toShaderSpace(clientX: number, clientY: number): [number, number] {
     const r = canvas.getBoundingClientRect();
@@ -182,12 +193,19 @@ export function initScene(
       (e) => {
         const [sx, sy] = toShaderSpace(e.clientX, e.clientY);
         mouseTarget.set(sx, sy);
+        // First move: snap the cursor and seed the whole trail to here, so the
+        // trail does not streak in from the screen center.
+        if (!trailInit) {
+          uniforms.uMouse.value.set(sx, sy);
+          for (let i = 0; i < TRAIL_N; i++) uniforms.uTrail.value[i].set(sx, sy);
+          trailInit = true;
+        }
         const now = performance.now();
         const dt = Math.max(now - lastT, 1);
         const speed = Math.hypot(e.clientX - lastX, e.clientY - lastY) / dt;
         strengthTarget = Math.min(strengthTarget + speed * 0.35, 1.4);
         if (speed > 0.05) {
-          dirTarget.set(e.clientX - lastX, e.clientY - lastY).normalize();
+          dirTarget.set(e.clientX - lastX, -(e.clientY - lastY)).normalize();
         }
         lastX = e.clientX;
         lastY = e.clientY;
@@ -214,6 +232,18 @@ export function initScene(
       (strengthTarget - uniforms.uMouseStrength.value) * k;
     const kDir = 1 - Math.exp(-deltaTime * 0.012);
     uniforms.uMouseDir.value.lerp(dirTarget, kDir).normalize();
+
+    // Record the smoothed cursor position into the trail on a fixed cadence
+    // (newest at [0]); the shader draws influence as distance to this path.
+    if (trailInit) {
+      trailAccum += deltaTime;
+      if (trailAccum >= TRAIL_SAMPLE_MS) {
+        trailAccum = 0;
+        const trail = uniforms.uTrail.value;
+        for (let i = TRAIL_N - 1; i > 0; i--) trail[i].copy(trail[i - 1]);
+        trail[0].copy(uniforms.uMouse.value);
+      }
+    }
 
     render(reducedMotion ? 20.0 : time);
 

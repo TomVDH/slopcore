@@ -13,6 +13,7 @@
 body.art {
   --ground: #2a2636; /* colorway paper — drives the plate ground (set by JS) */
   --ink: #f4efdd; /* colorway ink — drives the menu text (set by JS) */
+  --accent: #c8f542; /* colorway accent — drives the cursor (set by JS) */
   min-height: 100dvh;
   margin: 0;
   background: var(--ink); /* the 15px frame margin — matches the colorway ink (font) */
@@ -195,23 +196,26 @@ body.art {
 .art-has-cursor * {
   cursor: none !important;
 }
+/* Solid accent: the block reads as the colorway accent exactly (no blend), so
+   the cursor stays synced with the colour theme on every surface. */
 .art-cursor {
   position: fixed;
   left: 0;
   top: 0;
-  width: 2px;
-  height: 2px;
-  margin: -1px 0 0 -1px;
-  background: #f4efdd;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: var(--accent);
   pointer-events: none;
   z-index: 60;
-  mix-blend-mode: difference;
   will-change: transform;
-  box-shadow:
-    0 -6px #f4efdd, 0 -10px #f4efdd,
-    0 6px #f4efdd, 0 10px #f4efdd,
-    -6px 0 #f4efdd, -10px 0 #f4efdd,
-    6px 0 #f4efdd, 10px 0 #f4efdd;
+}
+/* PULSE stamp — centered via left/top (no margin) so GSAP scale uses its own center */
+.art-stamp {
+  position: fixed;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 57;
 }
 .art-px {
   position: fixed;

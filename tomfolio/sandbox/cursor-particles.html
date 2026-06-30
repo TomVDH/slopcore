@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CURSOR PARTICLES / dither pixels</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#2a2636" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="cpt">
+    <header class="cpt-header">
+      <span>CURSOR PARTICLES</span>
+      <span class="cpt-sub">dither-pixel cursors · hover a tile · move + click</span>
+    </header>
+    <div class="cpt-grid">
+
+      <div class="cpt-tile" data-variant="bayer">
+        <div class="cpt-label">BAYER DROP</div>
+        <div class="cpt-desc">click stamps a 4×4 cell that dissolves in a fresh random order every time</div>
+        <div class="cpt-demo"><button class="cpt-btn" type="button">TARGET</button></div>
+      </div>
+
+      <div class="cpt-tile" data-variant="trail">
+        <div class="cpt-label">DITHERED TRAIL</div>
+        <div class="cpt-desc">a grid-snapped ribbon that follows the pointer · solid at the head, dithering to sparse at the tail · click = dithered splash</div>
+        <div class="cpt-demo"><button class="cpt-btn" type="button">TARGET</button></div>
+      </div>
+
+    </div>
+    <script type="module" src="/src/sandbox/cursor-particles.ts"></script>
+  </body>
+</html>

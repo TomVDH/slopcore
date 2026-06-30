@@ -15,20 +15,11 @@
     </header>
     <div class="cshelf-grid">
 
+      <!-- DEFAULT -->
       <div class="cshelf-tile" data-cursor="snap" data-group="default">
         <div class="cshelf-family">DEFAULT</div>
         <div class="cshelf-label">SNAP</div>
-        <div class="cshelf-desc">2.4× recoil<br>26px · 90ms cut</div>
-        <div class="cshelf-demo">
-          <button class="cshelf-btn" type="button">TARGET</button>
-          <a class="cshelf-link" href="#">LINK</a>
-        </div>
-      </div>
-
-      <div class="cshelf-tile" data-cursor="strike" data-group="default">
-        <div class="cshelf-family">DEFAULT</div>
-        <div class="cshelf-label">STRIKE</div>
-        <div class="cshelf-desc">3.5× recoil<br>16px · 40ms cut</div>
+        <div class="cshelf-desc">2.4× · 26px · 90ms</div>
         <div class="cshelf-demo">
           <button class="cshelf-btn" type="button">TARGET</button>
           <a class="cshelf-link" href="#">LINK</a>
@@ -38,47 +29,79 @@
       <div class="cshelf-tile" data-cursor="scar" data-group="default">
         <div class="cshelf-family">DEFAULT</div>
         <div class="cshelf-label">SCAR</div>
-        <div class="cshelf-desc">2.4× recoil<br>26px · mark at 500ms</div>
+        <div class="cshelf-desc">2.4× · 26px · 500ms</div>
         <div class="cshelf-demo">
           <button class="cshelf-btn" type="button">TARGET</button>
           <a class="cshelf-link" href="#">LINK</a>
         </div>
       </div>
 
+      <div class="cshelf-tile" data-cursor="weight" data-group="default">
+        <div class="cshelf-family">DEFAULT</div>
+        <div class="cshelf-label">WEIGHT</div>
+        <div class="cshelf-desc">350ms compress<br>then hard snap</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <!-- ECHO -->
       <div class="cshelf-tile" data-cursor="echo" data-group="echo">
         <div class="cshelf-family">ECHO</div>
         <div class="cshelf-label">ECHO</div>
-        <div class="cshelf-desc">4 stamps · 90ms stagger<br>all cut at 700ms</div>
+        <div class="cshelf-desc">4 stamps · 90ms stagger<br>cut at 700ms</div>
         <div class="cshelf-demo">
           <button class="cshelf-btn" type="button">TARGET</button>
           <a class="cshelf-link" href="#">LINK</a>
         </div>
       </div>
 
-      <div class="cshelf-tile" data-cursor="chord" data-group="echo">
-        <div class="cshelf-family">ECHO</div>
-        <div class="cshelf-label">CHORD</div>
-        <div class="cshelf-desc">4 stamps at once<br>cut at 150ms</div>
-        <div class="cshelf-demo">
-          <button class="cshelf-btn" type="button">TARGET</button>
-          <a class="cshelf-link" href="#">LINK</a>
-        </div>
-      </div>
-
-      <div class="cshelf-tile" data-cursor="cascade" data-group="echo">
-        <div class="cshelf-family">ECHO</div>
-        <div class="cshelf-label">CASCADE</div>
-        <div class="cshelf-desc">each stamp lives alone<br>100ms apart · 140ms life</div>
-        <div class="cshelf-demo">
-          <button class="cshelf-btn" type="button">TARGET</button>
-          <a class="cshelf-link" href="#">LINK</a>
-        </div>
-      </div>
-
-      <div class="cshelf-tile" data-cursor="impact" data-group="blend">
+      <!-- BLEND — all timings at 24fps (F ≈ 41.67ms) -->
+      <div class="cshelf-tile" data-cursor="burst" data-group="blend">
         <div class="cshelf-family">BLEND</div>
-        <div class="cshelf-label">IMPACT</div>
-        <div class="cshelf-desc">3.5× recoil + geometry<br>3 stamps · 80ms cut</div>
+        <div class="cshelf-label">BURST</div>
+        <div class="cshelf-desc">2.4× + 3 stamps now<br>cut f4 · 167ms</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="pulse" data-group="blend">
+        <div class="cshelf-family">BLEND</div>
+        <div class="cshelf-label">PULSE</div>
+        <div class="cshelf-desc">1.8× + 3 stamps<br>stagger f2 · cut f12</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="scatter" data-group="blend">
+        <div class="cshelf-family">BLEND</div>
+        <div class="cshelf-label">SCATTER</div>
+        <div class="cshelf-desc">3× + 4 stamps<br>stagger f1 · life f3</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="reverb" data-group="blend">
+        <div class="cshelf-family">BLEND</div>
+        <div class="cshelf-label">REVERB</div>
+        <div class="cshelf-desc">build out f2<br>peel in f2</div>
+        <div class="cshelf-demo">
+          <button class="cshelf-btn" type="button">TARGET</button>
+          <a class="cshelf-link" href="#">LINK</a>
+        </div>
+      </div>
+
+      <div class="cshelf-tile" data-cursor="delay" data-group="blend">
+        <div class="cshelf-family">BLEND</div>
+        <div class="cshelf-label">DELAY</div>
+        <div class="cshelf-desc">snap · f2 gap<br>echo arrives f4</div>
         <div class="cshelf-demo">
           <button class="cshelf-btn" type="button">TARGET</button>
           <a class="cshelf-link" href="#">LINK</a>

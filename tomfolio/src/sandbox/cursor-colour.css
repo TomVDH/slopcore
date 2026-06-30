@@ -1,0 +1,166 @@
+/* -------------------------------------------------------
+   CURSOR COLOUR — three colour treatments for the PULSE
+   block cursor, each over a mock accent menu + a light
+   strip so the over-text and over-light cases are visible.
+------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ground: #2a2636;
+  --cream: #f4efdd;
+  --accent: #c8f542; /* representative menu/font accent */
+}
+
+body.ccol {
+  min-height: 100dvh;
+  background: var(--ground);
+  color: var(--cream);
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+.ccol-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 18px 24px 16px;
+  border-bottom: 2px solid rgba(244, 239, 221, 0.1);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  pointer-events: none;
+}
+
+.ccol-sub { opacity: 0.26; letter-spacing: 0.06em; }
+
+.ccol-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 100dvh;
+  padding-top: 53px;
+}
+
+.ccol-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 28px;
+  border-right: 1px solid rgba(244, 239, 221, 0.08);
+  overflow: hidden;
+}
+.ccol-tile:last-child { border-right: none; }
+
+.ccol-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  opacity: 0.85;
+}
+.ccol-desc {
+  margin-top: 10px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  opacity: 0.3;
+  text-transform: uppercase;
+  max-width: 26ch;
+}
+
+/* Light strip — a stand-in for the brightest dither marks, to show where a
+   fixed-cream cursor goes faint and where inversion still reads. */
+.ccol-strip {
+  margin-top: 40px;
+  padding: 22px 12px;
+  background: var(--cream);
+  color: #2a2636;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  opacity: 0.92;
+}
+
+/* Mock menu — right-aligned accent text, like the artefact rail. */
+.ccol-menu {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  /* Sits above the INVERT variant's block (z below this) so that cursor stays
+     neutral over the text instead of inverting against the accent. */
+  position: relative;
+  z-index: 5;
+}
+.ccol-link {
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: inherit;
+}
+
+/* Hide native cursor while a tile is active */
+.ccol-tile.is-active,
+.ccol-tile.is-active * { cursor: none !important; }
+
+/* ---- The block cursor ---- */
+.ccol-cur {
+  position: fixed;
+  left: 0; top: 0;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  pointer-events: none;
+  will-change: transform;
+}
+.ccol-stamp {
+  position: fixed;
+  pointer-events: none;
+}
+
+/* Variant 1 — INVERT: cream + difference, BELOW the menu text (z 1 < menu 5),
+   so it inverts over the ground/strip but is occluded by the accent text. */
+.ccol-cur.v-invert,
+.ccol-stamp.v-invert {
+  background: var(--cream);
+  mix-blend-mode: difference;
+  z-index: 1;
+}
+
+/* Variant 2 — FIXED CREAM: one colour, no blend, on top. */
+.ccol-cur.v-cream,
+.ccol-stamp.v-cream {
+  background: var(--cream);
+  z-index: 60;
+}
+
+/* Variant 3 — ACCENT: solid accent, no blend, on top. */
+.ccol-cur.v-accent,
+.ccol-stamp.v-accent {
+  background: var(--accent);
+  z-index: 60;
+}
+
+/* Variant 4 — ACCENT + INVERT: accent fill WITH difference, on top.
+   |backdrop - accent| → accent hue that still inverts the backdrop, but
+   cancels to black over pixels that are exactly the accent (the menu text). */
+.ccol-cur.v-accent-invert,
+.ccol-stamp.v-accent-invert {
+  background: var(--accent);
+  mix-blend-mode: difference;
+  z-index: 60;
+}
+
+/* Variant 5 — ACCENT + INVERT, neutral on menu: same blend, BELOW the menu
+   text (z 1 < menu 5) so the accent inversion shows on the plate/strip but
+   the text occludes it over the menu (no black cancel). */
+.ccol-cur.v-accent-invert-menu,
+.ccol-stamp.v-accent-invert-menu {
+  background: var(--accent);
+  mix-blend-mode: difference;
+  z-index: 1;
+}

@@ -86,7 +86,7 @@ const look = {
   markBright: 0, // brightness offset on the dither mark colour (relative to the palette ink)
   cursorMode: 1, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
   cursorAmp: 0.4, // cursor strength
-  cursorRadius: 2.2, // cursor disc falloff (larger = tighter)
+  cursorRadius: 9.0, // cursor disc falloff (larger = tighter)
   cursorHold: 0, // static persistence floor under the movement-driven strength
   cursorEdge: 0.25, // negative-mode disc hardness
   cursorDetail: 450, // develop sub-grid cell count (same units as `cell`)
@@ -197,6 +197,7 @@ function applyColorwayChrome(i: number): void {
   const pal = PALETTES[i] ?? PALETTES[10];
   document.body.style.setProperty("--ground", pal.paper);
   document.body.style.setProperty("--ink", pal.ink);
+  document.body.style.setProperty("--accent", pal.accent); // drives the cursor (accent + invert)
 }
 
 function pushTreatment(): void {
@@ -509,58 +510,53 @@ if (scene) {
   host.appendChild(rb);
 }
 
-/* ---- Pixel-cross custom cursor + click "detonation" ---- */
-/* A box-shadow pixel crosshair tracks the pointer (native cursor hidden). On a
-   click over the plate, a ring of dither pixels bursts outward and the crosshair
-   punches — the marks scatter from the click. Fine-pointer + motion only. */
+/* ---- PULSE cursor — 10×10 inverting block, PULSE click animation ---- */
+/* Fine-pointer + motion only. Click: 1.8× recoil + 3 concentric stamps
+   staggered every f2 (83ms), all cut simultaneously at f12 (500ms). */
 if (!reduced && window.matchMedia("(pointer: fine)").matches) {
+  const FPS24 = 1000 / 24;
+  const f = (n: number) => Math.round(n * FPS24);
+
   const cur = document.createElement("div");
   cur.className = "art-cursor";
   cur.setAttribute("aria-hidden", "true");
   document.body.appendChild(cur);
   document.body.classList.add("art-has-cursor");
+
   const setX = gsap.quickSetter(cur, "x", "px");
   const setY = gsap.quickSetter(cur, "y", "px");
   setX(window.innerWidth / 2);
   setY(window.innerHeight / 2);
+
   window.addEventListener("pointermove", (e) => { setX(e.clientX); setY(e.clientY); });
   document.addEventListener("pointerleave", () => { cur.style.opacity = "0"; });
   document.addEventListener("pointerenter", () => { cur.style.opacity = ""; });
 
   window.addEventListener("pointerdown", (e) => {
-    // Crosshair recoil on every click (elastic punch).
-    gsap.fromTo(cur, { scale: 1.7 }, { scale: 1, duration: 0.55, ease: "elastic.out(1, 0.4)" });
-    // Detonation only over the plate, not the controls (so steppers don't burst).
+    // Block recoil on every click.
+    gsap.killTweensOf(cur, "scale");
+    gsap.fromTo(cur, { scale: 1.8 }, { scale: 1, duration: f(2) / 1000, ease: "power2.out" });
+
+    // Stamps fire over the plate and the menu, but not the dev bar (so its
+    // steppers/drags don't burst).
     const t = e.target as HTMLElement | null;
-    if (t && t.closest(".art-dev, .art-reveal, .art-menu, button, select, input")) return;
-    const x = e.clientX, y = e.clientY;
-    const N = 14;
-    for (let i = 0; i < N; i++) {
-      const px = document.createElement("div");
-      px.className = "art-px" + (i % 3 === 0 ? " is-accent" : "");
-      px.style.left = `${x}px`;
-      px.style.top = `${y}px`;
-      document.body.appendChild(px);
-      const a = (i / N) * Math.PI * 2 + i * 0.7;
-      const dist = 34 + (i % 5) * 12;
-      gsap.to(px, {
-        x: Math.cos(a) * dist,
-        y: Math.sin(a) * dist,
-        rotation: 90,
-        scale: 0.2,
-        opacity: 0,
-        duration: 0.45 + (i % 4) * 0.08,
-        ease: "power3.out",
-        onComplete: () => px.remove(),
-      });
-    }
-    const ring = document.createElement("div");
-    ring.className = "art-ring";
-    ring.style.left = `${x}px`;
-    ring.style.top = `${y}px`;
-    document.body.appendChild(ring);
-    gsap.fromTo(ring, { scale: 0.2, opacity: 0.8 },
-      { scale: 2.4, opacity: 0, duration: 0.5, ease: "power2.out", onComplete: () => ring.remove() });
+    if (t && t.closest(".art-dev")) return;
+
+    const SIZES = [26, 42, 60];
+    const stamps: HTMLDivElement[] = [];
+    SIZES.forEach((size, i) => {
+      window.setTimeout(() => {
+        const s = document.createElement("div");
+        s.className = "art-stamp";
+        s.style.left = `${e.clientX - size / 2}px`;
+        s.style.top = `${e.clientY - size / 2}px`;
+        s.style.width = `${size}px`;
+        s.style.height = `${size}px`;
+        document.body.appendChild(s);
+        stamps.push(s);
+      }, f(i * 2));
+    });
+    window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, f(12));
   });
 }
 

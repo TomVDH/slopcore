@@ -1,0 +1,112 @@
+/* -------------------------------------------------------
+   CURSOR PARTICLES — dither pixel-particle cursors.
+   Hard monochrome squares (no anti-alias feel), inverting
+   blend so they read like the plate's dither marks.
+------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body.cpt {
+  min-height: 100dvh;
+  background: #2a2636;
+  color: #f4efdd;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+.cpt-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 18px 24px 16px;
+  border-bottom: 2px solid rgba(244, 239, 221, 0.1);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  pointer-events: none;
+}
+.cpt-sub { opacity: 0.26; letter-spacing: 0.06em; }
+
+.cpt-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  height: 100dvh;
+  padding-top: 53px;
+}
+
+.cpt-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  padding: 40px 24px;
+  border-right: 1px solid rgba(244, 239, 221, 0.08);
+  overflow: hidden;
+}
+.cpt-tile:last-child { border-right: none; }
+.cpt-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(244, 239, 221, 0);
+  transition: background 0.06s;
+  pointer-events: none;
+}
+.cpt-tile.is-active::before { background: rgba(244, 239, 221, 0.02); }
+
+.cpt-label {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  opacity: 0.9;
+}
+.cpt-desc {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  line-height: 1.8;
+  opacity: 0.26;
+  text-align: center;
+  text-transform: uppercase;
+  max-width: 22ch;
+}
+.cpt-demo { margin-top: 14px; }
+.cpt-btn {
+  background: none;
+  border: 2px solid rgba(244, 239, 221, 0.16);
+  color: #f4efdd;
+  font-family: inherit;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  padding: 9px 22px;
+  cursor: inherit;
+  transition: border-color 0.06s;
+}
+.cpt-btn:hover { border-color: rgba(244, 239, 221, 0.65); }
+
+.cpt-tile.is-active,
+.cpt-tile.is-active * { cursor: none !important; }
+
+/* ---- Cursor + pixels: hard cream squares, inverting blend ---- */
+.cpt-cur {
+  position: fixed;
+  left: 0; top: 0;
+  pointer-events: none;
+  z-index: 60;
+  background: #f4efdd;
+  mix-blend-mode: difference;
+  will-change: transform;
+}
+/* A dither pixel — size set inline; positioned at its spawn point. */
+.cpt-px {
+  position: fixed;
+  pointer-events: none;
+  z-index: 59;
+  background: #f4efdd;
+  mix-blend-mode: difference;
+}

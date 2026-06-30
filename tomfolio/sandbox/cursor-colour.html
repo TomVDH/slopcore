@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CURSOR COLOUR / three treatments</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#2a2636" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="ccol">
+    <header class="ccol-header">
+      <span>CURSOR COLOUR</span>
+      <span class="ccol-sub">hover a tile · move over the menu + the light strip · click to fire</span>
+    </header>
+    <div class="ccol-grid">
+
+      <div class="ccol-tile" data-variant="invert">
+        <div class="ccol-label">1 · INVERT, NEUTRAL ON MENU</div>
+        <div class="ccol-desc">inverts over the plate · passes behind the text so it stays neutral over the menu</div>
+        <div class="ccol-strip">LIGHT&nbsp;DITHER&nbsp;STRIP</div>
+        <nav class="ccol-menu">
+          <a class="ccol-link" href="#">Portrait</a>
+          <a class="ccol-link" href="#">Roll 18</a>
+          <a class="ccol-link" href="#">Collection</a>
+          <a class="ccol-link" href="#">Field</a>
+        </nav>
+      </div>
+
+      <div class="ccol-tile" data-variant="cream">
+        <div class="ccol-label">2 · FIXED CREAM</div>
+        <div class="ccol-desc">one solid colour everywhere · no inversion · can go faint over light marks</div>
+        <div class="ccol-strip">LIGHT&nbsp;DITHER&nbsp;STRIP</div>
+        <nav class="ccol-menu">
+          <a class="ccol-link" href="#">Portrait</a>
+          <a class="ccol-link" href="#">Roll 18</a>
+          <a class="ccol-link" href="#">Collection</a>
+          <a class="ccol-link" href="#">Field</a>
+        </nav>
+      </div>
+
+      <div class="ccol-tile" data-variant="accent">
+        <div class="ccol-label">3 · ACCENT BLOCK</div>
+        <div class="ccol-desc">deliberately the accent / font colour everywhere · bold, on-brand · no invert</div>
+        <div class="ccol-strip">LIGHT&nbsp;DITHER&nbsp;STRIP</div>
+        <nav class="ccol-menu">
+          <a class="ccol-link" href="#">Portrait</a>
+          <a class="ccol-link" href="#">Roll 18</a>
+          <a class="ccol-link" href="#">Collection</a>
+          <a class="ccol-link" href="#">Field</a>
+        </nav>
+      </div>
+
+      <div class="ccol-tile" data-variant="accent-invert">
+        <div class="ccol-label">4 · ACCENT + INVERT</div>
+        <div class="ccol-desc">accent fill WITH difference blend · accent hue that still inverts the backdrop · cancels to black over exact accent text</div>
+        <div class="ccol-strip">LIGHT&nbsp;DITHER&nbsp;STRIP</div>
+        <nav class="ccol-menu">
+          <a class="ccol-link" href="#">Portrait</a>
+          <a class="ccol-link" href="#">Roll 18</a>
+          <a class="ccol-link" href="#">Collection</a>
+          <a class="ccol-link" href="#">Field</a>
+        </nav>
+      </div>
+
+      <div class="ccol-tile" data-variant="accent-invert-menu">
+        <div class="ccol-label">5 · ACCENT + INVERT, NEUTRAL ON MENU</div>
+        <div class="ccol-desc">same as 4 but passes behind the text · accent inversion on the plate, clean over the menu</div>
+        <div class="ccol-strip">LIGHT&nbsp;DITHER&nbsp;STRIP</div>
+        <nav class="ccol-menu">
+          <a class="ccol-link" href="#">Portrait</a>
+          <a class="ccol-link" href="#">Roll 18</a>
+          <a class="ccol-link" href="#">Collection</a>
+          <a class="ccol-link" href="#">Field</a>
+        </nav>
+      </div>
+
+    </div>
+    <script type="module" src="/src/sandbox/cursor-colour.ts"></script>
+  </body>
+</html>

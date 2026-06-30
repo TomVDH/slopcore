@@ -18,10 +18,17 @@ export const pressFrag = /* glsl */ `
   uniform vec2  uRes;
   uniform float uTime;
   uniform vec2  uMouse;
-  uniform vec2  uMouseDir;
+  uniform vec2  uMouseDir;       // legacy: motion direction (unused since the trail replaced the ellipse)
   uniform float uMouseStrength;
   uniform float uEnergy;
   uniform float uScrollVel;
+
+  // Cursor trail: the recent pointer path in shader space, newest first
+  // (uTrail[0] = current). Driven by scene.ts on a fixed time cadence; the
+  // cursor influence is the distance to this polyline, fading with age, so the
+  // effect follows the actual path and tapers behind the pointer.
+  const int TRAIL_N = 16;
+  uniform vec2 uTrail[TRAIL_N];
 
   // Editable parameters (defaults reproduce the original plate exactly).
   uniform float uCell;         // cell density divisor
@@ -253,12 +260,26 @@ export const pressFrag = /* glsl */ `
     // value per cell, never local/gl_FragCoord), so a whole cell agrees and the
     // marks reorganize under the pointer instead of shattering. uHold is a
     // static floor so the effect can persist while the pointer is still.
-    vec2 d        = p - uMouse;
-    float dAlong  = dot(d, uMouseDir);
-    float dAcross = dot(d, vec2(-uMouseDir.y, uMouseDir.x));
-    float stretch = 1.0 + 1.5 * uMouseStrength;
-    float md      = length(vec2(dAlong / stretch, dAcross));
-    float infl    = max(uMouseStrength, uHold) * exp(-md * uCursorRadius);
+    // Cursor influence as a TRAIL: the distance from this cell to the recent
+    // pointer path (the uTrail polyline, newest at [0]). Each segment's
+    // contribution fades with age, so the trail tapers behind the pointer and
+    // reads as a wipe that follows the actual motion — not a stretched disc.
+    // At rest the samples converge to one point, so it collapses to a disc and
+    // then fades out as uMouseStrength decays. Built only from p (cell center),
+    // so the whole cell agrees and the grid never shatters.
+    float infl = 0.0;
+    for (int i = 0; i < TRAIL_N - 1; i++) {
+      vec2 a  = uTrail[i];
+      vec2 b  = uTrail[i + 1];
+      vec2 pa = p - a;
+      vec2 ba = b - a;
+      float h    = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-4), 0.0, 1.0);
+      float dseg = length(pa - ba * h);          // distance to this path segment
+      float age  = 1.0 - float(i) / float(TRAIL_N - 1); // 1 newest .. 0 oldest
+      age *= age;                                 // taper the tail faster
+      infl = max(infl, age * exp(-dseg * uCursorRadius));
+    }
+    infl *= clamp(max(uMouseStrength, uHold), 0.0, 1.0);
     if (uCursorMode > 0.5 && uCursorMode < 1.5) {
       lum += uCursorAmp * infl;            // Clear: lift ink, open paper
     } else if (uCursorMode > 1.5 && uCursorMode < 2.5) {
