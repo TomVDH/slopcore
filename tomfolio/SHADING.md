@@ -179,6 +179,14 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-30
+- **Health pass Phase 4 (partial) — data-driven `pushTreatment`.** The 35-line block of 1:1
+  `setParam(uniform, look.field)` calls is now a `PARAM_UNIFORMS` map looped in `pushTreatment`
+  (the single place to wire a numeric param's uniform); the derived / vec2 / conditional pushes
+  (`uCell`=effectiveCell, `uInvert`=resolveAuto, `uImgAlign`/`uFadePos`, conditional `uCloudSpeed`)
+  and the chrome/persist side effects stay explicit. Behaviour-identical — static parity check vs
+  HEAD: 40 uniforms, 0 missing/extra/changed. (The dev-bar UI-generation registry is the remaining,
+  riskier half — deferred pending a test harness, since the artefact exposes no state to assert
+  control→uniform bindings.)
 - **Starter-state update (Cyber).** Default colorway → **Cyber (37)**; image → `collection-207`;
   `brightness` 0.2→0.15; `posX` -0.2→0; `cloudSpeed` 0.05→0.01; `cursorMode` → 2 (Ink);
   `cursorRadius` 9→1.4 (bigger disc); `cursorDetail` 450→306. Colorway-paper lockstep updated to

@@ -215,49 +215,34 @@ function applyColorwayChrome(i: number): void {
   document.body.style.background = look.marginAccent ? "var(--art-accent)" : "var(--ink)";
 }
 
+// Straight uniform <- look-field pushes (1:1, numeric). The single place to wire a
+// new numeric param's uniform; the derived / vec2 / conditional values stay explicit
+// in pushTreatment below. Field names must match the `look` object.
+const PARAM_UNIFORMS: ReadonlyArray<readonly [string, keyof typeof look]> = [
+  ["uMotif", "motif"], ["uColorway", "colorway"], ["uMotifWeight", "weight"],
+  ["uMotifAngle", "angle"], ["uMotifTone", "tone"], ["uImageBrightness", "brightness"],
+  ["uImageContrast", "contrast"], ["uFadeMode", "fadeMode"], ["uFadeScale", "cloudSize"],
+  ["uFadeScaleY", "cloudSizeY"], ["uNoiseType", "noiseType"], ["uFadeWarp", "fadeWarp"],
+  ["uCloudWidth", "cloudW"], ["uFit", "fit"], ["uImgScale", "zoom"], ["uEdgeFade", "edgeFade"],
+  ["uMaskView", "maskView"], ["uCursorView", "cursorView"], ["uColorDither", "colorDither"],
+  ["uColorLevels", "colorLevels"], ["uMarkBright", "markBright"], ["uCursorMode", "cursorMode"],
+  ["uCursorAmp", "cursorAmp"], ["uCursorRadius", "cursorRadius"], ["uHold", "cursorHold"],
+  ["uCursorEdge", "cursorEdge"], ["uDevCell", "cursorDetail"], ["uDevColor", "cursorColorize"],
+  ["uDevStage", "cursorStage"], ["uDevResolve", "cursorResolve"], ["uDevSat", "cursorSat"],
+  ["uDevLevels", "cursorLevels"], ["uDevSharp", "cursorSharp"], ["uDevBright", "cursorBright"],
+  ["uDevContrast", "cursorContrast"],
+];
+
 function pushTreatment(): void {
   if (!scene) return;
-  scene.setParam("uMotif", look.motif);
-  scene.setParam("uColorway", look.colorway);
+  resolveAuto(); // refresh resolved polarity before pushing uInvert (Auto re-evaluates per palette)
+  for (const [uniform, field] of PARAM_UNIFORMS) scene.setParam(uniform, look[field] as number);
+  // Derived / vec2 / conditional values stay explicit:
   scene.setParam("uCell", effectiveCell());
-  scene.setParam("uMotifWeight", look.weight);
-  scene.setParam("uMotifAngle", look.angle);
-  scene.setParam("uMotifTone", look.tone);
-  scene.setParam("uImageBrightness", look.brightness);
-  scene.setParam("uImageContrast", look.contrast);
-  resolveAuto(); // refresh resolved polarity (Auto re-evaluates for the current palette)
   scene.setParam("uInvert", look.invert);
-  scene.setParam("uFadeMode", look.fadeMode);
-  scene.setParam("uFadeScale", look.cloudSize);
-  scene.setParam("uFadeScaleY", look.cloudSizeY);
-  scene.setParam("uNoiseType", look.noiseType);
-  scene.setParam("uFadeWarp", look.fadeWarp);
-  scene.setParam("uCloudWidth", look.cloudW);
-  scene.setParam("uFit", look.fit);
   scene.setParam("uImgAlign", [look.posX, look.posY]);
-  scene.setParam("uImgScale", look.zoom);
-  scene.setParam("uEdgeFade", look.edgeFade);
-  scene.setParam("uCloudSpeed", look.cloudAnim ? look.cloudSpeed : 0);
   scene.setParam("uFadePos", [look.fadePosX, look.fadePosY]);
-  scene.setParam("uMaskView", look.maskView);
-  scene.setParam("uCursorView", look.cursorView);
-  scene.setParam("uColorDither", look.colorDither);
-  scene.setParam("uColorLevels", look.colorLevels);
-  scene.setParam("uMarkBright", look.markBright);
-  scene.setParam("uCursorMode", look.cursorMode);
-  scene.setParam("uCursorAmp", look.cursorAmp);
-  scene.setParam("uCursorRadius", look.cursorRadius);
-  scene.setParam("uHold", look.cursorHold);
-  scene.setParam("uCursorEdge", look.cursorEdge);
-  scene.setParam("uDevCell", look.cursorDetail);
-  scene.setParam("uDevColor", look.cursorColorize);
-  scene.setParam("uDevStage", look.cursorStage);
-  scene.setParam("uDevResolve", look.cursorResolve);
-  scene.setParam("uDevSat", look.cursorSat);
-  scene.setParam("uDevLevels", look.cursorLevels);
-  scene.setParam("uDevSharp", look.cursorSharp);
-  scene.setParam("uDevBright", look.cursorBright);
-  scene.setParam("uDevContrast", look.cursorContrast);
+  scene.setParam("uCloudSpeed", look.cloudAnim ? look.cloudSpeed : 0);
   applyColorwayChrome(look.colorway);
   persistLook(); // auto-save the live look to its context (general, or this image's config)
 }
