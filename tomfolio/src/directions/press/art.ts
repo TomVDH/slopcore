@@ -36,7 +36,7 @@ export const pressFrag = /* glsl */ `
   uniform float uCursorRadius; // cursor disc falloff rate (larger = tighter)
   uniform float uHold;         // static floor under the decaying cursor strength
   uniform float uCursorEdge;   // negative-mode disc hardness
-  uniform float uDevFine;      // develop-mode cell multiplier (sub-grid = cell / uDevFine)
+  uniform float uDevCell;      // develop sub-grid cell count (same units as uCell)
   uniform float uDevColor;     // develop: 1 resolve to true-colour photo, 0 stay monotone
   uniform float uMotif;        // shape: 0 dots(solid) 1 disc 2 x 3 plus 4 dash
   uniform float uMotifWeight;  // mark thickness / dot radius
@@ -317,7 +317,7 @@ export const pressFrag = /* glsl */ `
       ? clamp(uCursorAmp * infl, 0.0, 1.0) : 0.0;
 
     if (localRev > 0.001 && uImageOn > 0.5) {
-      float fcell = max(cell / max(uDevFine, 1.0), 2.0);
+      float fcell = max(uRes.y / max(uDevCell, 1.0), 2.0); // same formula as the base cell
       vec2 fId = floor(gl_FragCoord.xy / fcell);
       vec2 fLocal = fract(gl_FragCoord.xy / fcell);
       vec2 fBase = (fId + 0.5) * fcell / uRes;

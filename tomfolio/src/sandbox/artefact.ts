@@ -69,7 +69,7 @@ const look = {
   cursorRadius: 2.2, // cursor disc falloff (larger = tighter)
   cursorHold: 0, // static persistence floor under the movement-driven strength
   cursorEdge: 0.25, // negative-mode disc hardness
-  cursorDetail: 3, // develop-mode cell multiplier (finer marks under the cursor)
+  cursorDetail: 450, // develop sub-grid cell count (same units as `cell`)
   cursorColorize: 1, // develop: 1 resolve to true-colour photo, 0 stay monotone
 };
 
@@ -123,7 +123,7 @@ function pushTreatment(): void {
   scene.setParam("uCursorRadius", look.cursorRadius);
   scene.setParam("uHold", look.cursorHold);
   scene.setParam("uCursorEdge", look.cursorEdge);
-  scene.setParam("uDevFine", look.cursorDetail);
+  scene.setParam("uDevCell", look.cursorDetail);
   scene.setParam("uDevColor", look.cursorColorize);
   applyColorwayChrome(look.colorway);
 }
@@ -560,9 +560,9 @@ function buildDevBar(): void {
   const edgeCtl = stepper(cursor, "Edge", () => look.cursorEdge.toFixed(2),
     () => { look.cursorEdge = Math.max(0, +(look.cursorEdge - 0.05).toFixed(2)); },
     () => { look.cursorEdge = Math.min(0.8, +(look.cursorEdge + 0.05).toFixed(2)); });
-  const detailCtl = stepper(cursor, "Detail", () => `${look.cursorDetail.toFixed(1)}x`,
-    () => { look.cursorDetail = Math.max(1, +(look.cursorDetail - 0.5).toFixed(1)); },
-    () => { look.cursorDetail = Math.min(8, +(look.cursorDetail + 0.5).toFixed(1)); });
+  const detailCtl = stepper(cursor, "Detail", () => String(look.cursorDetail),
+    () => { look.cursorDetail = Math.max(120, look.cursorDetail - 12); },
+    () => { look.cursorDetail = Math.min(960, look.cursorDetail + 12); });
   const colorizeCtl = toggle(cursor, "Colorize", () => !!look.cursorColorize, () => { look.cursorColorize ^= 1; });
 
   // MOTION — the easing curve + duration of every dither/reveal transition.

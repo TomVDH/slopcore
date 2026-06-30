@@ -100,7 +100,7 @@ export function initScene(
     uCursorRadius: { value: 2.2 }, // disc falloff rate (was uPressFalloff)
     uHold: { value: 0 }, // static floor under the decaying cursor strength
     uCursorEdge: { value: 0.25 }, // negative-mode disc hardness
-    uDevFine: { value: 3 }, // develop-mode cell multiplier (sub-grid = cell / uDevFine)
+    uDevCell: { value: 450 }, // develop sub-grid cell count (same units as uCell)
     uDevColor: { value: 1 }, // develop: 1 resolve to true-colour photo, 0 stay monotone
     uMotif: { value: 0 },
     uMotifWeight: { value: 0.5 },

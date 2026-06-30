@@ -128,7 +128,8 @@ body.art {
   bottom: 18px;
   transform: translateX(-50%);
   z-index: 10;
-  width: min(672px, calc(100vw - 28px));
+  width: min(680px, calc(100vw - 20px));
+  max-height: calc(100vh - 28px); /* never taller than the screen */
   display: flex;
   flex-direction: column;
   background: rgba(12, 11, 16, 0.9);
@@ -136,6 +137,18 @@ body.art {
   border: 1px solid rgba(244, 239, 221, 0.16);
   font-family: var(--font-mono, ui-monospace, monospace);
   color: #f4efdd;
+}
+/* Wide screens: one short row of all 6 groups. Narrow: 2 columns. Both are
+   divisors of 6, so there is never an orphan group on the last row. */
+@media (min-width: 1320px) {
+  .art-dev {
+    width: 1264px;
+  }
+}
+@media (max-width: 640px) {
+  .art-dev {
+    width: calc(100vw - 16px);
+  }
 }
 
 /* Grip: full-width handle along the top; the only thing left when collapsed. */
@@ -173,15 +186,34 @@ body.art {
 .art-dev.no-anim .art-dev-clip {
   transition: none;
 }
-/* Reflowing grid of group columns: 3 across on desktop, 2 then 1 as it narrows. */
+/* Grid of group columns. Clean divisor-of-6 counts so the last row is never an
+   orphan: 3 by default, 6 on wide screens (one short row), 2 when narrow. Capped
+   to the viewport height with internal scroll so nothing is ever clipped. */
 .art-dev-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 16px 18px;
   padding: 14px 16px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
   opacity: 1;
   transition: opacity 0.28s ease;
+}
+@media (min-width: 1320px) {
+  .art-dev-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .art-dev-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 430px) {
+  .art-dev-row {
+    grid-template-columns: 1fr;
+  }
 }
 .art-dev.is-collapsed .art-dev-row {
   opacity: 0;
