@@ -70,18 +70,33 @@ const look = {
   invert: 0, // resolved 0/1 actually pushed to uInvert
   invertMode: 2, // Invert control: 0 Off, 1 On, 2 Auto (image-decided)
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
-  cloudSize: 1.2, // cloud-noise frequency (mode 2) — smaller = bigger billows
+  cloudSize: 1.2, // cloud-noise frequency X (mode 2) — smaller = bigger billows
+  cloudSizeY: 1.2, // cloud-noise frequency Y (independent stretch)
+  noiseType: 0, // cloud noise: 0 fbm, 1 ridged (Musgrave-like), 2 voronoi
+  cloudAnim: 1, // cloud (mode 2): 1 scroll sideways, 0 static
+  cloudSpeed: 0.05, // cloud sideways scroll speed
+  fadePosX: 0, // dissolve anchor X in [0,1] (0 = left)
+  fadePosY: 0, // dissolve anchor Y in [0,1] (0 = bottom)
+  maskView: 0, // dev: 1 = show the raw fade mask as grayscale
+  cursorView: 0, // dev: 1 = show raw cursor influence (infl) as grayscale
   reveal: 0, // 0 dithered, 1 full-res photo in natural light (Reveal tweens between)
   imageState: 0, // dev: 1 shows the adjusted source the dither reads, undithered
   colorDither: 0, // 0 duotone (palette), 1 full-colour ordered dither
   colorLevels: 4, // posterise steps per channel in colour mode
+  markBright: 0, // brightness offset on the dither mark colour (relative to the palette ink)
   cursorMode: 1, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
   cursorAmp: 0.4, // cursor strength
   cursorRadius: 2.2, // cursor disc falloff (larger = tighter)
   cursorHold: 0, // static persistence floor under the movement-driven strength
   cursorEdge: 0.25, // negative-mode disc hardness
   cursorDetail: 450, // develop sub-grid cell count (same units as `cell`)
-  cursorColorize: 1, // develop: 1 resolve to true-colour photo, 0 stay monotone
+  cursorColorize: 1, // develop colorize amount: 0 monochrome .. 1 full colour
+  cursorStage: 0.45, // develop: grain->photo handoff point (0..1 of the press)
+  cursorResolve: 1, // develop: how far a full press resolves toward the photo (0..1)
+  cursorSat: 1, // develop: saturation of the resolved colour (0 gray .. 2 boost)
+  cursorSharp: 0, // develop: local-contrast / unsharp pop
+  cursorBright: 0, // develop: own brightness offset (on top of image B)
+  cursorContrast: 1, // develop: own contrast (on top of image C)
 };
 
 const imgCache = new Map<string, HTMLImageElement>();
@@ -198,8 +213,15 @@ function pushTreatment(): void {
   scene.setParam("uInvert", look.invert);
   scene.setParam("uFadeMode", look.fadeMode);
   scene.setParam("uFadeScale", look.cloudSize);
+  scene.setParam("uFadeScaleY", look.cloudSizeY);
+  scene.setParam("uNoiseType", look.noiseType);
+  scene.setParam("uCloudSpeed", look.cloudAnim ? look.cloudSpeed : 0);
+  scene.setParam("uFadePos", [look.fadePosX, look.fadePosY]);
+  scene.setParam("uMaskView", look.maskView);
+  scene.setParam("uCursorView", look.cursorView);
   scene.setParam("uColorDither", look.colorDither);
   scene.setParam("uColorLevels", look.colorLevels);
+  scene.setParam("uMarkBright", look.markBright);
   scene.setParam("uCursorMode", look.cursorMode);
   scene.setParam("uCursorAmp", look.cursorAmp);
   scene.setParam("uCursorRadius", look.cursorRadius);
@@ -207,6 +229,12 @@ function pushTreatment(): void {
   scene.setParam("uCursorEdge", look.cursorEdge);
   scene.setParam("uDevCell", look.cursorDetail);
   scene.setParam("uDevColor", look.cursorColorize);
+  scene.setParam("uDevStage", look.cursorStage);
+  scene.setParam("uDevResolve", look.cursorResolve);
+  scene.setParam("uDevSat", look.cursorSat);
+  scene.setParam("uDevSharp", look.cursorSharp);
+  scene.setParam("uDevBright", look.cursorBright);
+  scene.setParam("uDevContrast", look.cursorContrast);
   applyColorwayChrome(look.colorway);
 }
 
@@ -236,8 +264,60 @@ const EASES: ReadonlyArray<readonly [string, string]> = [
   ["Quint inout", "power4.inOut"],
   ["Back out", "back.out(1.6)"],
 ];
-const motion = { easeIdx: 2, dur: 0.6 }; // default: Quint out, 0.6s
+const motion = { easeIdx: 2, dur: 0.6, fps: "fluid" as "fluid" | "cine" | "commo" }; // Quint out, 0.6s, uncapped
 const mEase = (): string => EASES[motion.easeIdx][1];
+
+// FPS presets cap the gsap ticker (which drives the whole render loop): Cine = a
+// filmic 24fps; Commo = a deliberately choppy 17fps (retro low-end cadence);
+// Fluid = uncapped. No-op under reduced motion (no loop).
+const FPS_MODES = ["fluid", "cine", "commo"] as const;
+const FPS_LABELS = ["Fluid", "Cine", "Commo"];
+function applyFps(): void {
+  if (reduced) return;
+  gsap.ticker.fps(motion.fps === "cine" ? 24 : motion.fps === "commo" ? 17 : 240); // 240 ≈ uncapped
+}
+
+// A small live ease preview: an inline SVG plotting the selected GSAP ease, with
+// a playhead dot that runs the curve in real time (looping at the chosen
+// duration) so you see the shape AND the timing of the motion.
+function easeGraph(): { svg: SVGSVGElement; update: () => void } {
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 120, H = 52, P = 6;
+  const px = (p: number): number => P + p * (W - 2 * P);
+  const py = (v: number): number => H - P - v * (H - 2 * P);
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("class", "art-ease");
+  const curve = document.createElementNS(NS, "path");
+  curve.setAttribute("class", "art-ease-curve");
+  const dot = document.createElementNS(NS, "circle");
+  dot.setAttribute("r", "2.6");
+  dot.setAttribute("class", "art-ease-dot");
+  svg.append(curve, dot);
+  const head = { p: 0 };
+  let tween: gsap.core.Tween | null = null;
+  const update = (): void => {
+    const fn = gsap.parseEase(mEase());
+    let d = "";
+    const N = 32;
+    for (let i = 0; i <= N; i++) {
+      const p = i / N;
+      d += `${i === 0 ? "M" : "L"}${px(p).toFixed(1)} ${py(fn(p)).toFixed(1)} `;
+    }
+    curve.setAttribute("d", d.trim());
+    const place = (): void => {
+      dot.setAttribute("cx", px(head.p).toFixed(1));
+      dot.setAttribute("cy", py(fn(head.p)).toFixed(1));
+    };
+    tween?.kill();
+    head.p = 0;
+    place();
+    if (!reduced) {
+      tween = gsap.to(head, { p: 1, duration: motion.dur, ease: "none", repeat: -1, repeatDelay: 0.3, onUpdate: place });
+    }
+  };
+  return { svg, update };
+}
 
 const rev = { v: 0 };
 const REVEAL_CELL_MULT = 32;
@@ -493,6 +573,49 @@ function flash(btn: HTMLElement, msg: string): void {
   }, 1100);
 }
 
+// Concise helper text per control label — shown in the hover info-circles (and
+// the same copy documents each setting). Keyed by the control's label.
+const HELP: Record<string, string> = {
+  Motif: "Mark shape: solid, disc (round halftone dot), X, plus, or dash.",
+  Cell: "Screen frequency. Lower = bigger dots, higher = finer grain.",
+  Fade: "Edge dissolve of the plate: off, a simple radial, or the animated cloud.",
+  "Cloud X": "Cloud billow size across — lower = bigger, softer billows.",
+  "Cloud Y": "Cloud billow size vertically (independent stretch).",
+  Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells).",
+  "Cloud anim": "Scroll the cloud sideways, or hold it static.",
+  "Cloud speed": "How fast the cloud drifts when animated.",
+  "Fade X": "Move the dissolve's anchor left/right (0 = left edge).",
+  "Fade Y": "Move the dissolve's anchor down/up (0 = bottom edge).",
+  Palette: "Paper + ink colourway (54 presets).",
+  "Full colour": "Dither the photo's real RGB instead of duotone paper/ink.",
+  Levels: "Posterise steps per colour channel — lower = chunkier colour.",
+  "Mark bright": "Brighten/darken the mark colour itself, vs the palette ink.",
+  Brightness: "Source-image luminance, applied before dithering.",
+  Contrast: "Source-image contrast, applied before dithering.",
+  Invert: "Tone polarity. Auto flips it on dark-paper stocks. Duotone only.",
+  Auto: "Whether Auto inverted, and why (the palette's stock).",
+  Mode: "What the pointer does: clear, ink, bias, negative, or develop.",
+  Strength: "Cursor effect intensity.",
+  Radius: "Cursor disc size — higher = tighter.",
+  Hold: "Static floor so the effect persists when the pointer stops.",
+  Edge: "Negative-mode disc hardness.",
+  Detail: "Develop sub-grid fineness under the pointer.",
+  Stage: "Where the finer develop dither ramps in during a press.",
+  Resolve: "How fully a full press replaces base marks with fine dither.",
+  Colorize: "Develop in mono (0) up to the photo's true colour (1).",
+  Saturation: "Vibrance of the developed colour.",
+  Pop: "Local-contrast / unsharp boost in the develop region.",
+  "Dev bright": "Brightness of the develop region (on top of the image grade).",
+  "Dev contrast": "Contrast of the develop region (on top of the image grade).",
+  Ease: "Easing curve for every transition.",
+  Duration: "Transition length, in seconds.",
+  FPS: "Frame cap: Fluid (uncapped), Cine 24, Commo 17.",
+  Reveal: "Crossfade the whole plate to the true natural-light photo.",
+  "Image state": "Peek the undithered, brightness/contrast-adjusted source.",
+  "Show fade mask": "Show the fade mask itself — white = marks, black = ground.",
+  "Copy JSON": "Copy every setting as JSON to the clipboard.",
+};
+
 function buildDevBar(): void {
   if (!scene) return;
   const bar = document.createElement("div");
@@ -545,7 +668,55 @@ function buildDevBar(): void {
       try { localStorage.setItem(STORE, collapsed ? "1" : "0"); } catch { /* ignore */ }
     }
   };
-  grip.addEventListener("click", () => setCollapsed(!collapsed));
+  // Free-drag: the grip doubles as the panel's header + drag handle. Press and
+  // move to reposition the whole panel anywhere on screen; a press that doesn't
+  // move is a collapse toggle. Position persists as {x,y} (top-left), re-clamped
+  // into the viewport on restore so it can never strand off-screen.
+  const POS_STORE = "artefact:devbar-pos";
+  const applyPos = (x: number, y: number): void => {
+    const w = bar.offsetWidth || 264;
+    const cx = Math.max(6, Math.min(x, window.innerWidth - w - 6));
+    const cy = Math.max(6, Math.min(y, window.innerHeight - 44));
+    bar.style.left = `${cx}px`;
+    bar.style.top = `${cy}px`;
+    bar.style.right = "auto";
+  };
+  let savedPos: { x: number; y: number } | null = null;
+  try {
+    const s = localStorage.getItem(POS_STORE);
+    if (s) { const p = JSON.parse(s) as { x?: number; y?: number }; if (typeof p?.x === "number" && typeof p?.y === "number") savedPos = { x: p.x, y: p.y }; }
+  } catch { /* ignore */ }
+
+  let dragging = false, dragMoved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  grip.addEventListener("pointerdown", (e) => {
+    dragging = true; dragMoved = false;
+    sx = e.clientX; sy = e.clientY;
+    const r = bar.getBoundingClientRect();
+    ox = r.left; oy = r.top;
+    bar.classList.add("is-dragging");
+    try { grip.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  });
+  grip.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
+    if (dragMoved) applyPos(ox + dx, oy + dy);
+  });
+  const endDrag = (): void => {
+    if (!dragging) return;
+    dragging = false;
+    bar.classList.remove("is-dragging");
+    if (dragMoved) {
+      const r = bar.getBoundingClientRect();
+      try { localStorage.setItem(POS_STORE, JSON.stringify({ x: r.left, y: r.top })); } catch { /* ignore */ }
+    }
+  };
+  grip.addEventListener("pointerup", endDrag);
+  grip.addEventListener("pointercancel", endDrag);
+  grip.addEventListener("click", () => {
+    if (dragMoved) { dragMoved = false; return; } // it was a drag, not a click
+    setCollapsed(!collapsed);
+  });
   window.addEventListener("keydown", (e) => {
     if (e.key === "`" && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
@@ -567,6 +738,38 @@ function buildDevBar(): void {
     return ctls;
   };
 
+  // Shared hover tooltip for the info-circles. Fixed-position so it escapes the
+  // panel's scroll clip; built once and re-positioned beside the hovered circle.
+  const tipEl = document.createElement("div");
+  tipEl.className = "art-tip";
+  tipEl.setAttribute("role", "tooltip");
+  document.body.appendChild(tipEl);
+  const showTip = (anchor: HTMLElement, text: string): void => {
+    tipEl.textContent = text;
+    tipEl.style.display = "block";
+    const a = anchor.getBoundingClientRect();
+    const t = tipEl.getBoundingClientRect();
+    let left = a.left - t.width - 10;
+    if (left < 8) left = a.right + 10; // flip right if there's no room to the left
+    const top = Math.max(8, Math.min(a.top + a.height / 2 - t.height / 2, window.innerHeight - t.height - 8));
+    tipEl.style.left = `${left}px`;
+    tipEl.style.top = `${top}px`;
+  };
+  const hideTip = (): void => { tipEl.style.display = "none"; };
+  // A hover info-circle carrying HELP[label]; attached to a label / button.
+  const addInfo = (host: HTMLElement, label: string): HTMLElement | null => {
+    const tip = HELP[label];
+    if (!tip) return null;
+    const info = document.createElement("span");
+    info.className = "art-info";
+    info.textContent = "i";
+    info.setAttribute("aria-label", `${label}: ${tip}`);
+    info.addEventListener("pointerenter", () => showTip(info, tip));
+    info.addEventListener("pointerleave", hideTip);
+    host.appendChild(info);
+    return info;
+  };
+
   // One control row: label on the left, widget on the right. Returns the row so
   // callers can mark it contextually N/A (dimmed + disabled).
   const ctl = (into: HTMLElement, label: string, widget: HTMLElement): HTMLElement => {
@@ -575,6 +778,7 @@ function buildDevBar(): void {
     const l = document.createElement("span");
     l.className = "art-ctl-l";
     l.textContent = label;
+    addInfo(l, label);
     w.append(l, widget);
     into.appendChild(w);
     return w;
@@ -613,6 +817,7 @@ function buildDevBar(): void {
     get: () => string,
     dec: () => void,
     inc: () => void,
+    after?: () => void,
   ): HTMLElement => {
     const grp = document.createElement("div");
     grp.className = "art-step";
@@ -627,8 +832,30 @@ function buildDevBar(): void {
     plus.type = "button";
     plus.className = "art-step-b";
     plus.textContent = "+";
-    minus.addEventListener("click", () => { dec(); pushTreatment(); val.textContent = get(); });
-    plus.addEventListener("click", () => { inc(); pushTreatment(); val.textContent = get(); });
+    minus.addEventListener("click", () => { dec(); pushTreatment(); val.textContent = get(); after?.(); });
+    plus.addEventListener("click", () => { inc(); pushTreatment(); val.textContent = get(); after?.(); });
+    // Drag-to-scrub: press the value and drag left/right to step it (≈6px/step),
+    // reusing the same clamped dec/inc so bounds + push stay identical.
+    val.classList.add("art-ctl-v-drag");
+    let scrubbing = false, x0 = 0, applied = 0;
+    val.addEventListener("pointerdown", (e) => {
+      scrubbing = true; x0 = e.clientX; applied = 0;
+      try { val.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      e.preventDefault();
+    });
+    val.addEventListener("pointermove", (e) => {
+      if (!scrubbing) return;
+      const want = Math.round((e.clientX - x0) / 6);
+      let d = want - applied;
+      if (d === 0) return;
+      while (d > 0) { inc(); d--; }
+      while (d < 0) { dec(); d++; }
+      applied = want;
+      pushTreatment(); val.textContent = get(); after?.();
+    });
+    const stopScrub = (): void => { scrubbing = false; };
+    val.addEventListener("pointerup", stopScrub);
+    val.addEventListener("pointercancel", stopScrub);
     grp.append(minus, val, plus);
     return ctl(into, label, grp);
   };
@@ -678,6 +905,11 @@ function buildDevBar(): void {
     const w = document.createElement("div");
     w.className = "art-ctl art-ctl-act";
     btn.classList.add("art-act");
+    const tip = HELP[btn.textContent ?? ""]; // captured at build (flash() text is transient)
+    if (tip) {
+      btn.addEventListener("pointerenter", () => showTip(btn, tip));
+      btn.addEventListener("pointerleave", hideTip);
+    }
     w.appendChild(btn);
     into.appendChild(w);
   };
@@ -690,16 +922,47 @@ function buildDevBar(): void {
     );
   };
 
+  // Motif (mark shape) is surfaced in Screen always, and contextually in Colour
+  // (full-colour) and Cursor (Develop) so it's at hand in those modes; every copy
+  // drives look.motif and the set stays in sync.
+  const motifSels: HTMLSelectElement[] = [];
+  const syncMotif = (): void => { for (const s of motifSels) s.value = String(look.motif); };
+  const addMotif = (into: HTMLElement): HTMLElement => {
+    const row = select(into, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; }, () => syncMotif());
+    const s = row.querySelector("select");
+    if (s) motifSels.push(s);
+    return row;
+  };
+
   // SCREEN — the dither marks + edge dissolve (Cloud only applies to Cloud fade).
   const screen = group("Screen");
-  select(screen, "Motif", MOTIFS, () => look.motif, (i) => { look.motif = i; });
+  addMotif(screen);
   stepper(screen, "Cell", () => String(look.cell),
-    () => { look.cell = Math.max(60, look.cell - 12); },
-    () => { look.cell = Math.min(320, look.cell + 12); });
+    () => { look.cell = Math.max(16, look.cell - 12); },
+    () => { look.cell = Math.min(600, look.cell + 12); });
   select(screen, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
-  const cloudCtl = stepper(screen, "Cloud", () => look.cloudSize.toFixed(1),
-    () => { look.cloudSize = Math.max(1, +(look.cloudSize - 0.5).toFixed(1)); },
-    () => { look.cloudSize = Math.min(8, +(look.cloudSize + 0.5).toFixed(1)); });
+
+  // CLOUD — the dissolve mask (fade Simple/Cloud): X/Y size, noise type, motion, anchor.
+  const cloud = group("Cloud");
+  const cloudGroupEl = cloud.parentElement as HTMLElement; // wrapper, hidden when Fade = Off
+  const cloudCtl = stepper(cloud, "Cloud X", () => look.cloudSize.toFixed(1),
+    () => { look.cloudSize = Math.max(0.5, +(look.cloudSize - 0.5).toFixed(1)); },
+    () => { look.cloudSize = Math.min(20, +(look.cloudSize + 0.5).toFixed(1)); });
+  const cloudYCtl = stepper(cloud, "Cloud Y", () => look.cloudSizeY.toFixed(1),
+    () => { look.cloudSizeY = Math.max(0.5, +(look.cloudSizeY - 0.5).toFixed(1)); },
+    () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); });
+  const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi"], () => look.noiseType, (i) => { look.noiseType = i; });
+  const cloudAnimCtl = toggle(cloud, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
+  const cloudSpeedCtl = stepper(cloud, "Cloud speed", () => look.cloudSpeed.toFixed(2),
+    () => { look.cloudSpeed = Math.max(0, +(look.cloudSpeed - 0.02).toFixed(2)); },
+    () => { look.cloudSpeed = Math.min(2, +(look.cloudSpeed + 0.02).toFixed(2)); });
+  // Dissolve anchor: move where the gradient/cloud fade originates (0,0 = bottom-left).
+  const fadeXCtl = stepper(cloud, "Fade X", () => look.fadePosX.toFixed(2),
+    () => { look.fadePosX = Math.max(-1, +(look.fadePosX - 0.05).toFixed(2)); },
+    () => { look.fadePosX = Math.min(2, +(look.fadePosX + 0.05).toFixed(2)); });
+  const fadeYCtl = stepper(cloud, "Fade Y", () => look.fadePosY.toFixed(2),
+    () => { look.fadePosY = Math.max(-1, +(look.fadePosY - 0.05).toFixed(2)); },
+    () => { look.fadePosY = Math.min(2, +(look.fadePosY + 0.05).toFixed(2)); });
 
   // COLOUR — palette + full-colour mode (Levels only applies in full colour).
   const colour = group("Colour");
@@ -715,27 +978,35 @@ function buildDevBar(): void {
   if (palBtns[1]) palBtns[1].textContent = "›";
   palRow.querySelector(".art-ctl-v")?.classList.add("is-name");
   toggle(colour, "Full colour", () => !!look.colorDither, () => { look.colorDither ^= 1; }, () => refreshNA());
+  const colourMotifCtl = addMotif(colour); // mark shape, surfaced for full-colour
   const levelsCtl = stepper(colour, "Levels", () => String(look.colorLevels),
     () => { look.colorLevels = Math.max(2, look.colorLevels - 1); },
-    () => { look.colorLevels = Math.min(8, look.colorLevels + 1); });
+    () => { look.colorLevels = Math.min(16, look.colorLevels + 1); });
+  // Mark brightness: brightens/darkens the dither mark colour itself (the palette
+  // ink / colour dot), distinct from Image > Brightness which adjusts the source.
+  stepper(colour, "Mark bright", () => look.markBright.toFixed(2),
+    () => { look.markBright = Math.max(-1, +(look.markBright - 0.05).toFixed(2)); },
+    () => { look.markBright = Math.min(1, +(look.markBright + 0.05).toFixed(2)); });
 
   // IMAGE — source photo tone.
   const image = group("Image");
   stepper(image, "Brightness", () => look.brightness.toFixed(2),
-    () => { look.brightness = Math.max(-0.5, +(look.brightness - 0.05).toFixed(2)); },
-    () => { look.brightness = Math.min(0.5, +(look.brightness + 0.05).toFixed(2)); });
+    () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
+    () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });
   stepper(image, "Contrast", () => look.contrast.toFixed(2),
-    () => { look.contrast = Math.max(0.4, +(look.contrast - 0.1).toFixed(2)); },
-    () => { look.contrast = Math.min(2.6, +(look.contrast + 0.1).toFixed(2)); });
-  cycle3(image, "Invert", ["Off", "On", "Auto"], () => look.invertMode, (i) => { look.invertMode = i; });
+    () => { look.contrast = Math.max(0.1, +(look.contrast - 0.1).toFixed(2)); },
+    () => { look.contrast = Math.min(5, +(look.contrast + 0.1).toFixed(2)); });
+  const invertCtl = cycle3(image, "Invert", ["Off", "On", "Auto"], () => look.invertMode, (i) => { look.invertMode = i; });
   // Auto status (shown only in Auto mode): whether Auto inverted, and why — the
   // palette stock. "ON · dark" inverts on a dark-paper colorway; "OFF · light".
   const autoStat = document.createElement("span");
   autoStat.className = "art-ctl-v is-name";
   const autoRow = ctl(image, "Auto", autoStat);
   const updateAutoStatus = (): void => {
-    setNA(autoRow, look.invertMode !== 2);
-    if (look.invertMode !== 2 || !lastAuto) return;
+    // Invert is duotone-only: full-colour never inverts, so hide both rows there.
+    setNA(invertCtl, !!look.colorDither);
+    setNA(autoRow, !!look.colorDither || look.invertMode !== 2);
+    if (look.colorDither || look.invertMode !== 2 || !lastAuto) return;
     const r = lastAuto;
     autoStat.textContent = `${r.invert ? "ON" : "OFF"} · ${r.paperLum < r.inkLum ? "dark" : "light"}`;
     autoStat.title = `paper ${r.paperLum.toFixed(2)} · ink ${r.inkLum.toFixed(2)} · gap ${r.gap.toFixed(2)}`;
@@ -750,29 +1021,63 @@ function buildDevBar(): void {
   // Detail + Colorize apply to Develop (others are hidden for the active mode).
   const cursor = group("Cursor");
   select(cursor, "Mode", CURSOR_MODES, () => look.cursorMode, (i) => { look.cursorMode = i; }, () => refreshNA());
+  const cursorMotifCtl = addMotif(cursor); // mark shape, surfaced for Develop
   stepper(cursor, "Strength", () => look.cursorAmp.toFixed(2),
     () => { look.cursorAmp = Math.max(0, +(look.cursorAmp - 0.1).toFixed(2)); },
-    () => { look.cursorAmp = Math.min(1.5, +(look.cursorAmp + 0.1).toFixed(2)); });
+    () => { look.cursorAmp = Math.min(5, +(look.cursorAmp + 0.1).toFixed(2)); });
   stepper(cursor, "Radius", () => look.cursorRadius.toFixed(1),
-    () => { look.cursorRadius = Math.max(0.6, +(look.cursorRadius - 0.2).toFixed(1)); },
-    () => { look.cursorRadius = Math.min(6, +(look.cursorRadius + 0.2).toFixed(1)); });
+    () => { look.cursorRadius = Math.max(0.2, +(look.cursorRadius - 0.2).toFixed(1)); },
+    () => { look.cursorRadius = Math.min(16, +(look.cursorRadius + 0.2).toFixed(1)); });
   stepper(cursor, "Hold", () => look.cursorHold.toFixed(2),
     () => { look.cursorHold = Math.max(0, +(look.cursorHold - 0.1).toFixed(2)); },
-    () => { look.cursorHold = Math.min(1, +(look.cursorHold + 0.1).toFixed(2)); });
+    () => { look.cursorHold = Math.min(3, +(look.cursorHold + 0.1).toFixed(2)); });
   const edgeCtl = stepper(cursor, "Edge", () => look.cursorEdge.toFixed(2),
     () => { look.cursorEdge = Math.max(0, +(look.cursorEdge - 0.05).toFixed(2)); },
-    () => { look.cursorEdge = Math.min(0.8, +(look.cursorEdge + 0.05).toFixed(2)); });
-  const detailCtl = stepper(cursor, "Detail", () => String(look.cursorDetail),
-    () => { look.cursorDetail = Math.max(120, look.cursorDetail - 12); },
-    () => { look.cursorDetail = Math.min(960, look.cursorDetail + 12); });
-  const colorizeCtl = toggle(cursor, "Colorize", () => !!look.cursorColorize, () => { look.cursorColorize ^= 1; });
+    () => { look.cursorEdge = Math.min(2, +(look.cursorEdge + 0.05).toFixed(2)); });
 
-  // MOTION — the easing curve + duration of every dither/reveal transition.
+  // DEVELOP — the look of cursor mode 5 (Develop): all hidden unless Mode = Develop.
+  const develop = group("Develop");
+  const developGroupEl = develop.parentElement as HTMLElement; // wrapper, hidden when not Develop
+  stepper(develop, "Detail", () => String(look.cursorDetail),
+    () => { look.cursorDetail = Math.max(40, look.cursorDetail - 24); },
+    () => { look.cursorDetail = Math.min(3000, look.cursorDetail + 24); });
+  stepper(develop, "Stage", () => look.cursorStage.toFixed(2),
+    () => { look.cursorStage = Math.max(0, +(look.cursorStage - 0.05).toFixed(2)); },
+    () => { look.cursorStage = Math.min(1, +(look.cursorStage + 0.05).toFixed(2)); });
+  stepper(develop, "Resolve", () => look.cursorResolve.toFixed(2),
+    () => { look.cursorResolve = Math.max(0, +(look.cursorResolve - 0.1).toFixed(2)); },
+    () => { look.cursorResolve = Math.min(1, +(look.cursorResolve + 0.1).toFixed(2)); });
+  stepper(develop, "Colorize", () => look.cursorColorize.toFixed(2),
+    () => { look.cursorColorize = Math.max(0, +(look.cursorColorize - 0.1).toFixed(2)); },
+    () => { look.cursorColorize = Math.min(1, +(look.cursorColorize + 0.1).toFixed(2)); });
+  stepper(develop, "Saturation", () => look.cursorSat.toFixed(2),
+    () => { look.cursorSat = Math.max(0, +(look.cursorSat - 0.1).toFixed(2)); },
+    () => { look.cursorSat = Math.min(4, +(look.cursorSat + 0.1).toFixed(2)); });
+  stepper(develop, "Pop", () => look.cursorSharp.toFixed(2),
+    () => { look.cursorSharp = Math.max(0, +(look.cursorSharp - 0.1).toFixed(2)); },
+    () => { look.cursorSharp = Math.min(3, +(look.cursorSharp + 0.1).toFixed(2)); });
+  // Develop's own brightness / contrast (on top of the Image grade, applied to
+  // the develop region's source before it's re-dithered).
+  stepper(develop, "Dev bright", () => look.cursorBright.toFixed(2),
+    () => { look.cursorBright = Math.max(-1, +(look.cursorBright - 0.05).toFixed(2)); },
+    () => { look.cursorBright = Math.min(1, +(look.cursorBright + 0.05).toFixed(2)); });
+  stepper(develop, "Dev contrast", () => look.cursorContrast.toFixed(2),
+    () => { look.cursorContrast = Math.max(0.1, +(look.cursorContrast - 0.1).toFixed(2)); },
+    () => { look.cursorContrast = Math.min(5, +(look.cursorContrast + 0.1).toFixed(2)); });
+
+  // MOTION — the easing curve + duration of every dither/reveal transition, the
+  // FPS cadence (Cine 24 / Fluid uncapped), and a live preview of the ease.
   const mo = group("Motion");
-  select(mo, "Ease", EASES.map((e) => e[0]), () => motion.easeIdx, (i) => { motion.easeIdx = i; });
+  const ease = easeGraph();
+  select(mo, "Ease", EASES.map((e) => e[0]), () => motion.easeIdx, (i) => { motion.easeIdx = i; }, () => ease.update());
   stepper(mo, "Duration", () => `${motion.dur.toFixed(2)}s`,
-    () => { motion.dur = Math.max(0.15, +(motion.dur - 0.05).toFixed(2)); },
-    () => { motion.dur = Math.min(1.5, +(motion.dur + 0.05).toFixed(2)); });
+    () => { motion.dur = Math.max(0.05, +(motion.dur - 0.05).toFixed(2)); },
+    () => { motion.dur = Math.min(5, +(motion.dur + 0.05).toFixed(2)); },
+    () => ease.update());
+  select(mo, "FPS", FPS_LABELS, () => FPS_MODES.indexOf(motion.fps),
+    (i) => { motion.fps = FPS_MODES[i]; applyFps(); });
+  mo.appendChild(ease.svg);
+  ease.update();
 
   // OUTPUT — reveal the source + export the settings.
   const output = group("Output");
@@ -797,15 +1102,51 @@ function buildDevBar(): void {
     stateCtl.setAttribute("aria-pressed", String(!!look.imageState));
   });
   action(output, stateCtl);
+  // Mask view: show the raw fade mask (gradient / cloud) as grayscale, so its
+  // shape and moved anchor are directly visible — white = marks, black = ground.
+  const maskCtl = document.createElement("button");
+  maskCtl.type = "button";
+  maskCtl.textContent = "Show fade mask";
+  maskCtl.classList.toggle("is-on", !!look.maskView);
+  maskCtl.setAttribute("aria-pressed", String(!!look.maskView));
+  maskCtl.addEventListener("click", () => {
+    look.maskView ^= 1;
+    if (scene) scene.setParam("uMaskView", look.maskView);
+    maskCtl.classList.toggle("is-on", !!look.maskView);
+    maskCtl.setAttribute("aria-pressed", String(!!look.maskView));
+  });
+  action(output, maskCtl);
+  // Cursor view: show the raw cursor influence (infl) as grayscale — white = full
+  // influence, black = none — so the ellipse shape and orientation are directly visible.
+  const cursorViewCtl = document.createElement("button");
+  cursorViewCtl.type = "button";
+  cursorViewCtl.textContent = "Show cursor field";
+  cursorViewCtl.classList.toggle("is-on", !!look.cursorView);
+  cursorViewCtl.setAttribute("aria-pressed", String(!!look.cursorView));
+  cursorViewCtl.addEventListener("click", () => {
+    look.cursorView ^= 1;
+    if (scene) scene.setParam("uCursorView", look.cursorView);
+    cursorViewCtl.classList.toggle("is-on", !!look.cursorView);
+    cursorViewCtl.setAttribute("aria-pressed", String(!!look.cursorView));
+  });
+  action(output, cursorViewCtl);
+  // Copy a full, reload-restorable snapshot of the settings as JSON. Clipboard
+  // first; if that's blocked, drop into a prompt() so it's still selectable/copyable.
   const copy = document.createElement("button");
   copy.type = "button";
-  copy.textContent = "Copy values";
+  copy.textContent = "Copy JSON";
   copy.addEventListener("click", async () => {
+    const snapshot = {
+      look,
+      motion: { ease: mEase(), dur: motion.dur, fps: motion.fps },
+    };
+    const json = JSON.stringify(snapshot, null, 2);
     try {
-      await navigator.clipboard.writeText(JSON.stringify(look, null, 2));
-      flash(copy, "Copied");
+      await navigator.clipboard.writeText(json);
+      flash(copy, "Copied ✓");
     } catch {
-      flash(copy, "Failed");
+      window.prompt("Settings JSON (⌘C to copy):", json);
+      flash(copy, "See prompt");
     }
   });
   action(output, copy);
@@ -813,14 +1154,27 @@ function buildDevBar(): void {
   // Show only the controls that apply to the current mode (others are hidden).
   function refreshNA(): void {
     setNA(levelsCtl, !look.colorDither); // Levels: full-colour only
-    setNA(cloudCtl, look.fadeMode !== 2); // Cloud: cloud fade only
+    setNA(colourMotifCtl, !look.colorDither); // Colour-group Motif: full-colour only
+    updateAutoStatus(); // Invert/Auto rows: duotone-only (hidden in full colour)
+    // Cloud group: hidden entirely when Fade = Off; cloud-noise rows only in Cloud mode.
+    cloudGroupEl.style.display = look.fadeMode === 0 ? "none" : "";
+    const notCloud = look.fadeMode !== 2;
+    setNA(cloudCtl, notCloud); // Cloud X: cloud fade only
+    setNA(cloudYCtl, notCloud); // Cloud Y: cloud fade only
+    setNA(noiseCtl, notCloud); // Noise type: cloud fade only
+    setNA(cloudAnimCtl, notCloud); // Cloud anim: cloud fade only
+    setNA(cloudSpeedCtl, notCloud); // Cloud speed: cloud fade only
+    setNA(fadeXCtl, look.fadeMode === 0); // Fade anchor: any fade mode
+    setNA(fadeYCtl, look.fadeMode === 0);
     setNA(edgeCtl, look.cursorMode !== 4); // Edge: Negative only
-    setNA(detailCtl, look.cursorMode !== 5); // Detail: Develop only
-    setNA(colorizeCtl, look.cursorMode !== 5); // Colorize: Develop only
+    const notDev = look.cursorMode !== 5;
+    setNA(cursorMotifCtl, notDev); // Cursor-group Motif: Develop only
+    developGroupEl.style.display = notDev ? "none" : ""; // whole Develop group is Develop-only
   }
   refreshNA();
 
   document.body.appendChild(bar);
+  if (savedPos) applyPos(savedPos.x, savedPos.y); // restore drag position (needs layout)
 
   let startCollapsed = false;
   try { startCollapsed = localStorage.getItem(STORE) === "1"; } catch { /* ignore */ }

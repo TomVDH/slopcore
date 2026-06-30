@@ -292,8 +292,9 @@ body.art {
   font: 600 0.56rem var(--font-mono, ui-monospace, monospace);
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  padding: 6px 0;
-  cursor: pointer;
+  padding: 7px 0;
+  cursor: grab;
+  touch-action: none;
   transition:
     color 0.18s ease,
     background 0.18s ease;
@@ -302,12 +303,15 @@ body.art {
   color: #f4efdd;
   background: rgba(244, 239, 221, 0.05);
 }
+.art-dev .art-dev-grip:active {
+  cursor: grabbing;
+}
 .art-dev.is-collapsed .art-dev-grip {
   border-bottom: 0;
 }
 
-/* Clip wrapper: collapses to a handle by animating to the row's exact height
-   (set in JS), so it never clips wrapped controls and has no collapse lag. */
+/* Clip wrapper: collapses to the handle by animating to the row's exact height
+   (set in JS), so it never clips controls and has no collapse lag. */
 .art-dev-clip {
   overflow: hidden;
   transition: max-height 0.42s cubic-bezier(0.22, 1, 0.36, 1);
@@ -315,37 +319,39 @@ body.art {
 .art-dev.no-anim .art-dev-clip {
   transition: none;
 }
-/* Grid of group columns. Clean divisor-of-6 counts so the last row is never an
-   orphan: 3 by default, 6 on wide screens (one short row), 2 when narrow. Capped
-   to the viewport height with internal scroll so nothing is ever clipped. */
+/* Single-column stack of all groups, scrolled internally, capped to the viewport. */
 .art-dev-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   align-items: start;
-  gap: 16px 18px;
-  padding: 14px 16px;
-  max-height: calc(100vh - 60px);
+  gap: 14px;
+  padding: 12px 14px;
+  max-height: calc(100vh - 52px);
   overflow-y: auto;
   opacity: 1;
   transition: opacity 0.28s ease;
 }
-@media (min-width: 1320px) {
-  .art-dev-row {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-}
-@media (max-width: 640px) {
-  .art-dev-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 430px) {
-  .art-dev-row {
-    grid-template-columns: 1fr;
-  }
-}
 .art-dev.is-collapsed .art-dev-row {
   opacity: 0;
+}
+
+/* Live ease preview (Motion group): the selected curve + a playhead dot that
+   runs the curve in real time at the chosen duration. */
+.art-ease {
+  width: 100%;
+  height: auto;
+  margin-top: 4px;
+  background: rgba(244, 239, 221, 0.04);
+  border: 1px solid rgba(244, 239, 221, 0.1);
+}
+.art-ease-curve {
+  fill: none;
+  stroke: rgba(244, 239, 221, 0.55);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.art-ease-dot {
+  fill: #c8f542;
 }
 @media (prefers-reduced-motion: reduce) {
   .art-dev-clip,
@@ -387,6 +393,42 @@ body.art {
   letter-spacing: 0.02em;
   color: rgba(244, 239, 221, 0.62);
   white-space: nowrap;
+}
+/* Hover info-circle on each setting + its fixed-position tooltip. */
+.art-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  margin-left: 5px;
+  vertical-align: middle;
+  border: 1px solid rgba(244, 239, 221, 0.3);
+  border-radius: 50%;
+  font: italic 700 0.5rem/1 var(--font-mono, ui-monospace, monospace);
+  color: rgba(244, 239, 221, 0.45);
+  cursor: help;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.art-info:hover {
+  color: #14121a;
+  background: #c8f542;
+  border-color: #c8f542;
+}
+.art-tip {
+  position: fixed;
+  z-index: 100;
+  display: none;
+  max-width: 216px;
+  padding: 7px 10px;
+  background: rgba(12, 11, 16, 0.97);
+  border: 1px solid rgba(244, 239, 221, 0.22);
+  color: #f4efdd;
+  font: 400 0.62rem/1.4 var(--font-mono, ui-monospace, monospace);
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 .art-ctl.is-na {
   display: none; /* control does not apply to the current mode */
