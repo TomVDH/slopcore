@@ -54,19 +54,19 @@ const canvas = document.getElementById("gl") as HTMLCanvasElement | null;
 
 // Unified look state: the menu sets `image`, the dev bar sets the treatment.
 const look = {
-  image: "collection-236", // a sample key, or "field"
+  image: "collection-207", // a sample key, or "field"
   motif: 1,
-  colorway: 11, // Noir
+  colorway: 37, // Cyber
   marginAccent: 0, // frame margin colour: 0 body/ink, 1 brand accent
   cell: 306,
   plateWidth: 0.71, // plate box width as a fraction of the viewport (the photo fits into it via Fit/Pos)
   weight: 0.62,
   angle: 0,
   tone: 0.5,
-  brightness: 0.2, // image brightness (added)
+  brightness: 0.15, // image brightness (added)
   contrast: 1, // image contrast (around mid)
   fit: 0, // image fit: 0 cover (crop), 1 contain (letterbox)
-  posX: -0.2, // image anchor X (−1..2; 0 left, 0.5 centre, 1 right; <0 bleeds off-edge left)
+  posX: 0, // image anchor X (−1..2; 0 left, 0.5 centre, 1 right; <0 bleeds off-edge left)
   posY: 0.5, // image anchor Y in [0,1] (0 bottom, 0.5 centre, 1 top)
   zoom: 1, // image zoom within the plate (1 = fit, >1 zoomed in, <1 zoomed out)
   edgeFade: 0.12, // photo edge taper: dissolve the L/R image edge into the ground (cloud modes)
@@ -79,7 +79,7 @@ const look = {
   fadeWarp: 0, // domain-warp amount on the cloud noise (organic swirl)
   cloudW: 1, // cloud horizontal extent, independent of the image width (1 = plate)
   cloudAnim: 1, // cloud (mode 2): 1 scroll sideways, 0 static
-  cloudSpeed: 0.05, // cloud sideways scroll speed
+  cloudSpeed: 0.01, // cloud sideways scroll speed
   fadePosX: 0.4, // dissolve anchor X in [0,1] (0 = left)
   fadePosY: 0, // dissolve anchor Y in [0,1] (0 = bottom)
   maskView: 0, // dev: 1 = show the raw fade mask as grayscale
@@ -89,12 +89,12 @@ const look = {
   colorDither: 0, // 0 duotone (palette), 1 full-colour ordered dither
   colorLevels: 4, // posterise steps per channel in colour mode
   markBright: 0, // brightness offset on the dither mark colour (relative to the palette ink)
-  cursorMode: 1, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
+  cursorMode: 2, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
   cursorAmp: 0.4, // cursor strength
-  cursorRadius: 9.0, // cursor disc falloff (larger = tighter)
+  cursorRadius: 1.4, // cursor disc falloff (larger = tighter)
   cursorHold: 0, // static persistence floor under the movement-driven strength
   cursorEdge: 0.25, // negative-mode disc hardness
-  cursorDetail: 450, // develop sub-grid cell count (same units as `cell`)
+  cursorDetail: 306, // develop sub-grid cell count (same units as `cell`)
   cursorColorize: 1, // develop colorize amount: 0 monochrome .. 1 full colour
   cursorStage: 0.45, // develop: grain->photo handoff point (0..1 of the press)
   cursorResolve: 1, // develop: how far a full press resolves toward the photo (0..1)

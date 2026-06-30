@@ -179,6 +179,12 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-30
+- **Starter-state update (Cyber).** Default colorway → **Cyber (37)**; image → `collection-207`;
+  `brightness` 0.2→0.15; `posX` -0.2→0; `cloudSpeed` 0.05→0.01; `cursorMode` → 2 (Ink);
+  `cursorRadius` 9→1.4 (bigger disc); `cursorDetail` 450→306. Colorway-paper lockstep updated to
+  Cyber: CSS `--ground` `#04090c` / `--ink` `#19f7f7` / `--art-cursor` `#19f7f7`, HTML `theme-color`
+  `#04090c`, `artefact-check.mjs` ground `rgb(4, 9, 12)`. (`edgeFade` left at 0.12 — absent from the
+  snapshot.)
 - **Health pass Phase 3 — fade-mask correctness.** Two shader fixes so the cloud/gradient mask
   fully governs visibility. **(a) Edge taper** — new `uEdgeFade` uniform (default 0.12; dev-bar
   Image > **Feather**, 0–0.5): inside the fade block, `cov = min(cov, smoothstep(0, uEdgeFade, ex))`

@@ -48,7 +48,7 @@ async function run(label, { url, shot, w = 1440, h = 900, nogl = false }) {
   const checks = [
     ["one viewport (no scroll)", p.noScroll],
     ["frame inset 10px", p.frameInset],
-    ["ground noir #08080a", p.bg === "rgb(8, 8, 10)"],
+    ["ground cyber #04090c", p.bg === "rgb(4, 9, 12)"],
     ["menu present", p.menuItems >= 3],
   ];
   if (nogl) {
