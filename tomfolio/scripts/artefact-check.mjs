@@ -36,8 +36,8 @@ async function run(label, { url, shot, w = 1440, h = 900, nogl = false }) {
       canvases: document.querySelectorAll("canvas").length,
       canvasMounted: !!cv && cv.width > 8 && cv.height > 8,
       anchoredBL:
-        !!r && Math.abs(r.left - 15) < 3 && Math.abs(window.innerHeight - r.bottom - 15) < 3,
-      frameInset: !!fr && Math.abs(fr.left - 15) < 2 && Math.abs(fr.top - 15) < 2,
+        !!r && Math.abs(r.left - 10) < 3 && Math.abs(window.innerHeight - r.bottom - 10) < 3,
+      frameInset: !!fr && Math.abs(fr.left - 10) < 2 && Math.abs(fr.top - 10) < 2,
       menuItems: document.querySelectorAll(".art-link").length,
       noScroll: document.documentElement.scrollHeight <= window.innerHeight + 1,
       noGl: document.body.classList.contains("no-gl"),
@@ -47,8 +47,8 @@ async function run(label, { url, shot, w = 1440, h = 900, nogl = false }) {
 
   const checks = [
     ["one viewport (no scroll)", p.noScroll],
-    ["frame inset 25px", p.frameInset],
-    ["ground deep gray-purple", p.bg === "rgb(42, 38, 54)"],
+    ["frame inset 10px", p.frameInset],
+    ["ground noir #08080a", p.bg === "rgb(8, 8, 10)"],
     ["menu present", p.menuItems >= 3],
   ];
   if (nogl) {

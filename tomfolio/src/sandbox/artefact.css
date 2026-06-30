@@ -17,9 +17,9 @@ body.art {
         --art-cursor = the colorway ink (cursor matches the FONT colour).
      2. BRAND accent: the system's one accent (registration red #e61919) from
         :root in system/tokens.css — left untouched, no per-colorway override. */
-  --ground: #2a2636; /* colorway paper — drives the plate ground (set by JS) */
-  --ink: #f4efdd; /* colorway ink — drives the menu text (set by JS) */
-  --art-cursor: #f4efdd; /* cursor colour = font/ink colour (set by JS); Heather default */
+  --ground: #08080a; /* colorway paper — drives the plate ground (set by JS); Noir default */
+  --ink: #e8e8ea; /* colorway ink — drives the menu text (set by JS); Noir default */
+  --art-cursor: #e8e8ea; /* cursor colour = font/ink colour (set by JS); Noir default */
   min-height: 100dvh;
   margin: 0;
   background: var(--ink); /* the 10px frame margin — matches the colorway ink (font) */

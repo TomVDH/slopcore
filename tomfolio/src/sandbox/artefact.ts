@@ -21,7 +21,8 @@ import "./artefact.css";
 
 import { gsap } from "gsap";
 import { initScene, type GlScene } from "../gl/scene";
-import { pressFrag, PALETTES } from "../directions/press/art";
+import { pressFrag } from "../directions/press/art";
+import { PALETTES, COLORS } from "../palettes";
 import { SAMPLES, sampleSrc } from "../samples";
 
 const params = new URLSearchParams(window.location.search);
@@ -38,18 +39,13 @@ const layout = (LAYOUTS as readonly string[]).includes(layoutParam) ? layoutPara
 document.body.classList.add(`art-layout-${layout}`);
 
 const MOTIFS = ["Dots", "Disc", "X", "Plus", "Dash"];
-const COLORS = [
-  "Bone", "Blueprint", "Sepia", "Acid", "Cyanotype", "Riso Pink", "Riso Blue",
-  "Steel", "Oxblood", "Mono Inv", "Heather", "Noir", "Newsprint", "Terminal",
-  "Amber", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum",
-  "Slate Ice", "Rust Sand", "Indigo Sun",
-  "Emerald", "Ruby", "Sapphire", "Amethyst", "Topaz", "Jade",
-  "Bubblegum", "Mint Cream", "Butter", "Periwinkle", "Peach", "Lilac",
-  "Hot Pink", "Cyber", "Volt", "Laser", "Electric",
-  "Moss", "Clay", "Saffron", "Fernway", "Dune",
-  "Miami", "Vaporwave", "Chrome", "Dusk Grid",
-  "Cobalt", "Forest Lemon", "Oxide", "Klein Pop",
-];
+// COLORS (dev-bar palette labels) is derived from PALETTE_DATA — see ../palettes.
+
+// This module owns global window/document listeners, a redraw interval, and a WebGL
+// context, none individually torn down — and they don't need to be: it's an entry
+// module nothing HMR-accepts, so Vite does a clean FULL reload on edit (no stacking of
+// duplicate listeners / cursors / GL contexts). If a parent ever self-accepts this
+// module, add explicit teardown (AbortController + clearInterval + scene dispose) here.
 // Index === uCursorMode value === the shader's if-ladder (keep in lockstep).
 const CURSOR_MODES = ["Off", "Clear", "Ink", "Bias", "Negative", "Develop"];
 
@@ -58,21 +54,22 @@ const canvas = document.getElementById("gl") as HTMLCanvasElement | null;
 
 // Unified look state: the menu sets `image`, the dev bar sets the treatment.
 const look = {
-  image: "portrait", // a sample key, or "field"
+  image: "collection-236", // a sample key, or "field"
   motif: 1,
-  colorway: 10,
+  colorway: 11, // Noir
   marginAccent: 0, // frame margin colour: 0 body/ink, 1 brand accent
-  cell: 150,
-  plateWidth: 0.66, // plate box width as a fraction of the viewport (the photo fits into it via Fit/Pos)
+  cell: 306,
+  plateWidth: 0.71, // plate box width as a fraction of the viewport (the photo fits into it via Fit/Pos)
   weight: 0.62,
   angle: 0,
   tone: 0.5,
-  brightness: 0, // image brightness (added)
+  brightness: 0.2, // image brightness (added)
   contrast: 1, // image contrast (around mid)
   fit: 0, // image fit: 0 cover (crop), 1 contain (letterbox)
-  posX: 0.5, // image anchor X in [0,1] (0 left, 0.5 centre, 1 right)
+  posX: -0.2, // image anchor X (−1..2; 0 left, 0.5 centre, 1 right; <0 bleeds off-edge left)
   posY: 0.5, // image anchor Y in [0,1] (0 bottom, 0.5 centre, 1 top)
   zoom: 1, // image zoom within the plate (1 = fit, >1 zoomed in, <1 zoomed out)
+  edgeFade: 0.12, // photo edge taper: dissolve the L/R image edge into the ground (cloud modes)
   invert: 0, // resolved 0/1 actually pushed to uInvert
   invertMode: 2, // Invert control: 0 Off, 1 On, 2 Auto (image-decided)
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
@@ -83,7 +80,7 @@ const look = {
   cloudW: 1, // cloud horizontal extent, independent of the image width (1 = plate)
   cloudAnim: 1, // cloud (mode 2): 1 scroll sideways, 0 static
   cloudSpeed: 0.05, // cloud sideways scroll speed
-  fadePosX: 0, // dissolve anchor X in [0,1] (0 = left)
+  fadePosX: 0.4, // dissolve anchor X in [0,1] (0 = left)
   fadePosY: 0, // dissolve anchor Y in [0,1] (0 = bottom)
   maskView: 0, // dev: 1 = show the raw fade mask as grayscale
   cursorView: 0, // dev: 1 = show raw cursor influence (infl) as grayscale
@@ -211,8 +208,11 @@ function applyColorwayChrome(i: number): void {
   // Cursor matches the FONT colour (the colorway ink), per palette — Heather =
   // cream. Dedicated --art-cursor token, separate from the system brand --accent.
   document.body.style.setProperty("--art-cursor", pal.ink);
-  // Frame margin (the body bg showing around the plate): body ink, or the brand accent.
-  document.body.style.background = look.marginAccent ? "var(--accent)" : "var(--ink)";
+  // The colorway's OWN accent (Heather = mauve #c68d9a), as a dedicated token —
+  // separate from the system brand --accent (#e61919 red), which is palette-blind.
+  document.body.style.setProperty("--art-accent", pal.accent);
+  // Frame margin (the body bg showing around the plate): body ink, or the colorway accent.
+  document.body.style.background = look.marginAccent ? "var(--art-accent)" : "var(--ink)";
 }
 
 function pushTreatment(): void {
@@ -236,6 +236,7 @@ function pushTreatment(): void {
   scene.setParam("uFit", look.fit);
   scene.setParam("uImgAlign", [look.posX, look.posY]);
   scene.setParam("uImgScale", look.zoom);
+  scene.setParam("uEdgeFade", look.edgeFade);
   scene.setParam("uCloudSpeed", look.cloudAnim ? look.cloudSpeed : 0);
   scene.setParam("uFadePos", [look.fadePosX, look.fadePosY]);
   scene.setParam("uMaskView", look.maskView);
@@ -325,7 +326,7 @@ const EASES: ReadonlyArray<readonly [string, string]> = [
   ["Quint inout", "power4.inOut"],
   ["Back out", "back.out(1.6)"],
 ];
-const motion = { easeIdx: 2, dur: 0.6, fps: "fluid" as "fluid" | "cine" | "commo" }; // Quint out, 0.6s, uncapped
+const motion = { easeIdx: 5, dur: 0.6, fps: "commo" as "fluid" | "cine" | "commo" }; // Quint inout, 0.6s, Commo 17fps
 const mEase = (): string => EASES[motion.easeIdx][1];
 
 // FPS presets cap the gsap ticker (which drives the whole render loop): Cine = a
@@ -515,6 +516,7 @@ try {
     scene.setParam("uDrift", 0.03);
     scene.setParam("uCrossOn", 0);
     pushTreatment();
+    applyFps(); // apply the default frame cadence (motion.fps) on load, not just on dev-bar change
     pushImageOn(); // field until the first image loads
     goImage(look.image); // form the portrait
   } else {
@@ -620,6 +622,16 @@ if (!reduced && window.matchMedia("(pointer: fine)").matches) {
       }, f(i * 2));
     });
     window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, f(12));
+  });
+
+  // Easter egg: a triple-click blooms the cursor effect to full and holds it for
+  // a brief moment (defeating the usual movement-strength fade), then it eases
+  // back down. Ignored over the dev bar so triple-tapping a control is safe.
+  window.addEventListener("click", (e) => {
+    if (e.detail < 3) return; // the 3rd click of a triple (and beyond) only
+    const t = e.target as HTMLElement | null;
+    if (t && t.closest(".art-dev")) return;
+    scene?.cursorBurst(1.0, 300, 0.8); // full strength, 300ms hold, radius 0.8 (big disc)
   });
 }
 
@@ -736,6 +748,7 @@ const HELP: Record<string, string> = {
   "Pos X": "Image anchor across: 0 left · 0.5 centre · 1 right. Goes negative / past 1 to bleed the photo off the edge (revealed area = ground).",
   "Pos Y": "Image anchor vertical: 0 bottom · 0.5 centre · 1 top. Negative / >1 pushes it off the edge.",
   Zoom: "Scale the photo in/out within the plate, on top of Fit. >1 crops in tighter, <1 shrinks it (surrounded by ground).",
+  Feather: "Taper the photo's own left/right edge into the ground over the last N of the image width, so a hard vertical seam never shows (independent of the cloud anchor). 0 = hard edge.",
   Brightness: "Source-image luminance, applied before dithering.",
   Contrast: "Source-image contrast, applied before dithering.",
   Invert: "Tone polarity. Auto flips it on dark-paper stocks. Duotone only.",
@@ -1253,6 +1266,10 @@ function buildDevBar(): void {
   stepper(image, "Zoom", () => `${look.zoom.toFixed(2)}×`,
     () => { look.zoom = Math.max(0.2, +(look.zoom - 0.1).toFixed(2)); },
     () => { look.zoom = Math.min(5, +(look.zoom + 0.1).toFixed(2)); });
+  // Feather: taper the photo's own L/R edge into the ground so a hard seam never shows.
+  stepper(image, "Feather", () => look.edgeFade.toFixed(2),
+    () => { look.edgeFade = Math.max(0, +(look.edgeFade - 0.02).toFixed(2)); },
+    () => { look.edgeFade = Math.min(0.5, +(look.edgeFade + 0.02).toFixed(2)); });
   stepper(image, "Brightness", () => look.brightness.toFixed(2),
     () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
     () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });

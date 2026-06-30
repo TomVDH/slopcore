@@ -12,13 +12,15 @@
  * reads as a working proof, not a screensaver.
  */
 
+import { generatePaletteGLSL } from "../../palettes";
+import { TRAIL_N } from "../../gl/constants";
+
 export const pressFrag = /* glsl */ `
   precision highp float;
 
   uniform vec2  uRes;
   uniform float uTime;
   uniform vec2  uMouse;
-  uniform vec2  uMouseDir;       // legacy: motion direction (unused since the trail replaced the ellipse)
   uniform float uMouseStrength;
   uniform float uEnergy;
   uniform float uScrollVel;
@@ -27,7 +29,7 @@ export const pressFrag = /* glsl */ `
   // (uTrail[0] = current). Driven by scene.ts on a fixed time cadence; the
   // cursor influence is the distance to this polyline, fading with age, so the
   // effect follows the actual path and tapers behind the pointer.
-  const int TRAIL_N = 16;
+  const int TRAIL_N = ${TRAIL_N};
   uniform vec2 uTrail[TRAIL_N];
 
   // Editable parameters (defaults reproduce the original plate exactly).
@@ -37,8 +39,6 @@ export const pressFrag = /* glsl */ `
   uniform float uToneScale;    // field scale
   uniform float uDrift;        // drift speed
   uniform float uThreshold;    // dither threshold bias
-  uniform float uPress;        // cursor-press strength (legacy; kept for back-compat)
-  uniform float uPressFalloff; // cursor-press falloff (legacy)
   uniform float uCursorMode;   // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
   uniform float uCursorAmp;    // cursor effect strength
   uniform float uCursorRadius; // cursor disc falloff rate (larger = tighter)
@@ -74,6 +74,7 @@ export const pressFrag = /* glsl */ `
   uniform float uFit;             // image fit: 0 cover (crop), 1 contain (letterbox)
   uniform vec2  uImgAlign;        // image anchor (0.5,0.5 = centred); negative / >1 bleeds off-edge
   uniform float uImgScale;        // image zoom within the plate (1 = fit, >1 in, <1 out)
+  uniform float uEdgeFade;        // photo edge taper: dissolve the L/R image edge into the ground
   uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
   uniform float uFadeScale;       // cloud-noise frequency X for fade mode 2 (smaller = bigger billows)
   uniform float uFadeScaleY;      // cloud-noise frequency Y (independent stretch of the cloud)
@@ -212,63 +213,7 @@ export const pressFrag = /* glsl */ `
 
     // Palette (paper = unlinked stock, ink = the mark, accent = registration).
     // Index order matches the rig's Colorway select.
-    vec3 paper  = vec3(0.957, 0.957, 0.941);  // 0 bone / carbon (default)
-    vec3 ink    = vec3(0.039, 0.039, 0.039);
-    vec3 accent = vec3(0.902, 0.098, 0.098);  // aviation red
-    if      (uColorway < 0.5) {} // 0 bone — keeps the defaults set above (was falling through to sepia)
-    else if (uColorway < 1.5) { paper = vec3(0.086,0.227,0.361); ink = vec3(0.863,0.902,0.941); accent = vec3(0.984,0.792,0.310); } // 1 blueprint
-    else if (uColorway < 2.5) { paper = vec3(0.910,0.873,0.784); ink = vec3(0.180,0.137,0.090); accent = vec3(0.780,0.180,0.110); } // 2 sepia
-    else if (uColorway < 3.5) { paper = vec3(0.082,0.078,0.059); ink = vec3(0.784,0.961,0.259); accent = vec3(0.902,0.098,0.098); } // 3 acid lime
-    else if (uColorway < 4.5) { paper = vec3(0.043,0.122,0.180); ink = vec3(0.847,0.910,0.886); accent = vec3(0.957,0.604,0.180); } // 4 cyanotype
-    else if (uColorway < 5.5) { paper = vec3(0.961,0.949,0.925); ink = vec3(0.945,0.176,0.451); accent = vec3(0.110,0.110,0.118); } // 5 riso pink
-    else if (uColorway < 6.5) { paper = vec3(0.961,0.957,0.933); ink = vec3(0.000,0.267,0.647); accent = vec3(0.945,0.176,0.451); } // 6 riso blue
-    else if (uColorway < 7.5) { paper = vec3(0.106,0.118,0.137); ink = vec3(0.722,0.760,0.800); accent = vec3(0.298,0.792,0.886); } // 7 steel
-    else if (uColorway < 8.5) { paper = vec3(0.129,0.043,0.051); ink = vec3(0.902,0.871,0.800); accent = vec3(0.851,0.200,0.149); } // 8 oxblood
-    else if (uColorway < 9.5) { paper = vec3(0.043,0.043,0.047); ink = vec3(0.953,0.949,0.937); accent = vec3(0.902,0.098,0.098); } // 9 mono invert
-    else if (uColorway < 10.5) { paper = vec3(0.165,0.149,0.212); ink = vec3(0.957,0.937,0.867); accent = vec3(0.776,0.553,0.604); } // 10 heather (deep gray-purple / cream)
-    else if (uColorway < 11.5) { paper = vec3(0.031,0.031,0.039); ink = vec3(0.910,0.910,0.918); accent = vec3(1.000,0.231,0.188); } // 11 noir
-    else if (uColorway < 12.5) { paper = vec3(0.851,0.831,0.780); ink = vec3(0.102,0.098,0.086); accent = vec3(0.541,0.169,0.122); } // 12 newsprint
-    else if (uColorway < 13.5) { paper = vec3(0.016,0.071,0.039); ink = vec3(0.235,1.000,0.478); accent = vec3(0.839,1.000,0.000); } // 13 terminal
-    else if (uColorway < 14.5) { paper = vec3(0.063,0.039,0.008); ink = vec3(1.000,0.690,0.000); accent = vec3(1.000,0.369,0.227); } // 14 amber crt
-    else if (uColorway < 15.5) { paper = vec3(0.769,0.812,0.631); ink = vec3(0.118,0.176,0.102); accent = vec3(0.353,0.478,0.227); } // 15 gameboy
-    else if (uColorway < 16.5) { paper = vec3(0.071,0.039,0.141); ink = vec3(0.851,0.761,1.000); accent = vec3(1.000,0.353,0.851); } // 16 ultraviolet
-    else if (uColorway < 17.5) { paper = vec3(0.027,0.192,0.184); ink = vec3(0.843,0.941,0.918); accent = vec3(1.000,0.478,0.349); } // 17 lagoon
-    else if (uColorway < 18.5) { paper = vec3(0.102,0.078,0.027); ink = vec3(1.000,0.824,0.290); accent = vec3(1.000,0.478,0.000); } // 18 marigold
-    else if (uColorway < 19.5) { paper = vec3(0.078,0.090,0.102); ink = vec3(0.749,0.914,0.816); accent = vec3(0.212,0.878,0.627); } // 19 mint iron
-    else if (uColorway < 20.5) { paper = vec3(0.169,0.078,0.188); ink = vec3(0.941,0.886,0.816); accent = vec3(0.906,0.635,0.235); } // 20 plum
-    else if (uColorway < 21.5) { paper = vec3(0.110,0.145,0.188); ink = vec3(0.902,0.941,0.969); accent = vec3(0.353,0.820,1.000); } // 21 slate ice
-    else if (uColorway < 22.5) { paper = vec3(0.941,0.890,0.812); ink = vec3(0.353,0.141,0.063); accent = vec3(0.761,0.286,0.114); } // 22 rust sand
-    else if (uColorway < 23.5) { paper = vec3(0.059,0.075,0.251); ink = vec3(0.910,0.902,1.000); accent = vec3(1.000,0.824,0.247); } // 23 indigo sun
-    else if (uColorway < 24.5) { paper = vec3(0.031, 0.075, 0.055); ink = vec3(0.204, 0.91, 0.62); accent = vec3(0.949, 0.788, 0.298); } // 24 emerald
-    else if (uColorway < 25.5) { paper = vec3(0.102, 0.02, 0.031); ink = vec3(1.0, 0.302, 0.427); accent = vec3(1.0, 0.839, 0.647); } // 25 ruby
-    else if (uColorway < 26.5) { paper = vec3(0.02, 0.043, 0.102); ink = vec3(0.302, 0.541, 1.0); accent = vec3(0.878, 0.984, 0.988); } // 26 sapphire
-    else if (uColorway < 27.5) { paper = vec3(0.078, 0.039, 0.122); ink = vec3(0.78, 0.49, 1.0); accent = vec3(0.502, 1.0, 0.859); } // 27 amethyst
-    else if (uColorway < 28.5) { paper = vec3(0.102, 0.075, 0.012); ink = vec3(1.0, 0.839, 0.039); accent = vec3(1.0, 0.482, 0.0); } // 28 topaz
-    else if (uColorway < 29.5) { paper = vec3(0.024, 0.078, 0.059); ink = vec3(0.0, 0.788, 0.655); accent = vec3(0.965, 0.969, 0.843); } // 29 jade
-    else if (uColorway < 30.5) { paper = vec3(1.0, 0.941, 0.965); ink = vec3(1.0, 0.18, 0.533); accent = vec3(0.227, 0.718, 0.949); } // 30 bubblegum
-    else if (uColorway < 31.5) { paper = vec3(0.925, 1.0, 0.965); ink = vec3(0.055, 0.62, 0.408); accent = vec3(1.0, 0.365, 0.561); } // 31 mint cream
-    else if (uColorway < 32.5) { paper = vec3(1.0, 0.984, 0.902); ink = vec3(0.176, 0.165, 0.141); accent = vec3(0.957, 0.635, 0.349); } // 32 butter
-    else if (uColorway < 33.5) { paper = vec3(0.937, 0.945, 1.0); ink = vec3(0.227, 0.2, 0.753); accent = vec3(1.0, 0.478, 0.659); } // 33 periwinkle
-    else if (uColorway < 34.5) { paper = vec3(1.0, 0.933, 0.886); ink = vec3(0.698, 0.227, 0.118); accent = vec3(0.122, 0.62, 0.561); } // 34 peach
-    else if (uColorway < 35.5) { paper = vec3(0.961, 0.941, 1.0); ink = vec3(0.427, 0.157, 0.851); accent = vec3(0.169, 0.831, 0.627); } // 35 lilac
-    else if (uColorway < 36.5) { paper = vec3(0.039, 0.024, 0.063); ink = vec3(1.0, 0.18, 0.769); accent = vec3(0.0, 0.941, 1.0); } // 36 hot pink
-    else if (uColorway < 37.5) { paper = vec3(0.016, 0.035, 0.047); ink = vec3(0.098, 0.969, 0.969); accent = vec3(1.0, 0.235, 0.675); } // 37 cyber
-    else if (uColorway < 38.5) { paper = vec3(0.043, 0.055, 0.016); ink = vec3(0.776, 1.0, 0.0); accent = vec3(1.0, 0.0, 0.549); } // 38 volt
-    else if (uColorway < 39.5) { paper = vec3(0.063, 0.024, 0.016); ink = vec3(1.0, 0.353, 0.0); accent = vec3(1.0, 0.816, 0.0); } // 39 laser
-    else if (uColorway < 40.5) { paper = vec3(0.012, 0.02, 0.102); ink = vec3(0.227, 0.525, 1.0); accent = vec3(1.0, 0.745, 0.043); } // 40 electric
-    else if (uColorway < 41.5) { paper = vec3(0.078, 0.094, 0.051); ink = vec3(0.773, 0.847, 0.427); accent = vec3(0.878, 0.478, 0.373); } // 41 moss
-    else if (uColorway < 42.5) { paper = vec3(0.906, 0.843, 0.761); ink = vec3(0.353, 0.243, 0.169); accent = vec3(0.737, 0.294, 0.165); } // 42 clay
-    else if (uColorway < 43.5) { paper = vec3(0.11, 0.078, 0.008); ink = vec3(0.957, 0.706, 0.0); accent = vec3(0.886, 0.447, 0.357); } // 43 saffron
-    else if (uColorway < 44.5) { paper = vec3(0.047, 0.102, 0.071); ink = vec3(0.533, 0.831, 0.596); accent = vec3(0.949, 0.757, 0.306); } // 44 fernway
-    else if (uColorway < 45.5) { paper = vec3(0.925, 0.878, 0.784); ink = vec3(0.42, 0.227, 0.18); accent = vec3(0.29, 0.486, 0.349); } // 45 dune
-    else if (uColorway < 46.5) { paper = vec3(0.051, 0.106, 0.165); ink = vec3(1.0, 0.416, 0.835); accent = vec3(0.255, 0.918, 0.831); } // 46 miami
-    else if (uColorway < 47.5) { paper = vec3(0.102, 0.043, 0.18); ink = vec3(1.0, 0.443, 0.808); accent = vec3(0.004, 0.804, 0.996); } // 47 vaporwave
-    else if (uColorway < 48.5) { paper = vec3(0.043, 0.047, 0.063); ink = vec3(0.773, 0.776, 0.78); accent = vec3(0.4, 0.988, 0.945); } // 48 chrome
-    else if (uColorway < 49.5) { paper = vec3(0.086, 0.059, 0.161); ink = vec3(1.0, 0.62, 0.392); accent = vec3(0.969, 0.145, 0.522); } // 49 dusk grid
-    else if (uColorway < 50.5) { paper = vec3(0.0, 0.2, 0.627); ink = vec3(1.0, 0.89, 0.847); accent = vec3(1.0, 0.361, 0.286); } // 50 cobalt
-    else if (uColorway < 51.5) { paper = vec3(0.063, 0.165, 0.11); ink = vec3(0.918, 1.0, 0.235); accent = vec3(1.0, 0.549, 0.259); } // 51 forest lemon
-    else if (uColorway < 52.5) { paper = vec3(0.169, 0.039, 0.039); ink = vec3(0.961, 0.776, 0.69); accent = vec3(1.0, 0.231, 0.122); } // 52 oxide
-    else if (uColorway < 53.5) { paper = vec3(0.039, 0.071, 0.78); ink = vec3(0.965, 0.969, 0.984); accent = vec3(1.0, 0.91, 0.0); } // 53 klein pop
+    ${generatePaletteGLSL()}
 
     // Tone source: crossfade the procedural field and a sampled image by
     // uImageOn (0 field, 1 image). Animating uImageOn lets the dots flow
@@ -374,6 +319,14 @@ export const pressFrag = /* glsl */ `
         fd += (fadeNoise(cuv * vec2(uFadeScale, uFadeScaleY) + vec2(uTime * uCloudSpeed, 0.0), uNoiseType) - 0.5) * 0.95;
       }
       cov = 1.0 - smoothstep(0.3, 1.45, fd);
+      // Edge taper: always dissolve the photo's OWN left/right edge into the ground
+      // over the last uEdgeFade of the image width, so a hard vertical seam never
+      // shows regardless of aspect / cloud anchor (the reported right-edge leak).
+      // Only when an image is shown; left edge usually bleeds off-plate (harmless).
+      if (uImageOn > 0.5 && uEdgeFade > 0.001) {
+        float ex = min(iuv.x, 1.0 - iuv.x);
+        cov = min(cov, smoothstep(0.0, uEdgeFade, ex));
+      }
     }
 
     // The decision: ink or no ink (ordered Bayer threshold).
@@ -468,8 +421,11 @@ export const pressFrag = /* glsl */ `
     // sub-dither blends in as you press, then resolves to the photo. The sub-grid
     // is a clean uniform divisor of gl_FragCoord (cell / 3) — every fragment in a
     // cell agrees, so the finer marks stay crisp and never shatter.
+    // Develop only resolves cells that are actually visible: gate by the fade
+    // coverage (cov, post edge-taper) and the image bounds (inImg), so mousing over
+    // a dissolved or off-image region can't re-reveal the photo through the mask.
     float localRev = (uCursorMode > 4.5 && uCursorMode < 5.5)
-      ? clamp(uCursorAmp * infl, 0.0, 1.0) : 0.0;
+      ? clamp(uCursorAmp * infl, 0.0, 1.0) * clamp(cov, 0.0, 1.0) * inImg : 0.0;
 
     if (localRev > 0.001 && uImageOn > 0.5) {
       float fcell = max(uRes.y / max(uDevCell, 1.0), 2.0); // same formula as the base cell
@@ -555,71 +511,3 @@ export const pressFrag = /* glsl */ `
   }
 `;
 
-/**
- * The same palettes the shader's `uColorway` switch uses, as CSS colors, so a
- * page's chrome (ground, text, accent) can follow the colorway. Index order
- * matches the palette block in pressFrag's main() and the rig's Colorway
- * select — KEEP ALL THREE IN LOCKSTEP.
- */
-export interface Palette {
-  paper: string;
-  ink: string;
-  accent: string;
-}
-
-export const PALETTES: Palette[] = [
-  { paper: "#f4f4f0", ink: "#0a0a0a", accent: "#e61919" }, // 0  Bone / Carbon
-  { paper: "#163a5c", ink: "#dce6f0", accent: "#fbca4f" }, // 1  Blueprint
-  { paper: "#e8dfc8", ink: "#2e2317", accent: "#c72e1c" }, // 2  Sepia
-  { paper: "#15140f", ink: "#c8f542", accent: "#e61919" }, // 3  Acid Lime
-  { paper: "#0b1f2e", ink: "#d8e8e2", accent: "#f49a2e" }, // 4  Cyanotype
-  { paper: "#f5f2ec", ink: "#f12d73", accent: "#1c1c1e" }, // 5  Riso Pink
-  { paper: "#f5f4ee", ink: "#0044a5", accent: "#f12d73" }, // 6  Riso Blue
-  { paper: "#1b1e23", ink: "#b8c2cc", accent: "#4ccae2" }, // 7  Steel
-  { paper: "#210b0d", ink: "#e6decc", accent: "#d93326" }, // 8  Oxblood
-  { paper: "#0b0b0c", ink: "#f3f2ef", accent: "#e61919" }, // 9  Mono Invert
-  { paper: "#2a2636", ink: "#f4efdd", accent: "#c68d9a" }, // 10 Heather
-  { paper: "#08080a", ink: "#e8e8ea", accent: "#ff3b30" }, // 11 Noir
-  { paper: "#d9d4c7", ink: "#1a1916", accent: "#8a2b1f" }, // 12 Newsprint
-  { paper: "#04120a", ink: "#3cff7a", accent: "#d6ff00" }, // 13 Terminal
-  { paper: "#100a02", ink: "#ffb000", accent: "#ff5e3a" }, // 14 Amber CRT
-  { paper: "#c4cfa1", ink: "#1e2d1a", accent: "#5a7a3a" }, // 15 Gameboy
-  { paper: "#120a24", ink: "#d9c2ff", accent: "#ff5ad9" }, // 16 Ultraviolet
-  { paper: "#07312f", ink: "#d7f0ea", accent: "#ff7a59" }, // 17 Lagoon
-  { paper: "#1a1407", ink: "#ffd24a", accent: "#ff7a00" }, // 18 Marigold
-  { paper: "#14171a", ink: "#bfe9d0", accent: "#36e0a0" }, // 19 Mint Iron
-  { paper: "#2b1430", ink: "#f0e2d0", accent: "#e7a23c" }, // 20 Plum
-  { paper: "#1c2530", ink: "#e6f0f7", accent: "#5ad1ff" }, // 21 Slate Ice
-  { paper: "#f0e3cf", ink: "#5a2410", accent: "#c2491d" }, // 22 Rust Sand
-  { paper: "#0f1340", ink: "#e8e6ff", accent: "#ffd23f" }, // 23 Indigo Sun
-  { paper: "#08130e", ink: "#34e89e", accent: "#f2c94c" }, // 24 Emerald
-  { paper: "#1a0508", ink: "#ff4d6d", accent: "#ffd6a5" }, // 25 Ruby
-  { paper: "#050b1a", ink: "#4d8aff", accent: "#e0fbfc" }, // 26 Sapphire
-  { paper: "#140a1f", ink: "#c77dff", accent: "#80ffdb" }, // 27 Amethyst
-  { paper: "#1a1303", ink: "#ffd60a", accent: "#ff7b00" }, // 28 Topaz
-  { paper: "#06140f", ink: "#00c9a7", accent: "#f6f7d7" }, // 29 Jade
-  { paper: "#fff0f6", ink: "#ff2e88", accent: "#3ab7f2" }, // 30 Bubblegum
-  { paper: "#ecfff6", ink: "#0e9e68", accent: "#ff5d8f" }, // 31 Mint Cream
-  { paper: "#fffbe6", ink: "#2d2a24", accent: "#f4a259" }, // 32 Butter
-  { paper: "#eff1ff", ink: "#3a33c0", accent: "#ff7aa8" }, // 33 Periwinkle
-  { paper: "#ffeee2", ink: "#b23a1e", accent: "#1f9e8f" }, // 34 Peach
-  { paper: "#f5f0ff", ink: "#6d28d9", accent: "#2bd4a0" }, // 35 Lilac
-  { paper: "#0a0610", ink: "#ff2ec4", accent: "#00f0ff" }, // 36 Hot Pink
-  { paper: "#04090c", ink: "#19f7f7", accent: "#ff3cac" }, // 37 Cyber
-  { paper: "#0b0e04", ink: "#c6ff00", accent: "#ff008c" }, // 38 Volt
-  { paper: "#100604", ink: "#ff5a00", accent: "#ffd000" }, // 39 Laser
-  { paper: "#03051a", ink: "#3a86ff", accent: "#ffbe0b" }, // 40 Electric
-  { paper: "#14180d", ink: "#c5d86d", accent: "#e07a5f" }, // 41 Moss
-  { paper: "#e7d7c2", ink: "#5a3e2b", accent: "#bc4b2a" }, // 42 Clay
-  { paper: "#1c1402", ink: "#f4b400", accent: "#e2725b" }, // 43 Saffron
-  { paper: "#0c1a12", ink: "#88d498", accent: "#f2c14e" }, // 44 Fernway
-  { paper: "#ece0c8", ink: "#6b3a2e", accent: "#4a7c59" }, // 45 Dune
-  { paper: "#0d1b2a", ink: "#ff6ad5", accent: "#41ead4" }, // 46 Miami
-  { paper: "#1a0b2e", ink: "#ff71ce", accent: "#01cdfe" }, // 47 Vaporwave
-  { paper: "#0b0c10", ink: "#c5c6c7", accent: "#66fcf1" }, // 48 Chrome
-  { paper: "#160f29", ink: "#ff9e64", accent: "#f72585" }, // 49 Dusk Grid
-  { paper: "#0033a0", ink: "#ffe3d8", accent: "#ff5c49" }, // 50 Cobalt
-  { paper: "#102a1c", ink: "#eaff3c", accent: "#ff8c42" }, // 51 Forest Lemon
-  { paper: "#2b0a0a", ink: "#f5c6b0", accent: "#ff3b1f" }, // 52 Oxide
-  { paper: "#0a12c7", ink: "#f6f7fb", accent: "#ffe800" }, // 53 Klein Pop
-];

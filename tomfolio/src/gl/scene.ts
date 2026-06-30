@@ -9,9 +9,7 @@
 import * as THREE from "three";
 import { gsap } from "gsap";
 import { fragmentShader, vertexShader } from "./shaders";
-
-// Cursor-trail length — MUST match `const int TRAIL_N` in the pressFrag shader.
-const TRAIL_N = 16;
+import { TRAIL_N } from "./constants";
 // How often (ms) a new trail sample is recorded. Fixed cadence keeps the trail's
 // temporal length framerate-independent (faster motion -> longer spatial trail).
 const TRAIL_SAMPLE_MS = 22;
@@ -28,6 +26,14 @@ export interface GlScene {
   setImage(source: TexImageSource | null): void;
   /** Set the second image slot used for image->image crossfades (uXfade). */
   setImage2(source: TexImageSource | null): void;
+  /**
+   * Easter egg: bloom the cursor effect — hold `uMouseStrength` flat at `peak`
+   * AND drop `uCursorRadius` to `radius` (lower = BIGGER disc) so the effect
+   * balloons across the plate — for `holdMs` ms, defeating the usual fade. Then
+   * the radius is restored and the pegged strength is released to decay from the
+   * peak. Fine-pointer + motion only (a no-op under reduced motion, frame loop off).
+   */
+  cursorBurst(peak?: number, holdMs?: number, radius?: number): void;
 }
 
 export function initScene(
@@ -88,7 +94,6 @@ export function initScene(
     },
     uTime: { value: reducedMotion ? 20.0 : 0.0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
-    uMouseDir: { value: new THREE.Vector2(0, 1) },
     uMouseStrength: { value: 0 },
     // Recent pointer path, newest first (uTrail[0] = current). Recorded by the
     // frame loop; the shader draws cursor influence as the distance to it.
@@ -103,11 +108,9 @@ export function initScene(
     uToneScale: { value: 1.7 },
     uDrift: { value: 0.05 },
     uThreshold: { value: 0.03 },
-    uPress: { value: 0.4 },
-    uPressFalloff: { value: 2.2 },
     uCursorMode: { value: 1 }, // 0 off, 1 clear, 2 ink, 3 bias, 4 negative, 5 develop
-    uCursorAmp: { value: 0.4 }, // cursor effect strength (was uPress)
-    uCursorRadius: { value: 9.0 }, // disc falloff rate (larger = tighter); was uPressFalloff
+    uCursorAmp: { value: 0.4 }, // cursor effect strength
+    uCursorRadius: { value: 9.0 }, // disc falloff rate (larger = tighter)
     uHold: { value: 0 }, // static floor under the decaying cursor strength
     uCursorEdge: { value: 0.25 }, // negative-mode disc hardness
     uDevCell: { value: 450 }, // develop sub-grid cell count (same units as uCell)
@@ -140,6 +143,7 @@ export function initScene(
     uFit: { value: 0 }, // 0 cover (crop), 1 contain (letterbox)
     uImgAlign: { value: new THREE.Vector2(0.5, 0.5) }, // image anchor in [0,1]
     uImgScale: { value: 1 }, // image zoom within the plate
+    uEdgeFade: { value: 0.12 }, // photo edge taper (L/R image edge dissolves into ground)
     uFadeMode: { value: 0 },
     uFadeScale: { value: 3 },
     uFadeScaleY: { value: 3 }, // cloud Y frequency (isotropic by default)
@@ -174,8 +178,11 @@ export function initScene(
 
   // Mouse, lerped toward the pointer in shader space; strength decays.
   const mouseTarget = new THREE.Vector2(0, 0);
-  const dirTarget = new THREE.Vector2(0, 1);
   let strengthTarget = 0;
+  let burstMs = 0; // easter egg: ms left holding the cursor bloom flat
+  let burstPeak = 0; // held cursor strength during a burst (defeats the fade)
+  let burstRadius = 0; // expanded uCursorRadius during a burst (lower = bigger disc)
+  let baseRadius = 0; // uCursorRadius to restore when the burst ends
   let trailInit = false; // seed the whole trail on the first real pointer move
   let trailAccum = 0; // ms since the last recorded trail sample
 
@@ -210,9 +217,6 @@ export function initScene(
         const dt = Math.max(now - lastT, 1);
         const speed = Math.hypot(e.clientX - lastX, e.clientY - lastY) / dt;
         strengthTarget = Math.min(strengthTarget + speed * 0.35, 1.4);
-        if (speed > 0.05) {
-          dirTarget.set(e.clientX - lastX, -(e.clientY - lastY)).normalize();
-        }
         lastX = e.clientX;
         lastY = e.clientY;
         lastT = now;
@@ -236,8 +240,17 @@ export function initScene(
     strengthTarget *= Math.exp(-deltaTime * 0.0022);
     uniforms.uMouseStrength.value +=
       (strengthTarget - uniforms.uMouseStrength.value) * k;
-    const kDir = 1 - Math.exp(-deltaTime * 0.012);
-    uniforms.uMouseDir.value.lerp(dirTarget, kDir).normalize();
+    // Triple-click burst: hold the bloom flat at full strength AND drop the disc
+    // falloff so the cursor effect balloons across the plate (lower uCursorRadius
+    // = bigger radius). Held flat for the brief moment — no fade — keeping
+    // strengthTarget pegged so strength eases down from the peak after. On the
+    // last burst frame the radius is restored to its pre-burst value.
+    if (burstMs > 0) {
+      burstMs -= deltaTime;
+      strengthTarget = Math.max(strengthTarget, burstPeak);
+      uniforms.uMouseStrength.value = burstPeak;
+      uniforms.uCursorRadius.value = burstMs > 0 ? burstRadius : baseRadius;
+    }
 
     // Record the smoothed cursor position into the trail on a fixed cadence
     // (newest at [0]); the shader draws influence as distance to this path.
@@ -308,6 +321,14 @@ export function initScene(
     },
     setImage2(source: TexImageSource | null) {
       writeImage(uniforms.uImage2, uniforms.uImage2Res, source);
+    },
+    cursorBurst(peak = 1, holdMs = 300, radius = 0.8) {
+      // Capture the disc size to restore only when starting fresh, so re-arming
+      // mid-burst (rapid clicks) never bakes the expanded radius in as the base.
+      if (burstMs <= 0) baseRadius = uniforms.uCursorRadius.value;
+      burstPeak = peak;
+      burstRadius = radius;
+      burstMs = holdMs;
     },
   };
 

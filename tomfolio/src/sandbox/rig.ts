@@ -13,6 +13,7 @@ import "./rig.css";
 
 import { initScene, type GlScene } from "../gl/scene";
 import { pressFrag } from "../directions/press/art";
+import { COLORWAY_NAMES } from "../palettes";
 import { SAMPLES } from "../samples";
 
 const params = new URLSearchParams(window.location.search);
@@ -54,7 +55,7 @@ type Param =
 
 const PARAMS: Param[] = [
   { key: "uMotif", label: "Motif", kind: "select", options: ["Dots", "Disc", "X", "Plus", "Dash"], def: 0 },
-  { key: "uColorway", label: "Colorway", kind: "select", options: ["Bone / Carbon", "Blueprint", "Sepia", "Acid Lime", "Cyanotype", "Riso Pink", "Riso Blue", "Steel", "Oxblood", "Mono Invert", "Heather", "Noir", "Newsprint", "Terminal", "Amber CRT", "Gameboy", "Ultraviolet", "Lagoon", "Marigold", "Mint Iron", "Plum", "Slate Ice", "Rust Sand", "Indigo Sun", "Emerald", "Ruby", "Sapphire", "Amethyst", "Topaz", "Jade", "Bubblegum", "Mint Cream", "Butter", "Periwinkle", "Peach", "Lilac", "Hot Pink", "Cyber", "Volt", "Laser", "Electric", "Moss", "Clay", "Saffron", "Fernway", "Dune", "Miami", "Vaporwave", "Chrome", "Dusk Grid", "Cobalt", "Forest Lemon", "Oxide", "Klein Pop"], def: 0 },
+  { key: "uColorway", label: "Colorway", kind: "select", options: COLORWAY_NAMES, def: 0 },
   { key: "uImageOn", label: "Dither image", kind: "toggle", def: 0 },
   { key: "uColorDither", label: "Full colour", kind: "toggle", def: 0 },
   { key: "uColorLevels", label: "Colour levels", kind: "range", min: 2, max: 8, step: 1, def: 4 },
