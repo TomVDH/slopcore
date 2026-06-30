@@ -179,6 +179,24 @@ theme-dissenting families: **Jewel on jet** (24–29), **Candy/pastel** (30–35
 Newest first. Log EVERY shading change here.
 
 ### 2026-06-30
+- **Right-edge falloff — reworked + shapeable.** The `uEdgeFade` / "Feather" taper now anchors to
+  the **plate** (`baseUv.x`), **right edge only** — it was image-space (`iuv.x`, both edges), which
+  is invisible whenever a wide image is cover-cropped (the photo's own right edge sits off-plate;
+  e.g. the Cyber default with `collection-207`, aspect 1.49 vs plate ~1.14 → `isc0.x≈0.76` →
+  `iuv.x` maxes ~0.76, so the taper never engaged on screen). Plate-anchored, it always tapers the
+  visible right edge regardless of crop. Two new shaping uniforms (both default to the prior look):
+  `uEdgeCurve` (ramp `pow(t, curve)`, default 1 — lower = harder shoulder) and `uEdgeDepth`
+  (`mix(1-depth, 1, t)`, default 1 = to ground, <1 = a partial dot veil). Net:
+  `et = pow(smoothstep(0, uEdgeFade, 1-baseUv.x), uEdgeCurve); cov = min(cov, mix(1-uEdgeDepth, 1, et))`.
+  Dev-bar Feather / Curve / Depth under Image; wired via `PARAM_UNIFORMS` + `scene.ts`; auto in Copy JSON.
+- **Sizing model recorded — canvas precedence.** The plate is a FIXED stage (full height ×
+  `plateWidth` × viewport width); each photo cover-fits INTO it, so an image's source size/aspect
+  never moves the layout (images pre-edited to suit). Fixed the stale "native aspect" docs
+  (`applyCanvasWidth` leading comment + AGENTS.md) that described the old image-precedence behavior.
+- **Dev-bar naming/help cleanup.** Fixed stale `Margin` help (colorway accent, not brand red); added
+  the missing `Show cursor field` help; renamed `Radius`→`Falloff`, `Cloud X/Y`→`Billow X/Y`,
+  `Cloud W`→`Cloud width`; `Cell`/`Detail` help note shared cell-count units. Static help-audit:
+  0 orphan labels, 0 unused keys.
 - **Health pass Phase 4 (partial) — data-driven `pushTreatment`.** The 35-line block of 1:1
   `setParam(uniform, look.field)` calls is now a `PARAM_UNIFORMS` map looped in `pushTreatment`
   (the single place to wire a numeric param's uniform); the derived / vec2 / conditional pushes

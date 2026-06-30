@@ -74,7 +74,9 @@ export const pressFrag = /* glsl */ `
   uniform float uFit;             // image fit: 0 cover (crop), 1 contain (letterbox)
   uniform vec2  uImgAlign;        // image anchor (0.5,0.5 = centred); negative / >1 bleeds off-edge
   uniform float uImgScale;        // image zoom within the plate (1 = fit, >1 in, <1 out)
-  uniform float uEdgeFade;        // photo edge taper: dissolve the L/R image edge into the ground
+  uniform float uEdgeFade;        // edge taper: width of the right-edge dissolve (plate fraction)
+  uniform float uEdgeCurve;       // edge taper: ramp shape (higher = more gradual, lower = harder)
+  uniform float uEdgeDepth;       // edge taper: dissolve amount (1 = to ground, <1 = partial veil)
   uniform float uFadeMode;        // 0 off, 1 simple radial gradient, 2 cloud (fbm-textured)
   uniform float uFadeScale;       // cloud-noise frequency X for fade mode 2 (smaller = bigger billows)
   uniform float uFadeScaleY;      // cloud-noise frequency Y (independent stretch of the cloud)
@@ -319,13 +321,14 @@ export const pressFrag = /* glsl */ `
         fd += (fadeNoise(cuv * vec2(uFadeScale, uFadeScaleY) + vec2(uTime * uCloudSpeed, 0.0), uNoiseType) - 0.5) * 0.95;
       }
       cov = 1.0 - smoothstep(0.3, 1.45, fd);
-      // Edge taper: always dissolve the photo's OWN left/right edge into the ground
-      // over the last uEdgeFade of the image width, so a hard vertical seam never
-      // shows regardless of aspect / cloud anchor (the reported right-edge leak).
-      // Only when an image is shown; left edge usually bleeds off-plate (harmless).
+      // Edge taper: dissolve the visible RIGHT edge of the PLATE into the ground over
+      // the last uEdgeFade of the plate width — a clean vertical fade-off on the right.
+      // Anchored to the plate (baseUv), NOT the photo (iuv): a wide cover-cropped image's
+      // own right edge sits off-plate, so an image-space taper would never show. Image only.
       if (uImageOn > 0.5 && uEdgeFade > 0.001) {
-        float ex = min(iuv.x, 1.0 - iuv.x);
-        cov = min(cov, smoothstep(0.0, uEdgeFade, ex));
+        float et = smoothstep(0.0, uEdgeFade, 1.0 - baseUv.x); // 0 at the right edge, 1 inside
+        et = pow(et, max(uEdgeCurve, 0.05));                   // Curve: shape the ramp
+        cov = min(cov, mix(1.0 - clamp(uEdgeDepth, 0.0, 1.0), 1.0, et)); // Depth: how far it dissolves
       }
     }
 

@@ -69,7 +69,9 @@ const look = {
   posX: 0, // image anchor X (−1..2; 0 left, 0.5 centre, 1 right; <0 bleeds off-edge left)
   posY: 0.5, // image anchor Y in [0,1] (0 bottom, 0.5 centre, 1 top)
   zoom: 1, // image zoom within the plate (1 = fit, >1 zoomed in, <1 zoomed out)
-  edgeFade: 0.12, // photo edge taper: dissolve the L/R image edge into the ground (cloud modes)
+  edgeFade: 0.12, // edge taper width: dissolve the plate's right edge into the ground (cloud modes)
+  edgeCurve: 1, // edge taper ramp shape (higher = more gradual, lower = harder shoulder)
+  edgeDepth: 1, // edge taper dissolve amount (1 = to ground, <1 = partial dot veil)
   invert: 0, // resolved 0/1 actually pushed to uInvert
   invertMode: 2, // Invert control: 0 Off, 1 On, 2 Auto (image-decided)
   fadeMode: 2, // 0 off, 1 simple gradient, 2 cloud
@@ -167,11 +169,11 @@ function pushAutoInvert(): void {
 let curImageSrc: string | null = null;
 let txToken = 0;
 
-// Size the GL canvas to the current image's NATIVE aspect at full plate height
-// (left-aligned), so photos read at their original proportions and landscape
-// shots fill further right — instead of being cover-cropped into the fixed CSS
-// box. The scene re-measures uRes off the canvas, so its cover-fit becomes a
-// no-op (no crop). Reverts to the CSS default for the procedural field.
+// The GL canvas is a FIXED stage — full plate height × (plateWidth × viewport width),
+// left-aligned — so the page flow stays consistent regardless of which image loads.
+// Each photo is cover-fit INTO this box by the shader (Image > Fit / Pos / Zoom),
+// cropping the overflow; an image's source size/aspect never moves the layout (images
+// are pre-edited to suit the canvas). Canvas precedence, NOT image precedence.
 let curImageEl: HTMLImageElement | null = null;
 function applyCanvasWidth(): void {
   if (!canvas) return;
@@ -224,6 +226,7 @@ const PARAM_UNIFORMS: ReadonlyArray<readonly [string, keyof typeof look]> = [
   ["uImageContrast", "contrast"], ["uFadeMode", "fadeMode"], ["uFadeScale", "cloudSize"],
   ["uFadeScaleY", "cloudSizeY"], ["uNoiseType", "noiseType"], ["uFadeWarp", "fadeWarp"],
   ["uCloudWidth", "cloudW"], ["uFit", "fit"], ["uImgScale", "zoom"], ["uEdgeFade", "edgeFade"],
+  ["uEdgeCurve", "edgeCurve"], ["uEdgeDepth", "edgeDepth"],
   ["uMaskView", "maskView"], ["uCursorView", "cursorView"], ["uColorDither", "colorDither"],
   ["uColorLevels", "colorLevels"], ["uMarkBright", "markBright"], ["uCursorMode", "cursorMode"],
   ["uCursorAmp", "cursorAmp"], ["uCursorRadius", "cursorRadius"], ["uHold", "cursorHold"],
@@ -712,15 +715,15 @@ function renderNoiseThumb(c: HTMLCanvasElement): void {
 // the same copy documents each setting). Keyed by the control's label.
 const HELP: Record<string, string> = {
   Motif: "Mark shape: solid, disc (round halftone dot), X, plus, or dash.",
-  Cell: "Screen frequency. Lower = bigger dots, higher = finer grain.",
+  Cell: "Screen frequency (cell count; same units as Develop > Detail). Lower = bigger dots, higher = finer grain.",
   Width: "Plate box width as a % of the viewport (full height). The photo fits into this box via Image > Fit / Pos.",
   Fade: "Edge dissolve of the plate: off, a simple radial, or the animated cloud.",
-  Margin: "Colour of the frame margin around the plate: the body ink, or the brand accent (registration red).",
-  "Cloud X": "Cloud billow size across — lower = bigger, softer billows.",
-  "Cloud Y": "Cloud billow size vertically (independent stretch).",
+  Margin: "Colour of the frame margin around the plate: the body ink, or the colorway's own accent.",
+  "Billow X": "Cloud billow size across — lower = bigger, softer billows.",
+  "Billow Y": "Cloud billow size vertically (independent stretch).",
   Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells), Turbulence (smoky), Cracks (Worley veins).",
   Warp: "Domain-warp the noise — swirls the mask into more organic, turbulent shapes (works on any Noise type).",
-  "Cloud W": "Horizontal extent of the cloud layer, independent of the image width — stretch the dissolve + texture wider/narrower than the photo.",
+  "Cloud width": "Horizontal extent of the cloud layer, independent of the image width — stretch the dissolve + texture wider/narrower than the photo.",
   "Cloud anim": "Scroll the cloud sideways, or hold it static.",
   "Cloud speed": "How fast the cloud drifts when animated.",
   "Fade X": "Move the dissolve's anchor left/right (0 = left edge).",
@@ -733,17 +736,19 @@ const HELP: Record<string, string> = {
   "Pos X": "Image anchor across: 0 left · 0.5 centre · 1 right. Goes negative / past 1 to bleed the photo off the edge (revealed area = ground).",
   "Pos Y": "Image anchor vertical: 0 bottom · 0.5 centre · 1 top. Negative / >1 pushes it off the edge.",
   Zoom: "Scale the photo in/out within the plate, on top of Fit. >1 crops in tighter, <1 shrinks it (surrounded by ground).",
-  Feather: "Taper the photo's own left/right edge into the ground over the last N of the image width, so a hard vertical seam never shows (independent of the cloud anchor). 0 = hard edge.",
+  Feather: "Right-edge falloff WIDTH — taper the plate's right edge into the ground over the last N of the plate width (a clean vertical fade on top of the cloud dissolve). 0 = hard edge.",
+  Curve: "Right-edge falloff SHAPE — lower = harder/sharper shoulder, higher = a more gradual ramp. 1 = plain S-curve.",
+  Depth: "Right-edge falloff DEPTH — how far it dissolves: 1 = all the way to ground, lower = a partial dot veil.",
   Brightness: "Source-image luminance, applied before dithering.",
   Contrast: "Source-image contrast, applied before dithering.",
   Invert: "Tone polarity. Auto flips it on dark-paper stocks. Duotone only.",
   Auto: "Whether Auto inverted, and why (the palette's stock).",
   Mode: "What the pointer does: clear, ink, bias, negative, or develop.",
   Strength: "Cursor effect intensity.",
-  Radius: "Cursor disc size — higher = tighter.",
+  Falloff: "Cursor disc falloff rate — LOWER = bigger / softer disc, higher = tighter.",
   Hold: "Static floor so the effect persists when the pointer stops.",
   Edge: "Negative-mode disc hardness.",
-  Detail: "Develop sub-grid fineness under the pointer.",
+  Detail: "Develop sub-grid cell count under the pointer (same units as Screen > Cell).",
   Stage: "Where the finer develop dither ramps in during a press.",
   Resolve: "How fully a full press replaces base marks with fine dither.",
   Colorize: "Develop in mono (0) up to the photo's true colour (1).",
@@ -757,6 +762,7 @@ const HELP: Record<string, string> = {
   Reveal: "Crossfade the whole plate to the true natural-light photo.",
   "Image state": "Peek the undithered, brightness/contrast-adjusted source.",
   "Show fade mask": "Show the fade mask itself — white = marks, black = ground.",
+  "Show cursor field": "Show the raw cursor influence as grayscale — white = full influence, black = none.",
   Stored: "Whether this image has its own written config (custom) or follows the general dev-menu settings.",
   "Save to image": "Give this image its own config (a copy of the current settings). Until then it follows the general menu settings, which apply to every image without its own config.",
   "Reset image": "Drop this image's config — back to the general menu settings.",
@@ -1133,17 +1139,17 @@ function buildDevBar(): void {
   cloud.appendChild(noiseThumb);
   const drawNoise = (): void => renderNoiseThumb(noiseThumb);
   drawNoise();
-  const cloudCtl = stepper(cloud, "Cloud X", () => look.cloudSize.toFixed(1),
+  const cloudCtl = stepper(cloud, "Billow X", () => look.cloudSize.toFixed(1),
     () => { look.cloudSize = Math.max(0.5, +(look.cloudSize - 0.5).toFixed(1)); },
     () => { look.cloudSize = Math.min(20, +(look.cloudSize + 0.5).toFixed(1)); }, drawNoise);
-  const cloudYCtl = stepper(cloud, "Cloud Y", () => look.cloudSizeY.toFixed(1),
+  const cloudYCtl = stepper(cloud, "Billow Y", () => look.cloudSizeY.toFixed(1),
     () => { look.cloudSizeY = Math.max(0.5, +(look.cloudSizeY - 0.5).toFixed(1)); },
     () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); }, drawNoise);
   const noiseCtl = select(cloud, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; }, drawNoise);
   const warpCtl = stepper(cloud, "Warp", () => look.fadeWarp.toFixed(2),
     () => { look.fadeWarp = Math.max(0, +(look.fadeWarp - 0.1).toFixed(2)); },
     () => { look.fadeWarp = Math.min(3, +(look.fadeWarp + 0.1).toFixed(2)); }, drawNoise);
-  const cloudWCtl = stepper(cloud, "Cloud W", () => `${look.cloudW.toFixed(2)}×`,
+  const cloudWCtl = stepper(cloud, "Cloud width", () => `${look.cloudW.toFixed(2)}×`,
     () => { look.cloudW = Math.max(0.2, +(look.cloudW - 0.1).toFixed(2)); },
     () => { look.cloudW = Math.min(5, +(look.cloudW + 0.1).toFixed(2)); }, drawNoise);
   const cloudAnimCtl = toggle(cloud, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
@@ -1251,10 +1257,16 @@ function buildDevBar(): void {
   stepper(image, "Zoom", () => `${look.zoom.toFixed(2)}×`,
     () => { look.zoom = Math.max(0.2, +(look.zoom - 0.1).toFixed(2)); },
     () => { look.zoom = Math.min(5, +(look.zoom + 0.1).toFixed(2)); });
-  // Feather: taper the photo's own L/R edge into the ground so a hard seam never shows.
+  // Right-edge falloff: Feather (width) · Curve (ramp shape) · Depth (dissolve amount).
   stepper(image, "Feather", () => look.edgeFade.toFixed(2),
     () => { look.edgeFade = Math.max(0, +(look.edgeFade - 0.02).toFixed(2)); },
     () => { look.edgeFade = Math.min(0.5, +(look.edgeFade + 0.02).toFixed(2)); });
+  stepper(image, "Curve", () => look.edgeCurve.toFixed(2),
+    () => { look.edgeCurve = Math.max(0.1, +(look.edgeCurve - 0.1).toFixed(2)); },
+    () => { look.edgeCurve = Math.min(5, +(look.edgeCurve + 0.1).toFixed(2)); });
+  stepper(image, "Depth", () => look.edgeDepth.toFixed(2),
+    () => { look.edgeDepth = Math.max(0, +(look.edgeDepth - 0.1).toFixed(2)); },
+    () => { look.edgeDepth = Math.min(1, +(look.edgeDepth + 0.1).toFixed(2)); });
   stepper(image, "Brightness", () => look.brightness.toFixed(2),
     () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
     () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });
@@ -1314,7 +1326,7 @@ function buildDevBar(): void {
   stepper(cursor, "Strength", () => look.cursorAmp.toFixed(2),
     () => { look.cursorAmp = Math.max(0, +(look.cursorAmp - 0.1).toFixed(2)); },
     () => { look.cursorAmp = Math.min(5, +(look.cursorAmp + 0.1).toFixed(2)); });
-  stepper(cursor, "Radius", () => look.cursorRadius.toFixed(1),
+  stepper(cursor, "Falloff", () => look.cursorRadius.toFixed(1),
     () => { look.cursorRadius = Math.max(0.2, +(look.cursorRadius - 0.2).toFixed(1)); },
     () => { look.cursorRadius = Math.min(16, +(look.cursorRadius + 0.2).toFixed(1)); });
   stepper(cursor, "Hold", () => look.cursorHold.toFixed(2),

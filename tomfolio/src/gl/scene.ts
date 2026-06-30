@@ -143,7 +143,9 @@ export function initScene(
     uFit: { value: 0 }, // 0 cover (crop), 1 contain (letterbox)
     uImgAlign: { value: new THREE.Vector2(0.5, 0.5) }, // image anchor in [0,1]
     uImgScale: { value: 1 }, // image zoom within the plate
-    uEdgeFade: { value: 0.12 }, // photo edge taper (L/R image edge dissolves into ground)
+    uEdgeFade: { value: 0.12 }, // edge taper width (plate's right edge dissolves into ground)
+    uEdgeCurve: { value: 1 }, // edge taper ramp shape (higher = more gradual)
+    uEdgeDepth: { value: 1 }, // edge taper dissolve amount (1 = to ground, <1 = partial veil)
     uFadeMode: { value: 0 },
     uFadeScale: { value: 3 },
     uFadeScaleY: { value: 3 }, // cloud Y frequency (isotropic by default)
