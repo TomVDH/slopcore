@@ -6,8 +6,9 @@
  * right-aligned menu lists one item per dither sample (auto-discovered from
  * src/samples/) plus Field; picking one cross-fades the dithered image (dip
  * through the field, swap under cover, fade back in, quad ease). The colorway
- * (Palette) drives the ground + menu text. A bottom-right Reveal button smoothly
- * crossfades the dithered plate to the full-res source photo and back (`uReveal`).
+ * (Palette) drives the ground + menu text. The menu arrangement is switchable
+ * via `?layout=` (rail default / spine / ladder). A bottom-right Reveal button
+ * smoothly crossfades the dithered plate to the full-res source photo (`uReveal`).
  * With `?dev`, a grouped dev bar exposes the treatment over two rows — Mark
  * (motif / cell / palette), Colour (RGB full-colour dither / levels), Tone
  * (brightness / contrast / invert), Dissolve (fade / cloud), View (Copy values) —
@@ -26,6 +27,15 @@ import { SAMPLES, sampleSrc } from "../samples";
 const params = new URLSearchParams(window.location.search);
 const reduced =
   window.matchMedia("(prefers-reduced-motion: reduce)").matches || params.has("still");
+
+// Menu arrangement (`?layout=`). rail = right-aligned display headers (default);
+// spine = labels rotated up the right margin; ladder = mono captions stepping
+// down the dither's fading edge. All three just re-place the same .art-menu; the
+// content reveal (the dithered image swap) is identical across them.
+const LAYOUTS = ["rail", "spine", "ladder"] as const;
+const layoutParam = params.get("layout") ?? "";
+const layout = (LAYOUTS as readonly string[]).includes(layoutParam) ? layoutParam : "rail";
+document.body.classList.add(`art-layout-${layout}`);
 
 const MOTIFS = ["Dots", "Disc", "X", "Plus", "Dash"];
 const COLORS = [
@@ -135,6 +145,32 @@ function pushAutoInvert(): void {
 
 let curImageSrc: string | null = null;
 let txToken = 0;
+
+// Size the GL canvas to the current image's NATIVE aspect at full plate height
+// (left-aligned), so photos read at their original proportions and landscape
+// shots fill further right — instead of being cover-cropped into the fixed CSS
+// box. The scene re-measures uRes off the canvas, so its cover-fit becomes a
+// no-op (no crop). Reverts to the CSS default for the procedural field.
+let curImageEl: HTMLImageElement | null = null;
+function applyCanvasWidth(): void {
+  if (!canvas) return;
+  const frame = canvas.parentElement as HTMLElement | null;
+  if (!curImageEl || !curImageEl.naturalWidth || !frame || !frame.clientHeight) {
+    canvas.style.width = ""; // no image, or frame not laid out yet — fall back to CSS (never 0px)
+    return;
+  }
+  const aspect = curImageEl.naturalWidth / curImageEl.naturalHeight;
+  const want = frame.clientHeight * aspect;
+  const cap = frame.clientWidth * 0.9; // keep a sliver of ground for the menu
+  canvas.style.width = `${Math.round(Math.min(want, cap))}px`;
+}
+function fitCanvas(im: HTMLImageElement | null): void {
+  curImageEl = im;
+  applyCanvasWidth();
+  window.dispatchEvent(new Event("resize")); // scene re-measures uRes off the new box
+}
+window.addEventListener("resize", applyCanvasWidth, { passive: true });
+
 const cur = { uImageOn: 0 }; // tweened field<->image crossfade amount
 const xf = { v: 0 }; // tweened image<->image crossfade amount (uXfade)
 
@@ -253,6 +289,7 @@ function goImage(key: string): void {
           scene.setImage(im);
           scene.setImage2(null);
           curImageSrc = targetSrc;
+          fitCanvas(im);
         }
         cur.uImageOn = 1;
         xf.v = 0;
@@ -264,6 +301,7 @@ function goImage(key: string): void {
       cur.uImageOn = 0;
       pushImageOn();
       pushAutoInvert();
+      fitCanvas(null);
     }
     return;
   }
@@ -271,6 +309,7 @@ function goImage(key: string): void {
   // To the field: fade the image out and leave the procedural field.
   if (!targetSrc) {
     pushAutoInvert();
+    fitCanvas(null);
     gsap.to(cur, { uImageOn: 0, duration: motion.dur, ease: mEase(), onUpdate: pushImageOn });
     return;
   }
@@ -287,6 +326,7 @@ function goImage(key: string): void {
       if (im && scene) {
         scene.setImage(im);
         curImageSrc = targetSrc;
+        fitCanvas(im);
       }
       xf.v = 0;
       pushXfade();
@@ -314,6 +354,7 @@ function goImage(key: string): void {
         scene.setImage(im);
         scene.setImage2(null);
         curImageSrc = targetSrc;
+        fitCanvas(im);
         xf.v = 0;
         pushXfade();
       },
@@ -344,30 +385,103 @@ try {
 /* ---- Menu: one item per sample image + Field ---- */
 const menu = document.querySelector<HTMLElement>(".art-menu");
 const MENU_ITEMS = [...SAMPLES.map((s) => ({ key: s.key, label: s.label })), { key: "field", label: "Field" }];
+let hoverMode = false; // when on, hovering a menu item changes the image (no click needed)
 if (menu) {
-  for (const item of MENU_ITEMS) {
+  const setActive = (b: HTMLElement, key: string): void => {
+    for (const x of menu.querySelectorAll(".art-link")) x.classList.toggle("is-active", x === b);
+    goImage(key);
+  };
+  MENU_ITEMS.forEach((item, i) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "art-link" + (item.key === look.image ? " is-active" : "");
     b.textContent = item.label;
     b.dataset.key = item.key;
-    b.addEventListener("click", () => {
-      for (const x of menu.querySelectorAll(".art-link")) x.classList.toggle("is-active", x === b);
-      goImage(item.key);
-    });
+    b.style.setProperty("--i", String(i)); // ladder layout staggers each item by index
+    b.addEventListener("click", () => setActive(b, item.key));
+    b.addEventListener("pointerenter", () => { if (hoverMode) setActive(b, item.key); });
     menu.appendChild(b);
-  }
+  });
 }
 
-/* ---- Reveal button: smoothly resolve the dither into the full-res photo ---- */
+/* ---- Reveal + Hover buttons (bottom-right, beside the menu) ---- */
 if (scene) {
+  const host = document.querySelector(".art-frame") ?? document.body;
+  // Hover: toggle hover-to-change for the menu items.
+  const hb = document.createElement("button");
+  hb.type = "button";
+  hb.className = "art-hover";
+  hb.textContent = "Hover";
+  hb.setAttribute("aria-pressed", "false");
+  hb.addEventListener("click", () => {
+    hoverMode = !hoverMode;
+    hb.classList.toggle("is-on", hoverMode);
+    hb.setAttribute("aria-pressed", String(hoverMode));
+  });
+  host.appendChild(hb);
+
   const rb = document.createElement("button");
   rb.type = "button";
   rb.className = "art-reveal";
   rb.textContent = "Reveal";
   rb.addEventListener("click", toggleReveal);
   revealBtns.push(rb);
-  (document.querySelector(".art-frame") ?? document.body).appendChild(rb);
+  host.appendChild(rb);
+}
+
+/* ---- Pixel-cross custom cursor + click "detonation" ---- */
+/* A box-shadow pixel crosshair tracks the pointer (native cursor hidden). On a
+   click over the plate, a ring of dither pixels bursts outward and the crosshair
+   punches — the marks scatter from the click. Fine-pointer + motion only. */
+if (!reduced && window.matchMedia("(pointer: fine)").matches) {
+  const cur = document.createElement("div");
+  cur.className = "art-cursor";
+  cur.setAttribute("aria-hidden", "true");
+  document.body.appendChild(cur);
+  document.body.classList.add("art-has-cursor");
+  const setX = gsap.quickSetter(cur, "x", "px");
+  const setY = gsap.quickSetter(cur, "y", "px");
+  setX(window.innerWidth / 2);
+  setY(window.innerHeight / 2);
+  window.addEventListener("pointermove", (e) => { setX(e.clientX); setY(e.clientY); });
+  document.addEventListener("pointerleave", () => { cur.style.opacity = "0"; });
+  document.addEventListener("pointerenter", () => { cur.style.opacity = ""; });
+
+  window.addEventListener("pointerdown", (e) => {
+    // Crosshair recoil on every click (elastic punch).
+    gsap.fromTo(cur, { scale: 1.7 }, { scale: 1, duration: 0.55, ease: "elastic.out(1, 0.4)" });
+    // Detonation only over the plate, not the controls (so steppers don't burst).
+    const t = e.target as HTMLElement | null;
+    if (t && t.closest(".art-dev, .art-reveal, .art-menu, button, select, input")) return;
+    const x = e.clientX, y = e.clientY;
+    const N = 14;
+    for (let i = 0; i < N; i++) {
+      const px = document.createElement("div");
+      px.className = "art-px" + (i % 3 === 0 ? " is-accent" : "");
+      px.style.left = `${x}px`;
+      px.style.top = `${y}px`;
+      document.body.appendChild(px);
+      const a = (i / N) * Math.PI * 2 + i * 0.7;
+      const dist = 34 + (i % 5) * 12;
+      gsap.to(px, {
+        x: Math.cos(a) * dist,
+        y: Math.sin(a) * dist,
+        rotation: 90,
+        scale: 0.2,
+        opacity: 0,
+        duration: 0.45 + (i % 4) * 0.08,
+        ease: "power3.out",
+        onComplete: () => px.remove(),
+      });
+    }
+    const ring = document.createElement("div");
+    ring.className = "art-ring";
+    ring.style.left = `${x}px`;
+    ring.style.top = `${y}px`;
+    document.body.appendChild(ring);
+    gsap.fromTo(ring, { scale: 0.2, opacity: 0.8 },
+      { scale: 2.4, opacity: 0, duration: 0.5, ease: "power2.out", onComplete: () => ring.remove() });
+  });
 }
 
 /* ---- Dev bar (?dev): treatment toggles + live readout + copy values ---- */

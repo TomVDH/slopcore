@@ -15,7 +15,7 @@ body.art {
   --ink: #f4efdd; /* colorway ink — drives the menu text (set by JS) */
   min-height: 100dvh;
   margin: 0;
-  background: #fff; /* the 25px frame margin */
+  background: var(--ink); /* the 15px frame margin — matches the colorway ink (font) */
   color: var(--ink);
   overflow: hidden;
   cursor: default;
@@ -24,7 +24,7 @@ body.art {
 /* The framed plate: 25px white margin on all sides. */
 .art-frame {
   position: fixed;
-  inset: 25px;
+  inset: 15px;
   overflow: hidden;
   background: var(--ground); /* colorway paper; must == the shader's paper to blend */
 }
@@ -91,9 +91,69 @@ body.art {
   -webkit-text-stroke-color: transparent;
 }
 
+/* ---- Menu layouts (?layout=) -----------------------------------------------
+   rail (default, above) = right-aligned display headers. The two below just
+   re-place the same .art-menu / .art-link; the content reveal (dither image
+   swap) is identical. Each .art-link carries --i (its index) for the ladder. */
+
+/* SPINE — labels run vertically up the right margin, like a book spine. Spans
+   the full plate height and distributes items evenly (space-between) so the
+   stack never overflows top/bottom regardless of count; small type keeps long
+   labels from colliding. Built for a handful of sections — with the sandbox's
+   16 sample photos it is intentionally dense. */
+.art-layout-spine .art-menu {
+  right: clamp(6px, 1.6vw, 24px);
+  top: 0;
+  bottom: 0;
+  transform: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  padding: 6px 0;
+}
+.art-layout-spine .art-link {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg); /* read bottom-to-top */
+  text-align: center;
+  font-size: clamp(0.56rem, 0.95vw, 0.9rem);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* LADDER — small mono captions stepping down (and right) along the dither's
+   fading edge, like figure captions. Filled-muted, not outlined. */
+.art-layout-ladder .art-menu {
+  right: auto;
+  left: clamp(96px, 46vw, 660px);
+  align-items: flex-start;
+  gap: clamp(5px, 1.2vh, 14px);
+}
+.art-layout-ladder .art-link {
+  text-align: left;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 500;
+  font-size: clamp(0.66rem, 1.05vw, 0.92rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0;
+  color: color-mix(in srgb, var(--ink) 52%, transparent);
+  transform: translateX(calc(var(--i, 0) * clamp(5px, 0.9vw, 13px)));
+  transition:
+    color var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out);
+}
+.art-layout-ladder .art-link:hover {
+  color: color-mix(in srgb, var(--ink) 80%, transparent);
+}
+.art-layout-ladder .art-link.is-active {
+  color: var(--ink);
+}
+
 /* Reveal toggle: smoothly resolves the dither into the full-res photo. Anchored
    bottom-right, subtle, and palette-aware (follows the colorway ink/ground). */
-.art-reveal {
+.art-reveal,
+.art-hover {
   position: absolute;
   right: clamp(18px, 4vw, 64px);
   bottom: clamp(18px, 4vh, 48px);
@@ -114,44 +174,113 @@ body.art {
     border-color var(--dur) var(--ease-out),
     background var(--dur) var(--ease-out);
 }
-.art-reveal:hover {
+.art-reveal:hover,
+.art-hover:hover {
   border-color: var(--ink);
   background: color-mix(in srgb, var(--ground) 88%, transparent);
+}
+/* Hover-to-change toggle sits just left of Reveal; fills with ink when active. */
+.art-hover {
+  right: calc(clamp(18px, 4vw, 64px) + 92px);
+}
+.art-hover.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--ground);
+}
+
+/* Pixel-cross custom cursor + click detonation. Native cursor hidden while the
+   crosshair is active; falls back to native (with the drag hint) on touch. */
+.art-has-cursor,
+.art-has-cursor * {
+  cursor: none !important;
+}
+.art-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  margin: -1px 0 0 -1px;
+  background: #f4efdd;
+  pointer-events: none;
+  z-index: 60;
+  mix-blend-mode: difference;
+  will-change: transform;
+  box-shadow:
+    0 -6px #f4efdd, 0 -10px #f4efdd,
+    0 6px #f4efdd, 0 10px #f4efdd,
+    -6px 0 #f4efdd, -10px 0 #f4efdd,
+    6px 0 #f4efdd, 10px 0 #f4efdd;
+}
+.art-px {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: #f4efdd;
+  pointer-events: none;
+  z-index: 59;
+}
+.art-px.is-accent {
+  background: #c8f542;
+}
+.art-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 1px solid rgba(244, 239, 221, 0.55);
+  pointer-events: none;
+  z-index: 58;
+}
+/* Drag-to-scrub affordance on stepper values (visible when the custom cursor is
+   off, e.g. touch / reduced motion). */
+.art-ctl-v-drag {
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
 }
 
 /* Dev-mode panel (only when ?dev): an instrument grouped by what each control
    affects — Marks / Colour / Image / Edge / Output — each a labeled column of
    [label · widget] rows. A slim grip collapses it (click it or press backtick). */
+/* Floating vertical panel: a single draggable, collapsible column of all groups.
+   Default-docked top-right; JS sets inline left/top once you drag it. The single
+   column never wraps — overflow just scrolls. */
 .art-dev {
   position: fixed;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
+  top: 12px;
+  right: 12px;
   z-index: 10;
-  width: min(680px, calc(100vw - 20px));
-  max-height: calc(100vh - 28px); /* never taller than the screen */
+  width: min(264px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
   display: flex;
   flex-direction: column;
-  background: rgba(12, 11, 16, 0.9);
+  background: rgba(12, 11, 16, 0.92);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(244, 239, 221, 0.16);
+  border-radius: 3px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
   font-family: var(--font-mono, ui-monospace, monospace);
   color: #f4efdd;
-}
-/* Wide screens: one short row of all 6 groups. Narrow: 2 columns. Both are
-   divisors of 6, so there is never an orphan group on the last row. */
-@media (min-width: 1320px) {
-  .art-dev {
-    width: 1264px;
-  }
 }
 @media (max-width: 640px) {
   .art-dev {
     width: calc(100vw - 16px);
   }
 }
+.art-dev.is-dragging {
+  opacity: 0.94;
+  user-select: none;
+}
 
-/* Grip: full-width handle along the top; the only thing left when collapsed. */
+/* Grip: header + drag handle; the only thing left when collapsed. Click toggles
+   collapse, press-and-move drags the whole panel. */
 .art-dev .art-dev-grip {
   appearance: none;
   width: 100%;
