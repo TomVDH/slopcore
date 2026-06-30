@@ -173,8 +173,19 @@
         { uImageOn:1, uMotif:4, uCell:110, uMotifWeight:0.4, uMotifAngle:0.08, uMotifTone:0.5 },
         { uImageOn:0, uMotif:1, uCell:122, uMotifWeight:0.6, uMotifAngle:0, uMotifTone:0.55 },
       ];
-      const applyPreset = (i) => { const p = PRESETS[i] || PRESETS[0]; for (const k in p) setP(k, p[k]); };
-      applyPreset(0);
+      // Continuous uniforms tween; the discrete motif is snapped (never
+      // interpolated, so marks don't flash through an unrelated shape).
+      const TWEEN_KEYS = ["uImageOn", "uCell", "uMotifWeight", "uMotifAngle", "uMotifTone"];
+      const cur = { uImageOn: 0, uCell: 122, uMotifWeight: 0.6, uMotifAngle: 0, uMotifTone: 0.55 };
+      const target = { ...cur };
+      const transitionTo = (i) => {
+        const p = PRESETS[i] || PRESETS[0];
+        setP("uMotif", p.uMotif);
+        for (const k of TWEEN_KEYS) target[k] = p[k];
+        if (reduced) { for (const k of TWEEN_KEYS) { cur[k] = target[k]; setP(k, cur[k]); } render(20.0); }
+      };
+      setP("uMotif", PRESETS[0].uMotif);
+      for (const k of TWEEN_KEYS) setP(k, cur[k]);
 
       // Dither the portrait once it loads.
       const img = new Image();
@@ -184,17 +195,16 @@
         tex.colorSpace = THREE.SRGBColorSpace; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
         tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
         U.uImage.value = tex; U.uImageRes.value.set(img.naturalWidth || 1, img.naturalHeight || 1);
-        if (reduced) render(20.0);
+        transitionTo(0); // form the portrait via the uImageOn crossfade
       };
       img.src = "./portrait.jpg";
 
-      // Menu: click to re-dither (instant).
+      // Menu: click to smoothly morph the dither.
       const links = Array.from(document.querySelectorAll(".art-link"));
       for (const btn of links) {
         btn.addEventListener("click", () => {
           for (const b of links) b.classList.toggle("is-active", b === btn);
-          applyPreset(Number(btn.dataset.i));
-          if (reduced) render(20.0);
+          transitionTo(Number(btn.dataset.i));
         });
       }
 
@@ -202,7 +212,15 @@
       window.addEventListener("resize", resize, { passive: true });
 
       if (reduced) { render(20.0); }
-      else { renderer.setAnimationLoop((ms) => render(ms / 1000)); }
+      else {
+        let prev = 0;
+        renderer.setAnimationLoop((ms) => {
+          const dt = prev ? ms - prev : 16; prev = ms;
+          const k = 1 - Math.exp(-dt * 0.008); // ~0.6s ease toward target
+          for (const key of TWEEN_KEYS) { cur[key] += (target[key] - cur[key]) * k; setP(key, cur[key]); }
+          render(ms / 1000);
+        });
+      }
     </script>
   </body>
 </html>

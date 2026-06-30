@@ -36,8 +36,8 @@ async function run(label, { url, shot, w = 1440, h = 900, nogl = false }) {
       canvases: document.querySelectorAll("canvas").length,
       canvasMounted: !!cv && cv.width > 8 && cv.height > 8,
       anchoredBL:
-        !!r && Math.abs(r.left - 25) < 3 && Math.abs(window.innerHeight - r.bottom - 25) < 3,
-      frameInset: !!fr && Math.abs(fr.left - 25) < 2 && Math.abs(fr.top - 25) < 2,
+        !!r && Math.abs(r.left - 15) < 3 && Math.abs(window.innerHeight - r.bottom - 15) < 3,
+      frameInset: !!fr && Math.abs(fr.left - 15) < 2 && Math.abs(fr.top - 15) < 2,
       menuItems: document.querySelectorAll(".art-link").length,
       noScroll: document.documentElement.scrollHeight <= window.innerHeight + 1,
       noGl: document.body.classList.contains("no-gl"),
