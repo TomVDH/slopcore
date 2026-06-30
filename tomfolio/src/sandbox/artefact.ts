@@ -61,6 +61,7 @@ const look = {
   image: "portrait", // a sample key, or "field"
   motif: 1,
   colorway: 10,
+  marginAccent: 0, // frame margin colour: 0 body/ink, 1 brand accent
   cell: 150,
   plateWidth: 0.66, // plate box width as a fraction of the viewport (the photo fits into it via Fit/Pos)
   weight: 0.62,
@@ -209,6 +210,8 @@ function applyColorwayChrome(i: number): void {
   // Cursor matches the FONT colour (the colorway ink), per palette — Heather =
   // cream. Dedicated --art-cursor token, separate from the system brand --accent.
   document.body.style.setProperty("--art-cursor", pal.ink);
+  // Frame margin (the body bg showing around the plate): body ink, or the brand accent.
+  document.body.style.background = look.marginAccent ? "var(--accent)" : "var(--ink)";
 }
 
 function pushTreatment(): void {
@@ -705,6 +708,7 @@ const HELP: Record<string, string> = {
   Cell: "Screen frequency. Lower = bigger dots, higher = finer grain.",
   Width: "Plate box width as a % of the viewport (full height). The photo fits into this box via Image > Fit / Pos.",
   Fade: "Edge dissolve of the plate: off, a simple radial, or the animated cloud.",
+  Margin: "Colour of the frame margin around the plate: the body ink, or the brand accent (registration red).",
   "Cloud X": "Cloud billow size across — lower = bigger, softer billows.",
   "Cloud Y": "Cloud billow size vertically (independent stretch).",
   Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells), Turbulence (smoky), Cracks (Worley veins).",
@@ -1105,6 +1109,8 @@ function buildDevBar(): void {
     () => { look.plateWidth = Math.min(1, +(look.plateWidth + 0.05).toFixed(2)); },
     () => fitCanvas(curImageEl));
   select(screen, "Fade", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
+  // Frame margin colour: the body (ink) or the brand accent (registration red).
+  select(screen, "Margin", ["Body", "Accent"], () => look.marginAccent, (i) => { look.marginAccent = i; });
 
   // CLOUD — the dissolve mask (fade Simple/Cloud): X/Y size, noise type, motion, anchor.
   const cloud = group("Cloud");
