@@ -1152,18 +1152,18 @@ function buildDevBar(): void {
     () => { look.fadePosY = Math.min(2, +(look.fadePosY + 0.05).toFixed(2)); });
   const fadeReachCtl = stepper(fade, "Reach", () => look.fadeReach.toFixed(2),
     () => { look.fadeReach = Math.max(0.1, +(look.fadeReach - 0.05).toFixed(2)); },
-    () => { look.fadeReach = Math.min(4, +(look.fadeReach + 0.05).toFixed(2)); });
+    () => { look.fadeReach = Math.min(8, +(look.fadeReach + 0.05).toFixed(2)); });
   const fadeSoftCtl = stepper(fade, "Softness", () => look.fadeSoft.toFixed(2),
     () => { look.fadeSoft = Math.max(0.05, +(look.fadeSoft - 0.05).toFixed(2)); },
-    () => { look.fadeSoft = Math.min(3, +(look.fadeSoft + 0.05).toFixed(2)); });
+    () => { look.fadeSoft = Math.min(6, +(look.fadeSoft + 0.05).toFixed(2)); });
   // Right-edge taper (part of the mask — shows when Fade ≠ Off): Feather (width) ·
   // Curve (ramp shape) · Depth (dissolve amount).
   const featherCtl = stepper(fade, "Feather", () => look.edgeFade.toFixed(2),
     () => { look.edgeFade = Math.max(0, +(look.edgeFade - 0.02).toFixed(2)); },
-    () => { look.edgeFade = Math.min(0.5, +(look.edgeFade + 0.02).toFixed(2)); });
+    () => { look.edgeFade = Math.min(1, +(look.edgeFade + 0.02).toFixed(2)); });
   const curveCtl = stepper(fade, "Curve", () => look.edgeCurve.toFixed(2),
     () => { look.edgeCurve = Math.max(0.1, +(look.edgeCurve - 0.1).toFixed(2)); },
-    () => { look.edgeCurve = Math.min(5, +(look.edgeCurve + 0.1).toFixed(2)); });
+    () => { look.edgeCurve = Math.min(10, +(look.edgeCurve + 0.1).toFixed(2)); });
   const depthCtl = stepper(fade, "Depth", () => look.edgeDepth.toFixed(2),
     () => { look.edgeDepth = Math.max(0, +(look.edgeDepth - 0.1).toFixed(2)); },
     () => { look.edgeDepth = Math.min(1, +(look.edgeDepth + 0.1).toFixed(2)); });
