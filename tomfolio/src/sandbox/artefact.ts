@@ -802,6 +802,8 @@ const HELP: Record<string, string> = {
   "Save to image": "Give this image its own config (a copy of the current settings). Until then it follows the general menu settings, which apply to every image without its own config.",
   "Reset image": "Drop this image's config — back to the general menu settings.",
   "Copy JSON": "Copy every setting as JSON to the clipboard.",
+  "Copy look": "Stash this image's full treatment on an in-session clipboard.",
+  "Paste look": "Apply the stashed treatment here \u2014 writes to this image's config if pinned, else to the general settings.",
   Store: "Treatments store state: file \u00b7 synced (committed treatments.json is current) or local \u00b7 unsaved (edits not yet downloaded + committed).",
   "Download treatments": "Download treatments.json \u2014 drop it into src/samples/ and commit. The committed file is the durable source of truth (and the future CMS seed).",
 };
@@ -1370,6 +1372,34 @@ function buildDevBar(): void {
   };
   syncers.push(updatePinStatus); // re-evaluate on image switch (refreshControls runs syncers)
   updatePinStatus();
+  // Treatment clipboard: carry one image's look to another without the JSON
+  // round-trip. Copy stashes the current snapshot; Paste assigns + persists to
+  // the current context (pinned image or general) through the normal edit path.
+  let lookClipboard: Record<string, number> | null = null;
+  const copyLookBtn = document.createElement("button");
+  copyLookBtn.type = "button";
+  copyLookBtn.textContent = "Copy look";
+  const pasteLookBtn = document.createElement("button");
+  pasteLookBtn.type = "button";
+  pasteLookBtn.textContent = "Paste look";
+  pasteLookBtn.disabled = true;
+  pasteLookBtn.style.opacity = "0.4";
+  copyLookBtn.addEventListener("click", () => {
+    lookClipboard = snapshotParams();
+    pasteLookBtn.disabled = false;
+    pasteLookBtn.style.opacity = "";
+    flash(copyLookBtn, "Copied ✓");
+  });
+  pasteLookBtn.addEventListener("click", () => {
+    if (!lookClipboard) return;
+    Object.assign(look, lookClipboard);
+    refreshControls?.();
+    if (scene) pushTreatment(); // persists to the right context via persistLook
+    updatePinStatus();
+    flash(pasteLookBtn, "Pasted ✓");
+  });
+  action(image, copyLookBtn);
+  action(image, pasteLookBtn);
   const pinBtn = document.createElement("button");
   pinBtn.type = "button";
   pinBtn.textContent = "Save to image";
