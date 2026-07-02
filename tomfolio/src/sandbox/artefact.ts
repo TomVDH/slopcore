@@ -818,6 +818,7 @@ function buildDevBar(): void {
   grip.type = "button";
   grip.className = "art-dev-grip";
   grip.setAttribute("aria-label", "Toggle dev controls");
+  grip.title = "Drag to move \u00b7 click (or backtick) to collapse";
   bar.appendChild(grip);
 
   // Clip wrapper carries the collapse; the row inside keeps its padding/flow.
@@ -1375,8 +1376,8 @@ function buildDevBar(): void {
     () => { look.colorway = (look.colorway + 1) % nColors; },
     () => syncChips());
   const palBtns = palRow.querySelectorAll<HTMLButtonElement>(".art-step-b");
-  if (palBtns[0]) palBtns[0].textContent = "‹";
-  if (palBtns[1]) palBtns[1].textContent = "›";
+  if (palBtns[0]) palBtns[0].textContent = "\u25c0";
+  if (palBtns[1]) palBtns[1].textContent = "\u25b6";
   palRow.querySelector(".art-ctl-v")?.classList.add("is-name");
   toggle(colour, "Full colour", () => !!look.colorDither, () => { look.colorDither ^= 1; }, () => refreshNA());
   const colourMotifCtl = addMotif(colour); // mark shape, surfaced for full-colour
@@ -1496,19 +1497,19 @@ function buildDevBar(): void {
   });
   onImageChange = drawSourceThumb;
   drawSourceThumb();
-  window.setInterval(drawSourceThumb, 160); // keep it live (reflects Fit/Pos/Zoom/B/C)
+  syncers.push(drawSourceThumb); // reset / paste / image-param apply redraw it
   // Fit + position: how the photo maps into the plate. Pos X/Y anchor the crop
   // (cover) or the letterbox placement (contain). 0,0 = bottom-left; 0.5 = centre.
-  select(image, "Fit", ["Cover", "Contain"], () => look.fit, (i) => { look.fit = i; });
-  num(image, "Pos X", { get: () => look.posX, set: (v) => { look.posX = v; }, min: -1, max: 2, step: 0.1 });
-  num(image, "Pos Y", { get: () => look.posY, set: (v) => { look.posY = v; }, min: -1, max: 2, step: 0.1 });
+  select(image, "Fit", ["Cover", "Contain"], () => look.fit, (i) => { look.fit = i; }, drawSourceThumb);
+  num(image, "Pos X", { get: () => look.posX, set: (v) => { look.posX = v; }, min: -1, max: 2, step: 0.1, after: drawSourceThumb });
+  num(image, "Pos Y", { get: () => look.posY, set: (v) => { look.posY = v; }, min: -1, max: 2, step: 0.1, after: drawSourceThumb });
   // Zoom: scale the photo in/out within the plate, on top of Cover/Contain.
   num(image, "Zoom", {
     get: () => look.zoom, set: (v) => { look.zoom = v; },
-    min: 0.2, max: 5, step: 0.1, fmt: (v) => `${v.toFixed(2)}×`,
+    min: 0.2, max: 5, step: 0.1, fmt: (v) => `${v.toFixed(2)}×`, after: drawSourceThumb,
   });
-  num(image, "Brightness", { get: () => look.brightness, set: (v) => { look.brightness = v; }, min: -1, max: 1, step: 0.05 });
-  num(image, "Contrast", { get: () => look.contrast, set: (v) => { look.contrast = v; }, min: 0.1, max: 5, step: 0.1 });
+  num(image, "Brightness", { get: () => look.brightness, set: (v) => { look.brightness = v; }, min: -1, max: 1, step: 0.05, after: drawSourceThumb });
+  num(image, "Contrast", { get: () => look.contrast, set: (v) => { look.contrast = v; }, min: 0.1, max: 5, step: 0.1, after: drawSourceThumb });
   // Auto-levels SUGGESTION: measure the raw photo's p2/p98 luma percentiles and
   // invert the shader grade (adj = (l-.5)·C + .5 + B) so they land on 0.08/0.92.
   // Whole-frame measure (not the crop) — a starting point, tweakable after; never
