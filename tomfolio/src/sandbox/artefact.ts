@@ -24,7 +24,11 @@ import { initScene, type GlScene } from "../gl/scene";
 import { pressFrag } from "../directions/press/art";
 import { PALETTES, COLORS } from "../palettes";
 import { SAMPLES, sampleSrc } from "../samples";
-import { EASES, FPS_MODES, FPS_LABELS, DEFAULT_MOTION, applyFps } from "../system/motion";
+import { EASES, FPS_MODES, FPS_LABELS, DEFAULT_MOTION, applyFps, type FpsMode } from "../system/motion";
+import {
+  loadTreatments, scheduleStore, storeDirty, markStoreClean, downloadTreatments, clearLocalTreatments,
+  type StoreState,
+} from "./treatments";
 
 const params = new URLSearchParams(window.location.search);
 const reduced =
@@ -276,18 +280,23 @@ const isPinned = (key: string): boolean => Object.prototype.hasOwnProperty.call(
 function persistLook(): void {
   if (isPinned(look.image)) imageParams[look.image] = snapshotParams();
   else general = snapshotParams();
+  pushStore(); // debounced crash-pad write (treatments store)
 }
 // Load an image's treatment: its written config if any, else the general menu config.
 function applyImageParams(key: string): void {
   Object.assign(look, imageParams[key] ?? general);
   refreshControls?.();
 }
-function pinCurrentImageParams(): void { imageParams[look.image] = snapshotParams(); } // give this image its own config
+function pinCurrentImageParams(): void { // give this image its own config
+  imageParams[look.image] = snapshotParams();
+  pushStore();
+}
 function clearCurrentImageParams(): void { // drop it → back to the general menu config
   delete imageParams[look.image];
   Object.assign(look, general);
   refreshControls?.();
   if (scene) pushTreatment();
+  pushStore();
 }
 
 // Reveal: smoothly crossfade the dither <-> full-res photo AND ramp the cell
@@ -311,6 +320,40 @@ function clearCurrentImageParams(): void { // drop it → back to the general me
 // `motion` stays page-local mutable state, driven by the dev-bar Motion group.
 const motion = { ...DEFAULT_MOTION };
 const mEase = (): string => EASES[motion.easeIdx][1];
+
+// ---- Durable treatments -------------------------------------------------------
+// src/samples/treatments.json (committed) is the source of truth; a localStorage
+// crash-pad survives mid-session reloads. Boot arbitrates the two (revision tag),
+// merges into the compiled defaults, and restores general / pinned images /
+// motion / last-viewed image. Every edit funnels through pushStore (debounced).
+const VALID_IMAGE_KEYS: ReadonlySet<string> = new Set([...SAMPLES.map((s) => s.key), "field"]);
+const bootTreatments = loadTreatments(snapshotParams(), VALID_IMAGE_KEYS);
+general = bootTreatments.general;
+Object.assign(imageParams, bootTreatments.images);
+const imageNotes: Record<string, string> = bootTreatments.notes;
+if (bootTreatments.motion) {
+  const m = bootTreatments.motion;
+  const ei = EASES.findIndex(([, e]) => e === m.ease);
+  if (ei >= 0) motion.easeIdx = ei;
+  if (Number.isFinite(m.dur)) motion.dur = Math.min(5, Math.max(0.05, m.dur));
+  if ((FPS_MODES as readonly string[]).includes(m.fps)) motion.fps = m.fps as FpsMode;
+}
+if (bootTreatments.image) look.image = bootTreatments.image;
+Object.assign(look, imageParams[look.image] ?? general);
+
+const storeState = (): StoreState => ({
+  image: look.image,
+  motion: { ease: mEase(), dur: motion.dur, fps: motion.fps },
+  general,
+  images: imageParams,
+  notes: imageNotes,
+  sourceOf: (key) => (key === "field" ? undefined : sampleSrc(key)?.split("/").pop()),
+});
+let onStoreChanged: (() => void) | null = null; // dev-bar store-status refresh hook
+function pushStore(): void {
+  scheduleStore(storeState, bootTreatments.fileSavedAt);
+  onStoreChanged?.();
+}
 
 // A small live ease preview: an inline SVG plotting the selected GSAP ease, with
 // a playhead dot that runs the curve in real time (looping at the chosen
@@ -492,6 +535,7 @@ try {
     applyFps(motion.fps, reduced); // apply the default frame cadence (motion.fps) on load, not just on dev-bar change
     pushImageOn(); // field until the first image loads
     goImage(look.image); // form the portrait
+    markStoreClean(storeState()); // boot state == the checkpoint; only real edits read as unsaved
   } else {
     throw new Error("nogl");
   }
@@ -758,6 +802,8 @@ const HELP: Record<string, string> = {
   "Save to image": "Give this image its own config (a copy of the current settings). Until then it follows the general menu settings, which apply to every image without its own config.",
   "Reset image": "Drop this image's config — back to the general menu settings.",
   "Copy JSON": "Copy every setting as JSON to the clipboard.",
+  Store: "Treatments store state: file \u00b7 synced (committed treatments.json is current) or local \u00b7 unsaved (edits not yet downloaded + committed).",
+  "Download treatments": "Download treatments.json \u2014 drop it into src/samples/ and commit. The committed file is the durable source of truth (and the future CMS seed).",
 };
 
 function buildDevBar(): void {
@@ -1323,6 +1369,7 @@ function buildDevBar(): void {
     pinStat.style.padding = pinned ? "0 4px" : "";
   };
   syncers.push(updatePinStatus); // re-evaluate on image switch (refreshControls runs syncers)
+  updatePinStatus();
   const pinBtn = document.createElement("button");
   pinBtn.type = "button";
   pinBtn.textContent = "Save to image";
@@ -1390,13 +1437,13 @@ function buildDevBar(): void {
   // FPS cadence (Cine 24 / Fluid uncapped), and a live preview of the ease.
   const mo = group("Motion");
   const ease = easeGraph();
-  select(mo, "Ease", EASES.map((e) => e[0]), () => motion.easeIdx, (i) => { motion.easeIdx = i; }, () => ease.update());
+  select(mo, "Ease", EASES.map((e) => e[0]), () => motion.easeIdx, (i) => { motion.easeIdx = i; pushStore(); }, () => ease.update());
   stepper(mo, "Duration", () => `${motion.dur.toFixed(2)}s`,
-    () => { motion.dur = Math.max(0.05, +(motion.dur - 0.05).toFixed(2)); },
-    () => { motion.dur = Math.min(5, +(motion.dur + 0.05).toFixed(2)); },
+    () => { motion.dur = Math.max(0.05, +(motion.dur - 0.05).toFixed(2)); pushStore(); },
+    () => { motion.dur = Math.min(5, +(motion.dur + 0.05).toFixed(2)); pushStore(); },
     () => ease.update());
   select(mo, "FPS", FPS_LABELS, () => FPS_MODES.indexOf(motion.fps),
-    (i) => { motion.fps = FPS_MODES[i]; applyFps(motion.fps, reduced); });
+    (i) => { motion.fps = FPS_MODES[i]; applyFps(motion.fps, reduced); pushStore(); });
   mo.appendChild(ease.svg);
   ease.update();
 
@@ -1465,6 +1512,30 @@ function buildDevBar(): void {
   boundToggle("Canvas edge", "showCanvas", "uShowCanvas");
   boundToggle("Image edge", "showImage", "uShowImage");
   boundToggle("Mask edge", "showCloud", "uShowCloud");
+  // Treatments checkpoint: the store status row shows whether the working copy
+  // is ahead of the committed file; Download writes treatments.json (drop into
+  // src/samples/ + commit = the durable checkpoint and the future CMS seed).
+  const storeStat = document.createElement("span");
+  storeStat.className = "art-ctl-v is-name";
+  ctl(output, "Store", storeStat);
+  const updateStoreStatus = (): void => {
+    const dirty = storeDirty(storeState());
+    storeStat.textContent = dirty ? "local · unsaved" : `${bootTreatments.source} · synced`;
+    storeStat.style.background = dirty ? "#f4efdd" : "";
+    storeStat.style.color = dirty ? "#14121a" : "";
+    storeStat.style.padding = dirty ? "0 4px" : "";
+  };
+  onStoreChanged = updateStoreStatus;
+  updateStoreStatus();
+  const dl = document.createElement("button");
+  dl.type = "button";
+  dl.textContent = "Download treatments";
+  dl.addEventListener("click", () => {
+    downloadTreatments(storeState());
+    updateStoreStatus();
+    flash(dl, "Saved ✓");
+  });
+  action(output, dl);
   // Copy a full, reload-restorable snapshot of the settings as JSON. Clipboard
   // first; if that's blocked, drop into a prompt() so it's still selectable/copyable.
   const copy = document.createElement("button");
@@ -1542,5 +1613,15 @@ function buildDevBar(): void {
 if (params.has("dev")) buildDevBar();
 
 if (import.meta.env.DEV) {
-  Object.assign(window, { scene, look });
+  Object.assign(window, {
+    scene,
+    look,
+    // Test hook for the treatments store (artefact-check persistence run).
+    artefactStore: {
+      state: storeState,
+      clear: clearLocalTreatments,
+      source: (): string => bootTreatments.source,
+      push: (): void => pushStore(),
+    },
+  });
 }

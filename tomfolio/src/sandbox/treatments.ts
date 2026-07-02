@@ -152,12 +152,11 @@ function buildData(s: StoreState): TreatmentsData {
 }
 
 let debounceId: ReturnType<typeof setTimeout> | null = null;
-let dirty = false; // local ahead of the committed file?
+let cleanJson = ""; // canonical JSON of the last checkpointed state (dirty = value drift)
 
 /** Debounced crash-pad write. Call on every edit (persistLook / pin / clear /
  *  motion / notes). Tags the blob with the file revision it branched from. */
 export function scheduleStore(state: () => StoreState, fileSavedAt: string): void {
-  dirty = true;
   if (debounceId) clearTimeout(debounceId);
   debounceId = setTimeout(() => {
     debounceId = null;
@@ -168,13 +167,23 @@ export function scheduleStore(state: () => StoreState, fileSavedAt: string): voi
   }, 400);
 }
 
-/** True when the working copy has edits not yet checkpointed to the file. */
-export const storeDirty = (): boolean => dirty;
+/** Capture the current state as the clean baseline. Call once when boot
+ *  completes (state == what file/local restored) and after each download. */
+export function markStoreClean(state: StoreState): void {
+  cleanJson = JSON.stringify(buildData(state));
+}
+
+/** True when the state has drifted from the last checkpoint — a VALUE compare,
+ *  so boot-path writes (same values) never read as unsaved edits. */
+export function storeDirty(state: StoreState): boolean {
+  return JSON.stringify(buildData(state)) !== cleanJson;
+}
 
 /** Download the checkpoint file. Drop it into src/samples/ and commit; the
  *  next boot rebases the crash-pad onto the new revision. */
 export function downloadTreatments(state: StoreState): void {
   const data = buildData(state);
+  markStoreClean(state); // checkpointed (pending the drop+commit, which reboots anyway)
   data.savedAt = new Date().toISOString();
   const blob = new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json" });
   const a = document.createElement("a");
@@ -182,11 +191,9 @@ export function downloadTreatments(state: StoreState): void {
   a.download = "treatments.json";
   a.click();
   URL.revokeObjectURL(a.href);
-  dirty = false; // checkpointed (pending the drop+commit, which reboots anyway)
 }
 
 /** Dev/test hook: wipe the crash-pad (next boot reads the file). */
 export function clearLocalTreatments(): void {
   try { localStorage.removeItem(LOCAL_KEY); } catch { /* ignore */ }
-  dirty = false;
 }
