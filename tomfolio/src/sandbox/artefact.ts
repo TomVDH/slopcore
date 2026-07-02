@@ -24,6 +24,7 @@ import { initScene, type GlScene } from "../gl/scene";
 import { pressFrag } from "../directions/press/art";
 import { PALETTES, COLORS } from "../palettes";
 import { SAMPLES, sampleSrc } from "../samples";
+import { EASES, FPS_MODES, FPS_LABELS, DEFAULT_MOTION, applyFps } from "../system/motion";
 
 const params = new URLSearchParams(window.location.search);
 const reduced =
@@ -306,27 +307,10 @@ function clearCurrentImageParams(): void { // drop it → back to the general me
 // fast attack, then a long deceleration that settles into the final frame, so
 // the motion lands instead of gliding (matches the collapse's easeOutQuint). The
 // list leans ease-out (slow into the end), plus a couple of comparison curves.
-const EASES: ReadonlyArray<readonly [string, string]> = [
-  ["Cubic out", "power2.out"],
-  ["Quart out", "power3.out"],
-  ["Quint out", "power4.out"],
-  ["Expo out", "expo.out"],
-  ["Circ out", "circ.out"],
-  ["Quint inout", "power4.inOut"],
-  ["Back out", "back.out(1.6)"],
-];
-const motion = { easeIdx: 5, dur: 0.6, fps: "commo" as "fluid" | "cine" | "commo" }; // Quint inout, 0.6s, Commo 17fps
+// Ease list + FPS presets live in the system motion vocabulary (system/motion.ts);
+// `motion` stays page-local mutable state, driven by the dev-bar Motion group.
+const motion = { ...DEFAULT_MOTION };
 const mEase = (): string => EASES[motion.easeIdx][1];
-
-// FPS presets cap the gsap ticker (which drives the whole render loop): Cine = a
-// filmic 24fps; Commo = a deliberately choppy 17fps (retro low-end cadence);
-// Fluid = uncapped. No-op under reduced motion (no loop).
-const FPS_MODES = ["fluid", "cine", "commo"] as const;
-const FPS_LABELS = ["Fluid", "Cine", "Commo"];
-function applyFps(): void {
-  if (reduced) return;
-  gsap.ticker.fps(motion.fps === "cine" ? 24 : motion.fps === "commo" ? 17 : 240); // 240 ≈ uncapped
-}
 
 // A small live ease preview: an inline SVG plotting the selected GSAP ease, with
 // a playhead dot that runs the curve in real time (looping at the chosen
@@ -505,7 +489,7 @@ try {
     scene.setParam("uDrift", 0.03);
     scene.setParam("uCrossOn", 0);
     pushTreatment();
-    applyFps(); // apply the default frame cadence (motion.fps) on load, not just on dev-bar change
+    applyFps(motion.fps, reduced); // apply the default frame cadence (motion.fps) on load, not just on dev-bar change
     pushImageOn(); // field until the first image loads
     goImage(look.image); // form the portrait
   } else {
@@ -1410,7 +1394,7 @@ function buildDevBar(): void {
     () => { motion.dur = Math.min(5, +(motion.dur + 0.05).toFixed(2)); },
     () => ease.update());
   select(mo, "FPS", FPS_LABELS, () => FPS_MODES.indexOf(motion.fps),
-    (i) => { motion.fps = FPS_MODES[i]; applyFps(); });
+    (i) => { motion.fps = FPS_MODES[i]; applyFps(motion.fps, reduced); });
   mo.appendChild(ease.svg);
   ease.update();
 
