@@ -34,6 +34,13 @@ export interface GlScene {
    * peak. Fine-pointer + motion only (a no-op under reduced motion, frame loop off).
    */
   cursorBurst(peak?: number, holdMs?: number, radius?: number): void;
+  /**
+   * Tear the scene down: unhook the gsap ticker + window listeners and free
+   * all GPU resources (renderer, quad, material, textures). Required for
+   * mount/unmount consumers like <dither-plate>; long-lived pages (hero,
+   * artefact) never need to call it. Idempotent.
+   */
+  dispose(): void;
 }
 
 export function initScene(
@@ -175,7 +182,13 @@ export function initScene(
     depthWrite: false,
   });
 
-  scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  scene.add(new THREE.Mesh(geometry, material));
+
+  // One controller aborts every window listener this scene registers, so
+  // dispose() cannot leave a stray handler rendering into a dead context.
+  const listeners = new AbortController();
+  let disposed = false;
 
   let running = true;
   let firstFrameDone!: () => void;
@@ -228,11 +241,12 @@ export function initScene(
         lastY = e.clientY;
         lastT = now;
       },
-      { passive: true },
+      { passive: true, signal: listeners.signal },
     );
   }
 
   function render(elapsed: number) {
+    if (disposed) return;
     uniforms.uTime.value = elapsed;
     renderer.render(scene, camera);
   }
@@ -285,8 +299,9 @@ export function initScene(
   rendered = true;
   firstFrameDone();
 
+  const tickerCb = (time: number, deltaTime: number): void => frame(time, deltaTime);
   if (!reducedMotion) {
-    gsap.ticker.add((time, deltaTime) => frame(time, deltaTime));
+    gsap.ticker.add(tickerCb);
   }
 
   function resize() {
@@ -295,7 +310,7 @@ export function initScene(
     uniforms.uRes.value.set(w * pixelRatio, h * pixelRatio);
     render(reducedMotion ? 20.0 : gsap.ticker.time);
   }
-  window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("resize", resize, { passive: true, signal: listeners.signal });
 
   return {
     ready,
@@ -336,6 +351,20 @@ export function initScene(
       burstPeak = peak;
       burstRadius = radius;
       burstMs = holdMs;
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      gsap.ticker.remove(tickerCb); // harmless no-op under reduced motion (never added)
+      listeners.abort(); // pointermove + resize
+      const texA = uniforms.uImage.value;
+      const texB = uniforms.uImage2.value;
+      if (texA && texA !== placeholder) texA.dispose();
+      if (texB && texB !== placeholder) texB.dispose();
+      placeholder.dispose();
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
     },
   };
 
