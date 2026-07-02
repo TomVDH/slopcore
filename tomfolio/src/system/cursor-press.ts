@@ -106,7 +106,7 @@ export interface PressCursorOptions {
   suppressStamps?: string;
   /** Selector inside root whose hover grows the cursor (shelf tiles). */
   hoverTargets?: string;
-  /** Triple-click hook (the artefact wires scene.cursorBurst). */
+  /** Optional triple-click hook (unused by default; recoil still fires). */
   onTripleClick?: (e: MouseEvent) => void;
 }
 

@@ -638,15 +638,14 @@ if (scene) {
 
 /* ---- PULSE cursor — 10×10 block via the system cursor-press engine ---- */
 /* The shipped composition: PULSE (1.8× recoil + 3 stamps staggered every f2,
-   all cut at f12); no hover grow; stamps + triple-click gated off the dev bar
-   (recoil still fires everywhere). Triple-click blooms the shader cursor. */
+   all cut at f12); no hover grow; stamps gated off the dev bar (recoil still
+   fires everywhere). */
 if (!reduced) {
   const pressCursor = initPressCursor({
     variant: "pulse",
     cursorClass: "art-cursor", // existing CSS + z-index stack untouched
     stampClass: "art-stamp",
     suppressStamps: ".art-dev",
-    onTripleClick: () => scene?.cursorBurst(1.0, 300, 0.8), // full strength, 300ms, big disc
   });
   if (pressCursor) document.body.classList.add("art-has-cursor");
 }
