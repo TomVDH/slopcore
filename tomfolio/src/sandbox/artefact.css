@@ -28,12 +28,11 @@ body.art {
   cursor: default;
 }
 
-/* The framed plate: 10px ink-coloured margin on all sides. */
+/* The framed plate: 10px ink-coloured margin on all sides. Surface = system
+   .plate (ground == shader paper); the fixed inset is page policy. */
 .art-frame {
   position: fixed;
   inset: 10px;
-  overflow: hidden;
-  background: var(--ground); /* colorway paper; must == the shader's paper to blend */
 }
 
 /* The corner plate. The shader (uFadeMode) dissolves the marks into the
