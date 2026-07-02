@@ -1,0 +1,22 @@
+/**
+ * Colorway bridge — the CSS variable contract between the palette system
+ * (src/palettes.ts PALETTE_DATA, 54 colorways) and any page or component.
+ *
+ * setColorway() (system/colorway.ts) writes these four vars onto a root
+ * element (body by default, or a scoped element such as a <dither-plate>).
+ * Until it runs, they fall back to the brand-neutral system tokens, so any
+ * component written against them renders sensibly with no JS.
+ *
+ *   --ground      colorway paper   (page/plate ground)
+ *   --ink         colorway ink     (marks, text, frame margin)
+ *   --art-cursor  cursor colour    (matches the font colour, i.e. the ink)
+ *   --art-accent  colorway accent  (palette-specific; distinct from the
+ *                                   palette-blind brand --accent)
+ */
+
+:root {
+  --ground: var(--bg);
+  --ink: var(--fg);
+  --art-cursor: var(--ink);
+  --art-accent: var(--accent);
+}

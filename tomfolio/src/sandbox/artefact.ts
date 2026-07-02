@@ -16,7 +16,7 @@
  * the ground.
  */
 
-import "../system"; // token + base/component CSS side effects (no custom cursor)
+import { setColorway } from "../system"; // token + base/component CSS side effects (no custom cursor)
 import "./artefact.css";
 
 import { gsap } from "gsap";
@@ -209,16 +209,9 @@ function pushXfade(): void {
 }
 
 function applyColorwayChrome(i: number): void {
-  const pal = PALETTES[i] ?? PALETTES[10];
-  document.body.style.setProperty("--ground", pal.paper);
-  document.body.style.setProperty("--ink", pal.ink);
-  // Cursor matches the FONT colour (the colorway ink), per palette — Heather =
-  // cream. Dedicated --art-cursor token, separate from the system brand --accent.
-  document.body.style.setProperty("--art-cursor", pal.ink);
-  // The colorway's OWN accent (Heather = mauve #c68d9a), as a dedicated token —
-  // separate from the system brand --accent (#e61919 red), which is palette-blind.
-  document.body.style.setProperty("--art-accent", pal.accent);
-  // Frame margin (the body bg showing around the plate): body ink, or the colorway accent.
+  setColorway(i); // system bridge: --ground/--ink/--art-cursor/--art-accent on body
+  // Frame margin (the body bg showing around the plate): body ink, or the colorway
+  // accent. Page policy, deliberately NOT part of the system setColorway.
   document.body.style.background = look.marginAccent ? "var(--art-accent)" : "var(--ink)";
 }
 
