@@ -574,3 +574,11 @@ body.art {
   color: #14121a;
   border-color: #f4efdd;
 }
+
+/* Readout line under the source thumb (histogram mode): mean + clip stats. */
+.art-thumb-note {
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  color: rgba(244, 239, 221, 0.62);
+  margin: -2px 0 2px;
+}

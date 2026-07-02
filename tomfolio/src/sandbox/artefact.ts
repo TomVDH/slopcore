@@ -803,6 +803,7 @@ const HELP: Record<string, string> = {
   "Reset image": "Drop this image's config — back to the general menu settings.",
   "Copy JSON": "Copy every setting as JSON to the clipboard.",
   "Copy look": "Stash this image's full treatment on an in-session clipboard.",
+  "Suggest B/C": "Auto-levels suggestion: measures the photo's 2nd/98th luma percentiles and sets Brightness/Contrast so they land at 0.08/0.92. A starting point \u2014 tweak after. Never touches Invert.",
   "Paste look": "Apply the stashed treatment here \u2014 writes to this image's config if pinned, else to the general settings.",
   Store: "Treatments store state: file \u00b7 synced (committed treatments.json is current) or local \u00b7 unsaved (edits not yet downloaded + committed).",
   "Download treatments": "Download treatments.json \u2014 drop it into src/samples/ and commit. The committed file is the durable source of truth (and the future CMS seed).",
@@ -1314,7 +1315,60 @@ function buildDevBar(): void {
     thumbCtx.filter = `brightness(${b.toFixed(3)}) contrast(${Math.max(0, look.contrast).toFixed(3)})`;
     try { thumbCtx.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); } catch { /* ignore */ }
     thumbCtx.filter = "none";
+    if (histOn) drawThumbOverlays(px, py, pw, ph);
   };
+  // ---- Histogram / matching overlays (click the thumb to toggle) ----
+  // Luma histogram of the GRADED crop (what the dither actually reads), a clip
+  // readout, the plate boundary, and the fade anchor — all drawn over the thumb.
+  let histOn = false;
+  const histStat = document.createElement("div");
+  histStat.className = "art-thumb-note";
+  histStat.hidden = true;
+  image.appendChild(histStat);
+  const drawThumbOverlays = (px: number, py: number, pw: number, ph: number): void => {
+    if (!thumbCtx) return;
+    // Histogram from the drawn thumb region (already fit/pos/zoom + B/C graded).
+    let data: ImageData;
+    try { data = thumbCtx.getImageData(0, 0, imgThumb.width, imgThumb.height); } catch { return; }
+    const bins = new Array<number>(64).fill(0);
+    let n = 0, sum = 0, lo = 0, hi = 0;
+    const d = data.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue; // bare ground (letterbox/off-edge), not image
+      const l = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+      bins[Math.min(63, Math.floor(l * 64))]++;
+      sum += l; n++;
+      if (l <= 0.008) lo++; else if (l >= 0.992) hi++;
+    }
+    if (!n) { histStat.textContent = "no image"; return; }
+    const peak = Math.max(...bins);
+    // Bars over the lower band, cream translucent (readable on any photo).
+    const bandH = imgThumb.height * 0.42;
+    thumbCtx.fillStyle = "rgba(244, 239, 221, 0.75)";
+    const bw = imgThumb.width / 64;
+    for (let i = 0; i < 64; i++) {
+      const h = (bins[i] / peak) * bandH;
+      thumbCtx.fillRect(i * bw, imgThumb.height - h, Math.max(bw - 0.5, 0.5), h);
+    }
+    // Plate boundary + fade anchor (shader v=0 == plate bottom).
+    thumbCtx.strokeStyle = "rgba(57, 255, 20, 0.9)"; // fluo green, matches uShowCanvas
+    thumbCtx.lineWidth = 1;
+    thumbCtx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+    if (look.fadeMode > 0) {
+      thumbCtx.fillStyle = "rgba(255, 60, 172, 0.95)"; // fluo magenta dot
+      thumbCtx.beginPath();
+      thumbCtx.arc(px + look.fadePosX * pw, py + (1 - look.fadePosY) * ph, 2.5, 0, Math.PI * 2);
+      thumbCtx.fill();
+    }
+    histStat.textContent = `mean ${(sum / n).toFixed(2)} · clip ${((lo / n) * 100).toFixed(1)}%/${((hi / n) * 100).toFixed(1)}%`;
+  };
+  imgThumb.style.cursor = "pointer";
+  imgThumb.title = "Toggle histogram + plate/fade markers";
+  imgThumb.addEventListener("click", () => {
+    histOn = !histOn;
+    histStat.hidden = !histOn;
+    drawSourceThumb();
+  });
   onImageChange = drawSourceThumb;
   drawSourceThumb();
   window.setInterval(drawSourceThumb, 160); // keep it live (reflects Fit/Pos/Zoom/B/C)
@@ -1337,6 +1391,41 @@ function buildDevBar(): void {
   stepper(image, "Contrast", () => look.contrast.toFixed(2),
     () => { look.contrast = Math.max(0.1, +(look.contrast - 0.1).toFixed(2)); },
     () => { look.contrast = Math.min(5, +(look.contrast + 0.1).toFixed(2)); });
+  // Auto-levels SUGGESTION: measure the raw photo's p2/p98 luma percentiles and
+  // invert the shader grade (adj = (l-.5)·C + .5 + B) so they land on 0.08/0.92.
+  // Whole-frame measure (not the crop) — a starting point, tweakable after; never
+  // touches Invert (palette-owned, see resolveAuto).
+  const suggestBtn = document.createElement("button");
+  suggestBtn.type = "button";
+  suggestBtn.textContent = "Suggest B/C";
+  suggestBtn.addEventListener("click", () => {
+    const im = curImageEl;
+    if (!im || !im.naturalWidth) { flash(suggestBtn, "No image"); return; }
+    const mc = document.createElement("canvas");
+    mc.width = 96; mc.height = 64;
+    const mctx = mc.getContext("2d");
+    if (!mctx) return;
+    mctx.drawImage(im, 0, 0, mc.width, mc.height);
+    let data: ImageData;
+    try { data = mctx.getImageData(0, 0, mc.width, mc.height); } catch { return; }
+    const lums: number[] = [];
+    const d = data.data;
+    for (let i = 0; i < d.length; i += 4) {
+      lums.push((0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255);
+    }
+    lums.sort((a, b) => a - b);
+    const p2 = lums[Math.floor(lums.length * 0.02)];
+    const p98 = lums[Math.floor(lums.length * 0.98)];
+    if (p98 - p2 < 0.02) { flash(suggestBtn, "Flat image"); return; } // degenerate
+    const C = Math.min(5, Math.max(0.1, 0.84 / (p98 - p2)));
+    const B = Math.min(1, Math.max(-1, -((p2 + p98) / 2 - 0.5) * C));
+    look.contrast = +C.toFixed(2);
+    look.brightness = +B.toFixed(2);
+    refreshControls?.();
+    if (scene) pushTreatment();
+    flash(suggestBtn, `B ${look.brightness} · C ${look.contrast}`);
+  });
+  action(image, suggestBtn);
   const invertCtl = cycle3(image, "Invert", ["Off", "On", "Auto"], () => look.invertMode, (i) => { look.invertMode = i; });
   // Auto status (shown only in Auto mode): whether Auto inverted, and why — the
   // palette stock. "ON · dark" inverts on a dark-paper colorway; "OFF · light".
