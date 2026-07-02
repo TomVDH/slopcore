@@ -342,14 +342,15 @@ body.art {
   appearance: none;
   width: 100%;
   margin: 0;
-  padding: 2px 0;
+  padding: 3px 0;
   border: 0;
+  border-bottom: 1px solid rgba(244, 239, 221, 0.12);
   background: none;
   text-align: left;
-  font: 600 0.55rem var(--font-mono, ui-monospace, monospace);
-  letter-spacing: 0.22em;
+  font: 700 0.66rem var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(244, 239, 221, 0.42);
+  color: rgba(244, 239, 221, 0.78);
   cursor: pointer;
   transition: color 0.15s ease;
 }
@@ -655,4 +656,81 @@ body.art {
   background: var(--ink);
   color: var(--ground);
   padding: 0 4px;
+}
+
+
+/* ---- Dev-bar polish (2026-07-01) -------------------------------------- */
+
+/* Group-header reset: appears on group hover, top-right of the header row. */
+.art-group {
+  position: relative;
+}
+.art-group-r {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  z-index: 1;
+  appearance: none;
+  margin: 0;
+  padding: 1px 5px;
+  border: 0;
+  background: none;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: rgba(244, 239, 221, 0.35);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.art-group:hover .art-group-r,
+.art-group-r:focus-visible {
+  opacity: 1;
+}
+.art-group-r:hover {
+  color: #f4efdd;
+}
+.art-group.is-folded .art-group-r {
+  display: none;
+}
+
+/* Sub-divider: a quiet run label inside a group (Fade: Shape / Edge taper /
+   Cloud texture). Follows the run's is-na grey-out. */
+.art-sub {
+  margin: 7px 0 -2px;
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 221, 0.34);
+}
+.art-sub.is-na {
+  opacity: 0.32;
+}
+
+/* Drag-to-scrub affordance: the value reads as manipulable — dashed underline
+   that firms up on hover (cursor alone was invisible). */
+.art-ctl-v-drag {
+  border-bottom: 1px dashed rgba(244, 239, 221, 0.24);
+}
+.art-ctl-v-drag:hover {
+  border-bottom-color: rgba(244, 239, 221, 0.7);
+  background: rgba(244, 239, 221, 0.05);
+}
+
+/* Click-to-type inline editor (num controls). */
+.art-num-in {
+  width: 52px;
+  background: rgba(244, 239, 221, 0.08);
+  border: 1px solid rgba(244, 239, 221, 0.4);
+  color: #f4efdd;
+  font: inherit;
+  font-size: 0.62rem;
+  text-align: center;
+  padding: 1px 3px;
+}
+
+/* Keyboard focus: visible rings on every dev-bar control. */
+.art-dev :is(button, select, input):focus-visible {
+  outline: 1px solid rgba(244, 239, 221, 0.65);
+  outline-offset: 1px;
 }

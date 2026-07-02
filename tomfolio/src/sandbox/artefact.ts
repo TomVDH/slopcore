@@ -330,7 +330,8 @@ const mEase = (): string => EASES[motion.easeIdx][1];
 // merges into the compiled defaults, and restores general / pinned images /
 // motion / last-viewed image. Every edit funnels through pushStore (debounced).
 const VALID_IMAGE_KEYS: ReadonlySet<string> = new Set([...SAMPLES.map((s) => s.key), "field"]);
-const bootTreatments = loadTreatments(snapshotParams(), VALID_IMAGE_KEYS);
+const COMPILED_DEFAULTS = snapshotParams(); // the `look` literal, pre-treatments — group resets restore these
+const bootTreatments = loadTreatments(COMPILED_DEFAULTS, VALID_IMAGE_KEYS);
 general = bootTreatments.general;
 Object.assign(imageParams, bootTreatments.images);
 const imageNotes: Record<string, string> = bootTreatments.notes;
@@ -746,13 +747,13 @@ const HELP: Record<string, string> = {
   Width: "Plate box width as a % of the viewport (full height). The photo fits into this box via Image > Fit / Pos.",
   Type: "The mask: Off (no dissolve / full-bleed), Simple (radial gradient), or the animated Cloud.",
   Margin: "Colour of the frame margin around the plate: the body ink, or the colorway's own accent.",
-  "Billow X": "Cloud billow size across — lower = bigger, softer billows.",
-  "Billow Y": "Cloud billow size vertically (independent stretch).",
+  "Billow X": "Size of the cloud shapes across the plate — lower = bigger, softer billows; higher = smaller, busier ones.",
+  "Billow Y": "Size of the cloud shapes vertically — stretch the billows taller or flatter, independent of X.",
   Noise: "Mask noise: FBM (billowy), Ridged (Musgrave creases), Voronoi (cells), Turbulence (smoky), Cracks (Worley veins).",
-  Warp: "Domain-warp the noise — swirls the mask into more organic, turbulent shapes (works on any Noise type).",
-  "Cloud width": "Horizontal extent of the cloud layer, independent of the image width — stretch the dissolve + texture wider/narrower than the photo.",
+  Warp: "Distorts the cloud into swirlier, more chaotic shapes — 0 = clean pattern, higher = turbulent. Works with any Noise type.",
+  "Cloud width": "Stretches the cloud layer wider or narrower than the photo — the dissolve texture scales on its own, without moving the image.",
   "Cloud anim": "Scroll the cloud sideways, or hold it static.",
-  "Cloud speed": "How fast the cloud drifts when animated.",
+  "Cloud speed": "How fast the cloud texture drifts sideways while Cloud anim is on. 0 = perfectly still.",
   "Fade X": "Move the dissolve's anchor left/right (0 = left edge).",
   "Fade Y": "Move the dissolve's anchor down/up (0 = bottom edge).",
   Reach: "Dissolve REACH (size) — how far the fade extends from the anchor before it's fully gone. Bigger = more of the plate stays solid; smaller = dissolves closer in.",
@@ -777,11 +778,11 @@ const HELP: Record<string, string> = {
   Falloff: "Cursor disc falloff rate — LOWER = bigger / softer disc, higher = tighter.",
   Hold: "Static floor so the effect persists when the pointer stops.",
   Hardness: "Negative cursor mode: hardness of the polarity-flip edge.",
-  Stage: "Where the finer develop dither ramps in during a press.",
+  Stage: "How far into a press the finer dither appears — low = right away at a light touch, high = only under a full press.",
   Resolve: "How fully a full press replaces base marks with fine dither.",
   Colorize: "Develop in mono (0) up to the photo's true colour (1).",
   Saturation: "Vibrance of the developed colour.",
-  Pop: "Local-contrast / unsharp boost in the develop region.",
+  Pop: "Punch up fine detail in the developed area (a local-contrast boost). 0 = off; higher = crunchier detail.",
   "Dev bright": "Brightness of the develop region (on top of the image grade).",
   "Dev contrast": "Contrast of the develop region (on top of the image grade).",
   Ease: "Easing curve for every transition.",
@@ -921,13 +922,24 @@ function buildDevBar(): void {
   let folded: Set<string>;
   try { folded = new Set(JSON.parse(localStorage.getItem(FOLD_STORE) || "[]") as string[]); }
   catch { folded = new Set(); }
-  const group = (label: string): HTMLElement => {
+  const group = (label: string, onReset?: () => void): HTMLElement => {
     const g = document.createElement("div");
     g.className = "art-group";
     const l = document.createElement("button");
     l.type = "button";
     l.className = "art-group-l";
     l.textContent = label;
+    if (onReset) {
+      // Header reset: restore this group's compiled defaults. Sits over the
+      // header's right edge; never toggles the fold.
+      const r = document.createElement("button");
+      r.type = "button";
+      r.className = "art-group-r";
+      r.textContent = "\u21ba";
+      r.title = `Reset ${label} to defaults`;
+      r.addEventListener("click", (e) => { e.stopPropagation(); onReset(); });
+      g.appendChild(r);
+    }
     const ctls = document.createElement("div");
     ctls.className = "art-group-ctls";
     g.classList.toggle("is-folded", folded.has(label));
@@ -1071,6 +1083,115 @@ function buildDevBar(): void {
     return ctl(into, label, grp);
   };
 
+  // A numeric [\u2212] value [+] control from a single spec — ONE place owns the
+  // clamp, step precision, display format (units), drag-to-scrub, and
+  // click-to-type. Replaces the hand-written Math.max/min ternaries per site.
+  interface NumSpec {
+    get: () => number;
+    set: (v: number) => void;
+    min: number;
+    max: number;
+    step: number;
+    fmt?: (v: number) => string; // display incl. units; default = trimmed number
+    parse?: (raw: string) => number; // typed-input parser (e.g. "71" % -> 0.71)
+    after?: () => void;
+  }
+  const num = (into: HTMLElement, label: string, spec: NumSpec): HTMLElement => {
+    const decimals = (String(spec.step).split(".")[1] ?? "").length;
+    const trim = (v: number): number => +v.toFixed(4); // strip float noise
+    const clamp = (v: number): number => Math.min(spec.max, Math.max(spec.min, v));
+    const show = (): string => (spec.fmt ? spec.fmt(spec.get()) : String(trim(spec.get())));
+    const commit = (): void => { pushTreatment(); val.textContent = show(); spec.after?.(); };
+    const stepBy = (dir: 1 | -1): void => {
+      spec.set(clamp(+(spec.get() + dir * spec.step).toFixed(decimals)));
+    };
+
+    const grp = document.createElement("div");
+    grp.className = "art-step";
+    const minus = document.createElement("button");
+    minus.type = "button";
+    minus.className = "art-step-b";
+    minus.textContent = "\u2212";
+    const val = document.createElement("span");
+    val.className = "art-ctl-v art-ctl-v-drag";
+    val.title = "drag to scrub \u00b7 click to type";
+    val.textContent = show();
+    syncers.push(() => { val.textContent = show(); });
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.className = "art-step-b";
+    plus.textContent = "+";
+    minus.addEventListener("click", () => { stepBy(-1); commit(); });
+    plus.addEventListener("click", () => { stepBy(1); commit(); });
+
+    // Click-to-type: a plain click (no scrub movement) swaps the value for an
+    // inline input. Enter/blur commits (parsed, clamped); Escape cancels.
+    const openEditor = (): void => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "art-num-in";
+      input.value = String(trim(spec.get()));
+      input.setAttribute("aria-label", `${label} value`);
+      val.style.display = "none";
+      val.after(input);
+      input.focus();
+      input.select();
+      let done = false;
+      const close = (apply: boolean): void => {
+        if (done) return;
+        done = true;
+        if (apply) {
+          const v = (spec.parse ?? parseFloat)(input.value);
+          if (Number.isFinite(v)) { spec.set(clamp(trim(v))); pushTreatment(); spec.after?.(); }
+        }
+        input.remove();
+        val.style.display = "";
+        val.textContent = show();
+      };
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") close(true);
+        else if (e.key === "Escape") close(false);
+      });
+      input.addEventListener("blur", () => close(true));
+    };
+
+    // Drag-to-scrub (\u22486px/step); a movement-free press falls through to the editor.
+    let scrubbing = false, x0 = 0, applied = 0, moved = false;
+    val.addEventListener("pointerdown", (e) => {
+      scrubbing = true; x0 = e.clientX; applied = 0; moved = false;
+      try { val.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      e.preventDefault();
+    });
+    val.addEventListener("pointermove", (e) => {
+      if (!scrubbing) return;
+      if (Math.abs(e.clientX - x0) > 3) moved = true;
+      const want = Math.round((e.clientX - x0) / 6);
+      let d = want - applied;
+      if (d === 0) return;
+      while (d > 0) { stepBy(1); d--; }
+      while (d < 0) { stepBy(-1); d++; }
+      applied = want;
+      commit();
+    });
+    val.addEventListener("pointerup", () => {
+      const wasClick = scrubbing && !moved && applied === 0;
+      scrubbing = false;
+      if (wasClick) openEditor();
+    });
+    val.addEventListener("pointercancel", () => { scrubbing = false; });
+    grp.append(minus, val, plus);
+    return ctl(into, label, grp);
+  };
+
+  // A slim in-group divider labelling a run of related controls.
+  const sub = (into: HTMLElement, text: string): HTMLElement => {
+    const d = document.createElement("div");
+    d.className = "art-sub";
+    d.textContent = text;
+    into.appendChild(d);
+    return d;
+  };
+
   // A two-state toggle button (On is filled to read as "active").
   const toggle = (
     into: HTMLElement,
@@ -1147,52 +1268,58 @@ function buildDevBar(): void {
     return row;
   };
 
+  // Per-group reset: restore the group's keys to the compiled `look` defaults,
+  // persisting through the normal edit path (works on pinned images + general).
+  const resetKeys = (keys: ReadonlyArray<string>, after?: () => void): void => {
+    const lk = look as unknown as Record<string, number>;
+    for (const k of keys) if (k in COMPILED_DEFAULTS) lk[k] = COMPILED_DEFAULTS[k];
+    refreshControls?.();
+    if (scene) pushTreatment();
+    after?.();
+  };
+
   // SCREEN — just the dither marks: motif, density (Cell), plate width, margin colour.
-  const screen = group("Screen");
+  const screen = group("Screen", () => resetKeys(
+    ["motif", "cell", "plateWidth", "marginAccent"],
+    () => fitCanvas(curImageEl),
+  ));
   addMotif(screen);
-  stepper(screen, "Cells", () => String(look.cell),
-    () => { look.cell = Math.max(16, look.cell - 12); },
-    () => { look.cell = Math.min(600, look.cell + 12); });
+  num(screen, "Cells", { get: () => look.cell, set: (v) => { look.cell = v; }, min: 16, max: 600, step: 12 });
   // Plate width: the plate box as a fraction of the viewport width (full height).
   // The photo fits into this box via Image > Fit / Pos. Re-sizes #gl (not a uniform).
-  stepper(screen, "Width", () => `${Math.round(look.plateWidth * 100)}%`,
-    () => { look.plateWidth = Math.max(0.2, +(look.plateWidth - 0.05).toFixed(2)); },
-    () => { look.plateWidth = Math.min(1, +(look.plateWidth + 0.05).toFixed(2)); },
-    () => fitCanvas(curImageEl));
+  num(screen, "Width", {
+    get: () => look.plateWidth, set: (v) => { look.plateWidth = v; },
+    min: 0.2, max: 1, step: 0.05,
+    fmt: (v) => `${Math.round(v * 100)}%`, parse: (raw) => parseFloat(raw) / 100,
+    after: () => fitCanvas(curImageEl),
+  });
   // Frame margin colour: the body (ink) or the colorway's own accent.
   select(screen, "Margin", ["Body", "Accent"], () => look.marginAccent, (i) => { look.marginAccent = i; });
 
   // FADE — everything about how the plate dissolves into the ground: mode (master
   // switch), the dissolve shape (anchor / reach / softness), the right-edge taper,
   // and (Cloud mode only) the cloud texture. Mode always shows; the rest gates off it.
-  const fade = group("Fade");
+  const fade = group("Fade", () => resetKeys(
+    ["fadeMode", "fadePosX", "fadePosY", "fadeReach", "fadeSoft", "edgeFade", "edgeCurve", "edgeDepth",
+      "cloudSize", "cloudSizeY", "noiseType", "fadeWarp", "cloudW", "cloudAnim", "cloudSpeed"],
+    () => { drawNoise(); refreshNA(); },
+  ));
   // Mode: Off (full-bleed), Simple (radial gradient), or the animated Cloud.
   select(fade, "Type", ["Off", "Simple", "Cloud"], () => look.fadeMode, (i) => { look.fadeMode = i; }, () => refreshNA());
   // Dissolve shape — position (anchor), size (Reach), Softness. Any fade mode.
-  const fadeXCtl = stepper(fade, "Fade X", () => look.fadePosX.toFixed(2),
-    () => { look.fadePosX = Math.max(-1, +(look.fadePosX - 0.05).toFixed(2)); },
-    () => { look.fadePosX = Math.min(2, +(look.fadePosX + 0.05).toFixed(2)); });
-  const fadeYCtl = stepper(fade, "Fade Y", () => look.fadePosY.toFixed(2),
-    () => { look.fadePosY = Math.max(-1, +(look.fadePosY - 0.05).toFixed(2)); },
-    () => { look.fadePosY = Math.min(2, +(look.fadePosY + 0.05).toFixed(2)); });
-  const fadeReachCtl = stepper(fade, "Reach", () => look.fadeReach.toFixed(2),
-    () => { look.fadeReach = Math.max(0.1, +(look.fadeReach - 0.05).toFixed(2)); },
-    () => { look.fadeReach = Math.min(8, +(look.fadeReach + 0.05).toFixed(2)); });
-  const fadeSoftCtl = stepper(fade, "Softness", () => look.fadeSoft.toFixed(2),
-    () => { look.fadeSoft = Math.max(0.05, +(look.fadeSoft - 0.05).toFixed(2)); },
-    () => { look.fadeSoft = Math.min(6, +(look.fadeSoft + 0.05).toFixed(2)); });
+  const subShape = sub(fade, "Shape");
+  const fadeXCtl = num(fade, "Fade X", { get: () => look.fadePosX, set: (v) => { look.fadePosX = v; }, min: -1, max: 2, step: 0.05 });
+  const fadeYCtl = num(fade, "Fade Y", { get: () => look.fadePosY, set: (v) => { look.fadePosY = v; }, min: -1, max: 2, step: 0.05 });
+  const fadeReachCtl = num(fade, "Reach", { get: () => look.fadeReach, set: (v) => { look.fadeReach = v; }, min: 0.1, max: 8, step: 0.05 });
+  const fadeSoftCtl = num(fade, "Softness", { get: () => look.fadeSoft, set: (v) => { look.fadeSoft = v; }, min: 0.05, max: 6, step: 0.05 });
   // Right-edge taper (part of the mask — shows when Fade ≠ Off): Feather (width) ·
   // Curve (ramp shape) · Depth (dissolve amount).
-  const featherCtl = stepper(fade, "Feather", () => look.edgeFade.toFixed(2),
-    () => { look.edgeFade = Math.max(0, +(look.edgeFade - 0.02).toFixed(2)); },
-    () => { look.edgeFade = Math.min(1, +(look.edgeFade + 0.02).toFixed(2)); });
-  const curveCtl = stepper(fade, "Curve", () => look.edgeCurve.toFixed(2),
-    () => { look.edgeCurve = Math.max(0.1, +(look.edgeCurve - 0.1).toFixed(2)); },
-    () => { look.edgeCurve = Math.min(10, +(look.edgeCurve + 0.1).toFixed(2)); });
-  const depthCtl = stepper(fade, "Depth", () => look.edgeDepth.toFixed(2),
-    () => { look.edgeDepth = Math.max(0, +(look.edgeDepth - 0.1).toFixed(2)); },
-    () => { look.edgeDepth = Math.min(1, +(look.edgeDepth + 0.1).toFixed(2)); });
+  const subTaper = sub(fade, "Edge taper");
+  const featherCtl = num(fade, "Feather", { get: () => look.edgeFade, set: (v) => { look.edgeFade = v; }, min: 0, max: 1, step: 0.02 });
+  const curveCtl = num(fade, "Curve", { get: () => look.edgeCurve, set: (v) => { look.edgeCurve = v; }, min: 0.1, max: 10, step: 0.1 });
+  const depthCtl = num(fade, "Depth", { get: () => look.edgeDepth, set: (v) => { look.edgeDepth = v; }, min: 0, max: 1, step: 0.1 });
   // Cloud texture (Cloud mode only): a live noise preview + its shape controls.
+  const subTexture = sub(fade, "Cloud texture");
   const noiseThumb = document.createElement("canvas");
   noiseThumb.className = "art-thumb";
   noiseThumb.width = 200;
@@ -1200,26 +1327,22 @@ function buildDevBar(): void {
   fade.appendChild(noiseThumb);
   const drawNoise = (): void => renderNoiseThumb(noiseThumb);
   drawNoise();
-  const cloudCtl = stepper(fade, "Billow X", () => look.cloudSize.toFixed(1),
-    () => { look.cloudSize = Math.max(0.5, +(look.cloudSize - 0.5).toFixed(1)); },
-    () => { look.cloudSize = Math.min(20, +(look.cloudSize + 0.5).toFixed(1)); }, drawNoise);
-  const cloudYCtl = stepper(fade, "Billow Y", () => look.cloudSizeY.toFixed(1),
-    () => { look.cloudSizeY = Math.max(0.5, +(look.cloudSizeY - 0.5).toFixed(1)); },
-    () => { look.cloudSizeY = Math.min(20, +(look.cloudSizeY + 0.5).toFixed(1)); }, drawNoise);
+  const cloudCtl = num(fade, "Billow X", { get: () => look.cloudSize, set: (v) => { look.cloudSize = v; }, min: 0.5, max: 20, step: 0.5, after: drawNoise });
+  const cloudYCtl = num(fade, "Billow Y", { get: () => look.cloudSizeY, set: (v) => { look.cloudSizeY = v; }, min: 0.5, max: 20, step: 0.5, after: drawNoise });
   const noiseCtl = select(fade, "Noise", ["FBM", "Ridged", "Voronoi", "Turbulence", "Cracks"], () => look.noiseType, (i) => { look.noiseType = i; }, drawNoise);
-  const warpCtl = stepper(fade, "Warp", () => look.fadeWarp.toFixed(2),
-    () => { look.fadeWarp = Math.max(0, +(look.fadeWarp - 0.1).toFixed(2)); },
-    () => { look.fadeWarp = Math.min(3, +(look.fadeWarp + 0.1).toFixed(2)); }, drawNoise);
-  const cloudWCtl = stepper(fade, "Cloud width", () => `${look.cloudW.toFixed(2)}×`,
-    () => { look.cloudW = Math.max(0.2, +(look.cloudW - 0.1).toFixed(2)); },
-    () => { look.cloudW = Math.min(5, +(look.cloudW + 0.1).toFixed(2)); }, drawNoise);
+  const warpCtl = num(fade, "Warp", { get: () => look.fadeWarp, set: (v) => { look.fadeWarp = v; }, min: 0, max: 3, step: 0.1, after: drawNoise });
+  const cloudWCtl = num(fade, "Cloud width", {
+    get: () => look.cloudW, set: (v) => { look.cloudW = v; },
+    min: 0.2, max: 5, step: 0.1, fmt: (v) => `${v.toFixed(2)}×`, after: drawNoise,
+  });
   const cloudAnimCtl = toggle(fade, "Cloud anim", () => !!look.cloudAnim, () => { look.cloudAnim ^= 1; });
-  const cloudSpeedCtl = stepper(fade, "Cloud speed", () => look.cloudSpeed.toFixed(2),
-    () => { look.cloudSpeed = Math.max(0, +(look.cloudSpeed - 0.02).toFixed(2)); },
-    () => { look.cloudSpeed = Math.min(2, +(look.cloudSpeed + 0.02).toFixed(2)); });
+  const cloudSpeedCtl = num(fade, "Cloud speed", { get: () => look.cloudSpeed, set: (v) => { look.cloudSpeed = v; }, min: 0, max: 2, step: 0.02 });
 
   // COLOUR — palette + full-colour mode (Levels only applies in full colour).
-  const colour = group("Colour");
+  const colour = group("Colour", () => resetKeys(
+    ["colorway", "colorDither", "colorLevels", "markBright"],
+    () => refreshNA(),
+  ));
   // Palette readout: three swatches (paper / ink / accent) of the CURRENT colorway,
   // so the chosen palette's colours are visible above the switcher. Display only.
   const chipsWrap = document.createElement("div");
@@ -1251,17 +1374,16 @@ function buildDevBar(): void {
   palRow.querySelector(".art-ctl-v")?.classList.add("is-name");
   toggle(colour, "Full colour", () => !!look.colorDither, () => { look.colorDither ^= 1; }, () => refreshNA());
   const colourMotifCtl = addMotif(colour); // mark shape, surfaced for full-colour
-  const levelsCtl = stepper(colour, "Levels", () => String(look.colorLevels),
-    () => { look.colorLevels = Math.max(2, look.colorLevels - 1); },
-    () => { look.colorLevels = Math.min(16, look.colorLevels + 1); });
+  const levelsCtl = num(colour, "Levels", { get: () => look.colorLevels, set: (v) => { look.colorLevels = v; }, min: 2, max: 16, step: 1 });
   // Mark brightness: brightens/darkens the dither mark colour itself (the palette
   // ink / colour dot), distinct from Image > Brightness which adjusts the source.
-  stepper(colour, "Mark bright", () => look.markBright.toFixed(2),
-    () => { look.markBright = Math.max(-1, +(look.markBright - 0.05).toFixed(2)); },
-    () => { look.markBright = Math.min(1, +(look.markBright + 0.05).toFixed(2)); });
+  num(colour, "Mark bright", { get: () => look.markBright, set: (v) => { look.markBright = v; }, min: -1, max: 1, step: 0.05 });
 
   // IMAGE — source photo tone.
-  const image = group("Image");
+  const image = group("Image", () => resetKeys(
+    ["fit", "posX", "posY", "zoom", "brightness", "contrast", "invertMode"],
+    () => refreshNA(),
+  ));
   // Image thumbnail (top of the group): the SOURCE photo, framed by the same
   // Fit / Pos / Zoom mapping the shader uses — NOT the dithered plate. (A dithered
   // mini goes nearly invisible on dark-paper palettes and hides what the photo is;
@@ -1372,22 +1494,15 @@ function buildDevBar(): void {
   // Fit + position: how the photo maps into the plate. Pos X/Y anchor the crop
   // (cover) or the letterbox placement (contain). 0,0 = bottom-left; 0.5 = centre.
   select(image, "Fit", ["Cover", "Contain"], () => look.fit, (i) => { look.fit = i; });
-  stepper(image, "Pos X", () => look.posX.toFixed(2),
-    () => { look.posX = Math.max(-1, +(look.posX - 0.1).toFixed(2)); },
-    () => { look.posX = Math.min(2, +(look.posX + 0.1).toFixed(2)); });
-  stepper(image, "Pos Y", () => look.posY.toFixed(2),
-    () => { look.posY = Math.max(-1, +(look.posY - 0.1).toFixed(2)); },
-    () => { look.posY = Math.min(2, +(look.posY + 0.1).toFixed(2)); });
+  num(image, "Pos X", { get: () => look.posX, set: (v) => { look.posX = v; }, min: -1, max: 2, step: 0.1 });
+  num(image, "Pos Y", { get: () => look.posY, set: (v) => { look.posY = v; }, min: -1, max: 2, step: 0.1 });
   // Zoom: scale the photo in/out within the plate, on top of Cover/Contain.
-  stepper(image, "Zoom", () => `${look.zoom.toFixed(2)}×`,
-    () => { look.zoom = Math.max(0.2, +(look.zoom - 0.1).toFixed(2)); },
-    () => { look.zoom = Math.min(5, +(look.zoom + 0.1).toFixed(2)); });
-  stepper(image, "Brightness", () => look.brightness.toFixed(2),
-    () => { look.brightness = Math.max(-1, +(look.brightness - 0.05).toFixed(2)); },
-    () => { look.brightness = Math.min(1, +(look.brightness + 0.05).toFixed(2)); });
-  stepper(image, "Contrast", () => look.contrast.toFixed(2),
-    () => { look.contrast = Math.max(0.1, +(look.contrast - 0.1).toFixed(2)); },
-    () => { look.contrast = Math.min(5, +(look.contrast + 0.1).toFixed(2)); });
+  num(image, "Zoom", {
+    get: () => look.zoom, set: (v) => { look.zoom = v; },
+    min: 0.2, max: 5, step: 0.1, fmt: (v) => `${v.toFixed(2)}×`,
+  });
+  num(image, "Brightness", { get: () => look.brightness, set: (v) => { look.brightness = v; }, min: -1, max: 1, step: 0.05 });
+  num(image, "Contrast", { get: () => look.contrast, set: (v) => { look.contrast = v; }, min: 0.1, max: 5, step: 0.1 });
   // Auto-levels SUGGESTION: measure the raw photo's p2/p98 luma percentiles and
   // invert the shader grade (adj = (l-.5)·C + .5 + B) so they land on 0.08/0.92.
   // Whole-frame measure (not the crop) — a starting point, tweakable after; never
@@ -1516,65 +1631,53 @@ function buildDevBar(): void {
 
   // CURSOR — how the pointer presses into the dither. Edge applies to Negative;
   // Detail + Colorize apply to Develop (others are hidden for the active mode).
-  const cursor = group("Cursor");
+  const cursor = group("Cursor", () => resetKeys(
+    ["cursorMode", "cursorAmp", "cursorRadius", "cursorHold", "cursorEdge"],
+    () => refreshNA(),
+  ));
   select(cursor, "Mode", CURSOR_MODES, () => look.cursorMode, (i) => { look.cursorMode = i; }, () => refreshNA());
   const cursorMotifCtl = addMotif(cursor); // mark shape, surfaced for Develop
-  stepper(cursor, "Strength", () => look.cursorAmp.toFixed(2),
-    () => { look.cursorAmp = Math.max(0, +(look.cursorAmp - 0.1).toFixed(2)); },
-    () => { look.cursorAmp = Math.min(5, +(look.cursorAmp + 0.1).toFixed(2)); });
-  stepper(cursor, "Falloff", () => look.cursorRadius.toFixed(1),
-    () => { look.cursorRadius = Math.max(0.2, +(look.cursorRadius - 0.2).toFixed(1)); },
-    () => { look.cursorRadius = Math.min(16, +(look.cursorRadius + 0.2).toFixed(1)); });
-  stepper(cursor, "Hold", () => look.cursorHold.toFixed(2),
-    () => { look.cursorHold = Math.max(0, +(look.cursorHold - 0.1).toFixed(2)); },
-    () => { look.cursorHold = Math.min(3, +(look.cursorHold + 0.1).toFixed(2)); });
-  const edgeCtl = stepper(cursor, "Hardness", () => look.cursorEdge.toFixed(2),
-    () => { look.cursorEdge = Math.max(0, +(look.cursorEdge - 0.05).toFixed(2)); },
-    () => { look.cursorEdge = Math.min(2, +(look.cursorEdge + 0.05).toFixed(2)); });
+  num(cursor, "Strength", { get: () => look.cursorAmp, set: (v) => { look.cursorAmp = v; }, min: 0, max: 5, step: 0.1 });
+  num(cursor, "Falloff", { get: () => look.cursorRadius, set: (v) => { look.cursorRadius = v; }, min: 0.2, max: 16, step: 0.2 });
+  num(cursor, "Hold", { get: () => look.cursorHold, set: (v) => { look.cursorHold = v; }, min: 0, max: 3, step: 0.1 });
+  const edgeCtl = num(cursor, "Hardness", { get: () => look.cursorEdge, set: (v) => { look.cursorEdge = v; }, min: 0, max: 2, step: 0.05 });
 
   // DEVELOP — the look of cursor mode 5 (Develop): all hidden unless Mode = Develop.
-  const develop = group("Develop");
+  const develop = group("Develop", () => resetKeys(
+    ["cursorDetail", "cursorStage", "cursorResolve", "cursorColorize", "cursorSat",
+      "cursorLevels", "cursorSharp", "cursorBright", "cursorContrast"],
+    () => refreshNA(),
+  ));
   const developGroupEl = develop.parentElement as HTMLElement; // wrapper, hidden when not Develop
-  stepper(develop, "Cells", () => String(look.cursorDetail),
-    () => { look.cursorDetail = Math.max(40, look.cursorDetail - 24); },
-    () => { look.cursorDetail = Math.min(3000, look.cursorDetail + 24); });
-  stepper(develop, "Stage", () => look.cursorStage.toFixed(2),
-    () => { look.cursorStage = Math.max(0, +(look.cursorStage - 0.05).toFixed(2)); },
-    () => { look.cursorStage = Math.min(1, +(look.cursorStage + 0.05).toFixed(2)); });
-  stepper(develop, "Resolve", () => look.cursorResolve.toFixed(2),
-    () => { look.cursorResolve = Math.max(0, +(look.cursorResolve - 0.1).toFixed(2)); },
-    () => { look.cursorResolve = Math.min(1, +(look.cursorResolve + 0.1).toFixed(2)); });
-  stepper(develop, "Colorize", () => look.cursorColorize.toFixed(2),
-    () => { look.cursorColorize = Math.max(0, +(look.cursorColorize - 0.1).toFixed(2)); },
-    () => { look.cursorColorize = Math.min(1, +(look.cursorColorize + 0.1).toFixed(2)); });
-  stepper(develop, "Saturation", () => look.cursorSat.toFixed(2),
-    () => { look.cursorSat = Math.max(0, +(look.cursorSat - 0.1).toFixed(2)); },
-    () => { look.cursorSat = Math.min(4, +(look.cursorSat + 0.1).toFixed(2)); });
+  num(develop, "Cells", { get: () => look.cursorDetail, set: (v) => { look.cursorDetail = v; }, min: 40, max: 3000, step: 24 });
+  num(develop, "Stage", { get: () => look.cursorStage, set: (v) => { look.cursorStage = v; }, min: 0, max: 1, step: 0.05 });
+  num(develop, "Resolve", { get: () => look.cursorResolve, set: (v) => { look.cursorResolve = v; }, min: 0, max: 1, step: 0.1 });
+  num(develop, "Colorize", { get: () => look.cursorColorize, set: (v) => { look.cursorColorize = v; }, min: 0, max: 1, step: 0.1 });
+  num(develop, "Saturation", { get: () => look.cursorSat, set: (v) => { look.cursorSat = v; }, min: 0, max: 4, step: 0.1 });
   // Posterise steps for the develop colour, same as the full-colour Levels but its own.
-  stepper(develop, "Levels", () => String(look.cursorLevels),
-    () => { look.cursorLevels = Math.max(2, look.cursorLevels - 1); },
-    () => { look.cursorLevels = Math.min(16, look.cursorLevels + 1); });
-  stepper(develop, "Pop", () => look.cursorSharp.toFixed(2),
-    () => { look.cursorSharp = Math.max(0, +(look.cursorSharp - 0.1).toFixed(2)); },
-    () => { look.cursorSharp = Math.min(3, +(look.cursorSharp + 0.1).toFixed(2)); });
+  num(develop, "Levels", { get: () => look.cursorLevels, set: (v) => { look.cursorLevels = v; }, min: 2, max: 16, step: 1 });
+  num(develop, "Pop", { get: () => look.cursorSharp, set: (v) => { look.cursorSharp = v; }, min: 0, max: 3, step: 0.1 });
   // Develop's own brightness / contrast (on top of the Image grade, applied to
   // the develop region's source before it's re-dithered).
-  stepper(develop, "Dev bright", () => look.cursorBright.toFixed(2),
-    () => { look.cursorBright = Math.max(-1, +(look.cursorBright - 0.05).toFixed(2)); },
-    () => { look.cursorBright = Math.min(1, +(look.cursorBright + 0.05).toFixed(2)); });
-  stepper(develop, "Dev contrast", () => look.cursorContrast.toFixed(2),
-    () => { look.cursorContrast = Math.max(0.1, +(look.cursorContrast - 0.1).toFixed(2)); },
-    () => { look.cursorContrast = Math.min(5, +(look.cursorContrast + 0.1).toFixed(2)); });
+  num(develop, "Dev bright", { get: () => look.cursorBright, set: (v) => { look.cursorBright = v; }, min: -1, max: 1, step: 0.05 });
+  num(develop, "Dev contrast", { get: () => look.cursorContrast, set: (v) => { look.cursorContrast = v; }, min: 0.1, max: 5, step: 0.1 });
 
   // MOTION — the easing curve + duration of every dither/reveal transition, the
   // FPS cadence (Cine 24 / Fluid uncapped), and a live preview of the ease.
-  const mo = group("Motion");
+  const mo = group("Motion", () => {
+    Object.assign(motion, DEFAULT_MOTION);
+    applyFps(motion.fps, reduced);
+    refreshControls?.();
+    ease.update();
+    pushStore();
+  });
   const ease = easeGraph();
   select(mo, "Ease", EASES.map((e) => e[0]), () => motion.easeIdx, (i) => { motion.easeIdx = i; pushStore(); }, () => ease.update());
-  stepper(mo, "Duration", () => `${motion.dur.toFixed(2)}s`,
-    () => { motion.dur = Math.max(0.05, +(motion.dur - 0.05).toFixed(2)); pushStore(); },
-    () => { motion.dur = Math.min(5, +(motion.dur + 0.05).toFixed(2)); pushStore(); },
-    () => ease.update());
+  num(mo, "Duration", {
+    get: () => motion.dur, set: (v) => { motion.dur = v; pushStore(); },
+    min: 0.05, max: 5, step: 0.01, fmt: (v) => `${v.toFixed(2)}s`,
+    after: () => ease.update(),
+  });
   select(mo, "FPS", FPS_LABELS, () => FPS_MODES.indexOf(motion.fps),
     (i) => { motion.fps = FPS_MODES[i]; applyFps(motion.fps, reduced); pushStore(); });
   mo.appendChild(ease.svg);
@@ -1708,13 +1811,16 @@ function buildDevBar(): void {
     // reach / softness / right-edge) shows for any fade; cloud texture only in Cloud.
     const fadeOff = look.fadeMode === 0;
     const notCloud = look.fadeMode !== 2;
+    setNA(subShape, fadeOff);
     setNA(fadeXCtl, fadeOff);
     setNA(fadeYCtl, fadeOff);
     setNA(fadeReachCtl, fadeOff);
     setNA(fadeSoftCtl, fadeOff);
+    setNA(subTaper, fadeOff);
     setNA(featherCtl, fadeOff); // right-edge taper: part of the mask (any fade mode)
     setNA(curveCtl, fadeOff);
     setNA(depthCtl, fadeOff);
+    setNA(subTexture, notCloud);
     noiseThumb.style.display = notCloud ? "none" : ""; // cloud-texture preview
     setNA(cloudCtl, notCloud); // Billow X
     setNA(cloudYCtl, notCloud); // Billow Y
@@ -1732,6 +1838,17 @@ function buildDevBar(): void {
   // Called when an image's saved params are loaded (goImage → applyImageParams).
   refreshControls = (): void => { for (const s of syncers) s(); refreshNA(); };
   refreshNA();
+
+  // Order the groups by the actual workflow — pick/frame the source, set the
+  // colour, shape the marks, dissolve, interact, tune motion, export — rather
+  // than by construction order.
+  const GROUP_ORDER = ["Image", "Colour", "Screen", "Fade", "Cursor", "Develop", "Motion", "Output"];
+  for (const title of GROUP_ORDER) {
+    const g = [...row.querySelectorAll<HTMLElement>(".art-group")].find(
+      (el) => el.querySelector(".art-group-l")?.textContent === title,
+    );
+    if (g) row.appendChild(g);
+  }
 
   document.body.appendChild(bar);
   if (savedPos) applyPos(savedPos.x, savedPos.y); // restore drag position (needs layout)
