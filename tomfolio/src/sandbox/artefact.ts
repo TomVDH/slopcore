@@ -803,6 +803,7 @@ const HELP: Record<string, string> = {
   "Reset image": "Drop this image's config — back to the general menu settings.",
   "Copy JSON": "Copy every setting as JSON to the clipboard.",
   "Copy look": "Stash this image's full treatment on an in-session clipboard.",
+  Note: "Free-text note for this image \u2014 why it's tuned this way. Saved in the treatments store and the downloaded checkpoint.",
   "Suggest B/C": "Auto-levels suggestion: measures the photo's 2nd/98th luma percentiles and sets Brightness/Contrast so they land at 0.08/0.92. A starting point \u2014 tweak after. Never touches Invert.",
   "Paste look": "Apply the stashed treatment here \u2014 writes to this image's config if pinned, else to the general settings.",
   Store: "Treatments store state: file \u00b7 synced (committed treatments.json is current) or local \u00b7 unsaved (edits not yet downloaded + committed).",
@@ -1489,6 +1490,23 @@ function buildDevBar(): void {
   });
   action(image, copyLookBtn);
   action(image, pasteLookBtn);
+  // Per-image note: why this image is tuned the way it is. Any image (pinned or
+  // not); persisted in the treatments store, exported in the checkpoint file.
+  const noteInput = document.createElement("input");
+  noteInput.type = "text";
+  noteInput.className = "art-note";
+  noteInput.placeholder = "note…";
+  noteInput.setAttribute("aria-label", "Per-image note");
+  const syncNote = (): void => { noteInput.value = imageNotes[look.image] ?? ""; };
+  syncNote();
+  syncers.push(syncNote);
+  noteInput.addEventListener("blur", () => {
+    const v = noteInput.value.trim();
+    if (v) imageNotes[look.image] = v;
+    else delete imageNotes[look.image];
+    pushStore();
+  });
+  ctl(image, "Note", noteInput);
   const pinBtn = document.createElement("button");
   pinBtn.type = "button";
   pinBtn.textContent = "Save to image";

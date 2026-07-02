@@ -582,3 +582,17 @@ body.art {
   color: rgba(244, 239, 221, 0.62);
   margin: -2px 0 2px;
 }
+
+/* Per-image note input (Image group). */
+.art-note {
+  width: 118px;
+  background: rgba(244, 239, 221, 0.06);
+  border: 1px solid rgba(244, 239, 221, 0.18);
+  color: #f4efdd;
+  font: inherit;
+  font-size: 0.6rem;
+  padding: 2px 5px;
+}
+.art-note::placeholder {
+  color: rgba(244, 239, 221, 0.3);
+}
