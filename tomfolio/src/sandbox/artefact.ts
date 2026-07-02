@@ -528,7 +528,7 @@ if (scene) {
   // Hover: toggle hover-to-change for the menu items.
   const hb = document.createElement("button");
   hb.type = "button";
-  hb.className = "art-hover";
+  hb.className = "art-hover btn-reveal";
   hb.textContent = "Hover";
   hb.setAttribute("aria-pressed", "false");
   hb.addEventListener("click", () => {
@@ -540,7 +540,7 @@ if (scene) {
 
   const rb = document.createElement("button");
   rb.type = "button";
-  rb.className = "art-reveal";
+  rb.className = "art-reveal btn-reveal";
   rb.textContent = "Reveal";
   rb.addEventListener("click", toggleReveal);
   revealBtns.push(rb);
@@ -1178,7 +1178,7 @@ function buildDevBar(): void {
   chipsWrap.className = "art-chips";
   const swatches = (["paper", "ink", "accent"] as const).map((key) => {
     const s = document.createElement("span");
-    s.className = "art-chip";
+    s.className = "art-chip swatch";
     chipsWrap.appendChild(s);
     return { key, el: s };
   });
