@@ -10,6 +10,7 @@
 import "../system"; // tokens + palettes + base + components CSS
 import "../system/elements/press-link";
 import "../system/elements/dither-plate";
+import "../system/elements/palette-swatch";
 import "./components.css";
 
 import { setColorway } from "../system";
