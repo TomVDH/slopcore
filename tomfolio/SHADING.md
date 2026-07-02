@@ -115,7 +115,7 @@ flowchart TD
 | `uDevBright` | offset | 0 | −1–1 | Develop's own brightness, on top of the image grade, applied to the develop source before re-dithering |
 | `uDevContrast` | mult | 1 | 0.1–5 | Develop's own contrast, on top of the image grade |
 | `uCrossOn` / `uCrossSize` / `uCrossPos` | — | 1 / 0.075 / (0.62,0.58) | — | aviation-red registration cross |
-| `uPress` / `uPressFalloff` | — | 0.4 / 2.2 | — | **LEGACY / dead** — kept declared but unread; superseded by the cursor uniforms |
+| `uPress` / `uPressFalloff` | — | — | — | **REMOVED** (2026-06-30 cleanup; superseded by the cursor uniforms — see changelog) |
 | `uMouse` / `uMouseStrength` | runtime | (0,0) / 0 | — | cursor position + movement-decayed strength (scene.ts) |
 | `uMouseDir` | runtime | (0,1) | — | normalised pointer motion direction (unit vec2); lerped + renormalised each frame; stretch collapses to circle when `uMouseStrength = 0` |
 | `uRes` / `uTime` / `uEnergy` / `uScrollVel` | runtime | — | — | system |
