@@ -9,6 +9,7 @@
 
 import "../system"; // tokens + palettes + base + components CSS
 import "../system/elements/press-link";
+import "../system/elements/dither-plate";
 import "./components.css";
 
 import { setColorway } from "../system";
@@ -19,6 +20,9 @@ setColorway(37); // Cyber, matching the artefact default
 // Console tap: proves the bus wiring before <dither-plate> exists to consume it.
 onNudge((d) => console.debug("[bus] nudge", d));
 
+// Selecting a link swaps the first plate's image — the element interplay demo.
 document.addEventListener("press-select", (e) => {
-  console.debug("[bus] press-select", (e as CustomEvent).detail);
+  const key = (e as CustomEvent<{ key: string }>).detail.key;
+  console.debug("[bus] press-select", key);
+  document.querySelector("dither-plate")?.setAttribute("image", key);
 });
