@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>COMPONENTS / system elements</title>
+    <meta
+      name="description"
+      content="Demo shelf for the system custom elements: press-link, dither-plate. A Tomtoolery component sandbox."
+    />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#04090c" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="cmp">
+    <main class="cmp-stage">
+      <section class="cmp-col" aria-label="Plates"><!-- dither-plates mounted by TS --></section>
+      <nav class="cmp-col cmp-menu" aria-label="Links">
+        <press-link active key="collection-207">Collection 207</press-link>
+        <press-link key="cranes">Cranes</press-link>
+        <press-link key="moon">Moon</press-link>
+        <press-link key="sails">Sails</press-link>
+        <press-link caption key="fig-a">Fig. A — Presswerk</press-link>
+      </nav>
+    </main>
+    <script type="module" src="/src/sandbox/components.ts"></script>
+  </body>
+</html>

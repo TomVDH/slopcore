@@ -62,6 +62,7 @@ export default defineConfig({
         "cursor-shelf": entry("./sandbox/cursor-shelf.html"),
         "cursor-colour": entry("./sandbox/cursor-colour.html"),
         "cursor-particles": entry("./sandbox/cursor-particles.html"),
+        components: entry("./sandbox/components.html"),
       },
     },
   },
