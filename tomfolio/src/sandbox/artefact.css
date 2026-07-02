@@ -596,3 +596,63 @@ body.art {
 .art-note::placeholder {
   color: rgba(244, 239, 221, 0.3);
 }
+
+/* ---- Contact sheet (?sheet): a scrollable tile grid above everything ---- */
+.art-sheet {
+  position: fixed;
+  inset: 10px;
+  z-index: 70; /* over menu (2), buttons (3), cursor (60) */
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--ground) 92%, black);
+  padding: 18px;
+}
+.art-sheet-head {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+.art-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.art-sheet-tile {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.art-sheet-tile:hover {
+  border-color: var(--ink);
+}
+.art-sheet-tile img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 6 / 5; /* ≈ the plate; crop, don't squash */
+  object-fit: cover;
+}
+.art-sheet-cap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 75%, transparent);
+}
+.art-sheet-cap em {
+  font-style: normal;
+  opacity: 0.55;
+}
+.art-sheet-cap em.is-custom {
+  opacity: 1;
+  background: var(--ink);
+  color: var(--ground);
+  padding: 0 4px;
+}

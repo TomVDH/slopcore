@@ -277,7 +277,9 @@ let refreshControls: (() => void) | null = null; // dev-bar display refresh hook
 const isPinned = (key: string): boolean => Object.prototype.hasOwnProperty.call(imageParams, key);
 // Write the live look back to its context: the image's own config if it has one,
 // otherwise the shared general. Called on every edit (via pushTreatment).
+let persistGuard = false; // contact sheet drives the scene without dirtying the store
 function persistLook(): void {
+  if (persistGuard) return;
   if (isPinned(look.image)) imageParams[look.image] = snapshotParams();
   else general = snapshotParams();
   pushStore(); // debounced crash-pad write (treatments store)
@@ -542,6 +544,46 @@ try {
 } catch {
   document.body.classList.add("no-gl");
   canvas?.remove();
+}
+
+// ---- Contact sheet (?sheet) ---------------------------------------------------
+// Renders every sample through the live scene with its treatment (pinned ??
+// general) into a tile-grid overlay. Persistence is guarded for the whole run.
+if (params.has("sheet") && scene && canvas) {
+  const sheetScene = scene;
+  const sheetCanvas = canvas;
+  const before = { ...snapshotParams() };
+  const beforeImage = look.image;
+  void (async () => {
+    await sheetScene.ready;
+    persistGuard = true;
+    const { runSheet } = await import("./artefact-sheet");
+    await runSheet({
+      samples: SAMPLES,
+      isPinned,
+      applyFor: (key, im) => {
+        Object.assign(look, imageParams[key] ?? general);
+        sheetScene.setImage(im);
+        sheetScene.setParam("uImageOn", 1);
+        sheetScene.setParam("uXfade", 0);
+        pushTreatment();
+      },
+      restore: () => {
+        Object.assign(look, before);
+        persistGuard = false;
+        goImage(beforeImage); // back through the normal path (also re-pushes)
+      },
+      capture: () => {
+        sheetScene.renderOnce();
+        return sheetCanvas.toDataURL("image/jpeg", 0.85); // same task as the draw
+      },
+      onPick: (key) => {
+        look.image = key;
+        pushStore(); // store's last-viewed image -> ?dev boots on the pick
+        setTimeout(() => { location.search = "?dev"; }, 550); // past the debounce
+      },
+    });
+  })();
 }
 
 /* ---- Menu: one item per sample image + Field ---- */
