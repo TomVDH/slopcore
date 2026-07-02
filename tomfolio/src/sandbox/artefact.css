@@ -89,33 +89,11 @@ body.art {
   border-radius: 2px;
 }
 
+/* Visual = system .menu-link (outline-to-fill); rail sizing is page policy. */
 .art-link {
-  appearance: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
   text-align: right;
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-weight: 600;
   font-size: clamp(1.05rem, 2.8vw, 2.1rem);
   line-height: 1.04;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 42%, transparent);
-  transition:
-    color var(--dur) var(--ease-out),
-    -webkit-text-stroke-color var(--dur) var(--ease-out);
-}
-.art-link:hover {
-  -webkit-text-stroke-color: color-mix(in srgb, var(--ink) 85%, transparent);
-  color: color-mix(in srgb, var(--ink) 6%, transparent);
-}
-.art-link.is-active {
-  color: var(--ink);
-  -webkit-text-stroke-color: transparent;
 }
 
 /* ---- Menu layouts (?layout=) -----------------------------------------------
@@ -149,7 +127,8 @@ body.art {
 }
 
 /* LADDER — small mono captions stepping down (and right) along the dither's
-   fading edge, like figure captions. Filled-muted, not outlined. */
+   fading edge, like figure captions. Visual = system .menu-link--caption
+   (filled-muted mono); the stagger + placement is page layout. */
 .art-layout-ladder .art-menu {
   right: auto;
   left: clamp(96px, 46vw, 660px);
@@ -158,23 +137,8 @@ body.art {
 }
 .art-layout-ladder .art-link {
   text-align: left;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-weight: 500;
   font-size: clamp(0.66rem, 1.05vw, 0.92rem);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  -webkit-text-stroke: 0;
-  color: color-mix(in srgb, var(--ink) 52%, transparent);
   transform: translateX(calc(var(--i, 0) * clamp(5px, 0.9vw, 13px)));
-  transition:
-    color var(--dur) var(--ease-out),
-    transform var(--dur) var(--ease-out);
-}
-.art-layout-ladder .art-link:hover {
-  color: color-mix(in srgb, var(--ink) 80%, transparent);
-}
-.art-layout-ladder .art-link.is-active {
-  color: var(--ink);
 }
 
 /* Reveal toggle: smoothly resolves the dither into the full-res photo. The

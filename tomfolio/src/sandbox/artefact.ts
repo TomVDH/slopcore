@@ -512,7 +512,9 @@ if (menu) {
   MENU_ITEMS.forEach((item, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "art-link" + (item.key === look.image ? " is-active" : "");
+    b.className = "art-link menu-link"
+      + (layout === "ladder" ? " menu-link--caption" : "") // ladder = filled-mono caption treatment
+      + (item.key === look.image ? " is-active" : "");
     b.textContent = item.label;
     b.dataset.key = item.key;
     b.style.setProperty("--i", String(i)); // ladder layout staggers each item by index
