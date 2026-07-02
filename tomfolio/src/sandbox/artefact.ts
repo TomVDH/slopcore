@@ -331,6 +331,10 @@ const mEase = (): string => EASES[motion.easeIdx][1];
 // motion / last-viewed image. Every edit funnels through pushStore (debounced).
 const VALID_IMAGE_KEYS: ReadonlySet<string> = new Set([...SAMPLES.map((s) => s.key), "field"]);
 const COMPILED_DEFAULTS = snapshotParams(); // the `look` literal, pre-treatments — group resets restore these
+// ?fresh: persistence OFF for this session — wipe the crash-pad and boot from the
+// committed treatments.json / compiled defaults; nothing you scrub gets stored.
+const FRESH = params.has("fresh");
+if (FRESH) clearLocalTreatments();
 const bootTreatments = loadTreatments(COMPILED_DEFAULTS, VALID_IMAGE_KEYS);
 general = bootTreatments.general;
 Object.assign(imageParams, bootTreatments.images);
@@ -355,6 +359,7 @@ const storeState = (): StoreState => ({
 });
 let onStoreChanged: (() => void) | null = null; // dev-bar store-status refresh hook
 function pushStore(): void {
+  if (FRESH) return; // ?fresh: session is ephemeral, no crash-pad writes
   scheduleStore(storeState, bootTreatments.fileSavedAt);
   onStoreChanged?.();
 }
@@ -803,6 +808,7 @@ const HELP: Record<string, string> = {
   Note: "Free-text note for this image \u2014 why it's tuned this way. Saved in the treatments store and the downloaded checkpoint.",
   "Suggest B/C": "Auto-levels suggestion: measures the photo's 2nd/98th luma percentiles and sets Brightness/Contrast so they land at 0.08/0.92. A starting point \u2014 tweak after. Never touches Invert.",
   "Paste look": "Apply the stashed treatment here \u2014 writes to this image's config if pinned, else to the general settings.",
+  "Reset all": "Every control back to the compiled defaults (all groups incl. Motion). Pinned image configs and notes are untouched.",
   Store: "Treatments store state: file \u00b7 synced (committed treatments.json is current) or local \u00b7 unsaved (edits not yet downloaded + committed).",
   "Download treatments": "Download treatments.json \u2014 drop it into src/samples/ and commit. The committed file is the durable source of truth (and the future CMS seed).",
 };
@@ -1755,6 +1761,26 @@ function buildDevBar(): void {
   boundToggle("Canvas edge", "showCanvas", "uShowCanvas");
   boundToggle("Image edge", "showImage", "uShowImage");
   boundToggle("Mask edge", "showCloud", "uShowCloud");
+  // Reset ALL controls to the compiled defaults (every group incl. Motion) —
+  // the one-click "back to stock". Writes to the current context like any edit;
+  // pinned image configs + notes are untouched (use Reset image for those).
+  const resetAllBtn = document.createElement("button");
+  resetAllBtn.type = "button";
+  resetAllBtn.textContent = "Reset all";
+  resetAllBtn.addEventListener("click", () => {
+    resetKeys(Object.keys(COMPILED_DEFAULTS), () => {
+      Object.assign(motion, DEFAULT_MOTION);
+      applyFps(motion.fps, reduced);
+      refreshControls?.();
+      ease.update();
+      fitCanvas(curImageEl);
+      drawNoise();
+      refreshNA();
+      pushStore();
+    });
+    flash(resetAllBtn, "Stock ✓");
+  });
+  action(output, resetAllBtn);
   // Treatments checkpoint: the store status row shows whether the working copy
   // is ahead of the committed file; Download writes treatments.json (drop into
   // src/samples/ + commit = the durable checkpoint and the future CMS seed).
@@ -1762,6 +1788,7 @@ function buildDevBar(): void {
   storeStat.className = "art-ctl-v is-name";
   ctl(output, "Store", storeStat);
   const updateStoreStatus = (): void => {
+    if (FRESH) { storeStat.textContent = "off (?fresh)"; return; }
     const dirty = storeDirty(storeState());
     storeStat.textContent = dirty ? "local · unsaved" : `${bootTreatments.source} · synced`;
     storeStat.style.background = dirty ? "#f4efdd" : "";
