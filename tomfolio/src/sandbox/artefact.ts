@@ -1116,7 +1116,11 @@ function buildDevBar(): void {
     val.className = "art-ctl-v art-ctl-v-drag";
     val.title = "drag to scrub \u00b7 click to type";
     val.textContent = show();
-    syncers.push(() => { val.textContent = show(); });
+    // External state changes (group reset, image switch, paste) cancel any open
+    // type-in editor — otherwise its later blur would commit the stale typed
+    // value straight over the new state.
+    let cancelEditor: (() => void) | null = null;
+    syncers.push(() => { cancelEditor?.(); val.textContent = show(); });
     const plus = document.createElement("button");
     plus.type = "button";
     plus.className = "art-step-b";
@@ -1130,7 +1134,7 @@ function buildDevBar(): void {
       const input = document.createElement("input");
       input.type = "text";
       input.className = "art-num-in";
-      input.value = String(trim(spec.get()));
+      input.value = show(); // display representation — parse() round-trips it (e.g. "71%" -> 0.71)
       input.setAttribute("aria-label", `${label} value`);
       val.style.display = "none";
       val.after(input);
@@ -1140,6 +1144,7 @@ function buildDevBar(): void {
       const close = (apply: boolean): void => {
         if (done) return;
         done = true;
+        cancelEditor = null;
         if (apply) {
           const v = (spec.parse ?? parseFloat)(input.value);
           if (Number.isFinite(v)) { spec.set(clamp(trim(v))); pushTreatment(); spec.after?.(); }
@@ -1148,6 +1153,7 @@ function buildDevBar(): void {
         val.style.display = "";
         val.textContent = show();
       };
+      cancelEditor = () => close(false);
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") close(true);
         else if (e.key === "Escape") close(false);
