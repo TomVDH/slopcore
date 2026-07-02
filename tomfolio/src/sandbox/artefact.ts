@@ -25,6 +25,7 @@ import { pressFrag } from "../directions/press/art";
 import { PALETTES, COLORS } from "../palettes";
 import { SAMPLES, sampleSrc } from "../samples";
 import { EASES, FPS_MODES, FPS_LABELS, DEFAULT_MOTION, applyFps, type FpsMode } from "../system/motion";
+import { initPressCursor } from "../system/cursor-press";
 import {
   loadTreatments, scheduleStore, storeDirty, markStoreClean, downloadTreatments, clearLocalTreatments,
   type StoreState,
@@ -635,65 +636,19 @@ if (scene) {
   host.appendChild(rb);
 }
 
-/* ---- PULSE cursor — 10×10 inverting block, PULSE click animation ---- */
-/* Fine-pointer + motion only. Click: 1.8× recoil + 3 concentric stamps
-   staggered every f2 (83ms), all cut simultaneously at f12 (500ms). */
-if (!reduced && window.matchMedia("(pointer: fine)").matches) {
-  const FPS24 = 1000 / 24;
-  const f = (n: number) => Math.round(n * FPS24);
-
-  const cur = document.createElement("div");
-  cur.className = "art-cursor";
-  cur.setAttribute("aria-hidden", "true");
-  document.body.appendChild(cur);
-  document.body.classList.add("art-has-cursor");
-
-  const setX = gsap.quickSetter(cur, "x", "px");
-  const setY = gsap.quickSetter(cur, "y", "px");
-  setX(window.innerWidth / 2);
-  setY(window.innerHeight / 2);
-
-  // Solid accent everywhere — no inversion.
-  window.addEventListener("pointermove", (e) => { setX(e.clientX); setY(e.clientY); });
-  document.addEventListener("pointerleave", () => { cur.style.opacity = "0"; });
-  document.addEventListener("pointerenter", () => { cur.style.opacity = ""; });
-
-  window.addEventListener("pointerdown", (e) => {
-    // Block recoil on every click.
-    gsap.killTweensOf(cur, "scale");
-    gsap.fromTo(cur, { scale: 1.8 }, { scale: 1, duration: f(2) / 1000, ease: "power2.out" });
-
-    // Stamps fire over the plate and the menu, but not the dev bar (so its
-    // steppers/drags don't burst).
-    const t = e.target as HTMLElement | null;
-    if (t && t.closest(".art-dev")) return;
-
-    const SIZES = [26, 42, 60];
-    const stamps: HTMLDivElement[] = [];
-    SIZES.forEach((size, i) => {
-      window.setTimeout(() => {
-        const s = document.createElement("div");
-        s.className = "art-stamp";
-        s.style.left = `${e.clientX - size / 2}px`;
-        s.style.top = `${e.clientY - size / 2}px`;
-        s.style.width = `${size}px`;
-        s.style.height = `${size}px`;
-        document.body.appendChild(s);
-        stamps.push(s);
-      }, f(i * 2));
-    });
-    window.setTimeout(() => { stamps.forEach((s) => s.remove()); }, f(12));
+/* ---- PULSE cursor — 10×10 block via the system cursor-press engine ---- */
+/* The shipped composition: PULSE (1.8× recoil + 3 stamps staggered every f2,
+   all cut at f12); no hover grow; stamps + triple-click gated off the dev bar
+   (recoil still fires everywhere). Triple-click blooms the shader cursor. */
+if (!reduced) {
+  const pressCursor = initPressCursor({
+    variant: "pulse",
+    cursorClass: "art-cursor", // existing CSS + z-index stack untouched
+    stampClass: "art-stamp",
+    suppressStamps: ".art-dev",
+    onTripleClick: () => scene?.cursorBurst(1.0, 300, 0.8), // full strength, 300ms, big disc
   });
-
-  // Easter egg: a triple-click blooms the cursor effect to full and holds it for
-  // a brief moment (defeating the usual movement-strength fade), then it eases
-  // back down. Ignored over the dev bar so triple-tapping a control is safe.
-  window.addEventListener("click", (e) => {
-    if (e.detail < 3) return; // the 3rd click of a triple (and beyond) only
-    const t = e.target as HTMLElement | null;
-    if (t && t.closest(".art-dev")) return;
-    scene?.cursorBurst(1.0, 300, 0.8); // full strength, 300ms hold, radius 0.8 (big disc)
-  });
+  if (pressCursor) document.body.classList.add("art-has-cursor");
 }
 
 /* ---- Dev bar (?dev): treatment toggles + live readout + copy values ---- */
