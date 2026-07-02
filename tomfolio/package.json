@@ -6,7 +6,7 @@
   "description": "Tomtoolery portfolio. Three.js shader canvas, GSAP scrolltelling, editorial type.",
   "scripts": {
     "dev": "vite",
-    "dev:claude": "TOMFOLIO_LANDING=/sandbox/letterpress.html vite --port 5184 --strictPort",
+    "dev:claude": "TOMFOLIO_LANDING=/sandbox/artefact.html vite --port 5184 --strictPort",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "fonts": "python3 scripts/fetch-fonts.py"

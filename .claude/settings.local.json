@@ -20,7 +20,14 @@
       "WebSearch",
       "WebFetch(domain:flappybird.fandom.com)",
       "WebFetch(domain:flappy-bird.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git config *)",
+      "Bash(cat package.json)",
+      "Bash(ls -la .git)",
+      "Bash(git rm *)",
+      "Bash(/bin/ls -1A)",
+      "Bash(awk -F/ '{print $1}')",
+      "mcp__visualize__show_widget"
     ]
   }
 }

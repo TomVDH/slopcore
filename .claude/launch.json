@@ -5,7 +5,8 @@
       "name": "tomfolio",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "tomfolio", "run", "dev:claude"],
-      "port": 5184
+      "port": 5184,
+      "autoPort": false
     }
   ]
 }

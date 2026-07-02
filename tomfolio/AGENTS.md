@@ -4,9 +4,15 @@
 
 > Dark, shader-driven single-page portfolio for the Tomtoolery persona (marketer / artist / digital nerd / hobbyist).
 
+> [!IMPORTANT] THE ACTIVE WORK SURFACE IS THE ARTEFACT
+> When Tom says "the folio", "the artefact", "spin it up", or similar with no other qualifier, he means **`/sandbox/artefact.html`** (source: `src/sandbox/artefact.{ts,css}`). This is the current focus of nearly all work. The `dev:claude` preview script lands `/` there directly.
+> The **letterpress** sandbox (`/sandbox/letterpress.html`) is a *different, older* study — do NOT assume it. `rig.html`, `cursor-*.html`, and `shelf.html` are likewise separate. If a request is ambiguous, default to the artefact.
+
 ## What this is
 
-A self-contained sub-project of the tomtoolery repo: an Awwwards-leaning portfolio one-pager built with Vite, vanilla TypeScript, three.js, GSAP, and Lenis. The fullscreen fbm shader behind hero and footer is the signature visual; everything else is editorial typography (Clash Display + Satoshi) over a locked dark theme with one acid-lime accent.
+A self-contained sub-project of the tomtoolery repo: an Awwwards-leaning portfolio one-pager built with Vite, vanilla TypeScript, three.js, GSAP, and Lenis, over a locked dark theme with one acid-lime accent and editorial typography.
+
+**Active work surface: the artefact** (`/sandbox/artefact.html`). Nearly all current effort is the Bayer-dither plate study — the signature visual is the **Presswerk dither** (`pressFrag` in `src/directions/press/art.ts`), rendered as a framed plate that dissolves into the ground via a cloud edge-mask, with an image gallery, colorways, cursor Develop modes, and Reveal. See the **Shading** section (the heart of the project) and the artefact write-up under **Sandbox** below. The older fullscreen fbm hero shader still lives in `index.html`/`/shelf.html` but is not the current focus.
 
 ## Where things live
 
@@ -23,9 +29,12 @@ A self-contained sub-project of the tomtoolery repo: an Awwwards-leaning portfol
 ```bash
 npm install        # once
 npm run fonts      # once, re-vendors Clash Display + Satoshi into public/fonts/
-npm run dev        # Vite dev server (registered as "tomfolio" in repo .claude/launch.json, port 5184)
+npm run dev        # Vite dev server, opens the hero (index.html)
+npm run dev:claude # Vite on :5184 (strict), redirects "/" → /sandbox/artefact.html (the active surface)
 npm run build      # tsc --noEmit + vite build
 ```
+
+`dev:claude` is the command the Claude preview harness runs (registered as `tomfolio` in repo `.claude/launch.json`, port 5184). It lands on the **artefact** so "spin it up" opens the right page. Add `?dev` for the dev bar, `?still` for a static frame, `?nogl` for the CSS fallback.
 
 `?nogl` on any URL skips WebGL (CSS gradient fallback). In dev builds, `window.lenis`, `window.gsap`, and `window.scene` are exposed for driving the page from tests.
 
@@ -97,6 +106,21 @@ Per-direction verification scripts live in `scripts/` (see `brut-shots.mjs` for 
 ## Vault is canonical
 
 When asked "is X documented?" or "do we know Y?", check the vault first — repos document code, the vault documents decisions and context. Use the `adjudant` skill to read/write vault files.
+
+**Vault location + breadcrumb (auto-discovery fails — pass explicitly).** Vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Claude Cabinet/` (Obsidian's own iCloud container, NOT the repo). Project folder: `projects/tomfolio/`. The breadcrumb (`.claude/adjudant`) lives in **this sub-project root** (`tomfolio/.claude/adjudant`), gitignored; a convenience copy sits at the worktree root so the adjudant session hook resolves. For any `adjudant`/vault CLI, pass `--vault-path "…/Claude Cabinet"` — auto-discovery does not find this container.
+
+**Key vault refs** (read these before touching the matching area):
+
+| Area | Vault note / decision |
+|---|---|
+| Project brief | [[projects/tomfolio/brief]] |
+| Shading (mirror of `SHADING.md`) | [[projects/tomfolio/notes/shading]] |
+| Shader architecture | [[projects/tomfolio/notes/shader-architecture]] |
+| Artefact cursor system | [[projects/tomfolio/decisions/2026-06-30-artefact-cursor]] · [[projects/tomfolio/references/cursor-system]] |
+| Per-image persistence model | [[projects/tomfolio/decisions/2026-06-30-per-image-config-model]] |
+| CMS direction (Astro + Payload / MongoDB) | [[projects/tomfolio/decisions/2026-06-28-adopt-astro-payload]] · [[projects/tomfolio/notes/cms-content-model]] |
+| Open questions | [[projects/tomfolio/notes/open-questions]] |
+| Sessions · Handoff | [[projects/tomfolio/sessions]] · [[projects/tomfolio/_handoff]] |
 
 ## Claude-specific overrides
 
