@@ -73,6 +73,53 @@ await run("still", { url: `${BASE}?still`, shot: "sandbox-artefact-still.jpg" })
 await run("mobile", { url: BASE, shot: "sandbox-artefact-mobile.jpg", w: 390, h: 844 });
 await run("nogl", { url: `${BASE}?nogl`, shot: "sandbox-artefact-nogl.jpg", nogl: true });
 
+// Treatments persistence: an edit survives a reload via the crash-pad, and a
+// cleared crash-pad falls back to the committed treatments.json / defaults.
+// Uses the DEV-only window hooks (look mutation + artefactStore).
+async function runPersistence() {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.goto(`${BASE}?dev`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1400);
+
+  const baseline = await page.evaluate(() => window.look.cell);
+  const edited = await page.evaluate(() => {
+    // Drive the REAL edit path (stepper click -> pushTreatment -> persistLook ->
+    // crash-pad); mutating window.look directly would bypass persistence.
+    const rows = [...document.querySelectorAll(".art-ctl")];
+    const cells = rows.find((r) => r.querySelector(".art-ctl-l")?.textContent.trim().startsWith("Cells"));
+    const plus = cells.querySelectorAll(".art-step-b")[1];
+    plus.click();
+    plus.click();
+    return window.look.cell;
+  });
+  await page.waitForTimeout(700); // past the 400ms debounce
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(1400);
+  const restored = await page.evaluate(() => ({ cell: window.look.cell, source: window.artefactStore.source() }));
+
+  await page.evaluate(() => window.artefactStore.clear());
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(1400);
+  const reset = await page.evaluate(() => ({ cell: window.look.cell, source: window.artefactStore.source() }));
+
+  const checks = [
+    ["edit survives reload", restored.cell === edited && restored.source === "local"],
+    ["clear restores file/defaults", reset.cell === baseline && reset.source === "file"],
+  ];
+  const bad = checks.filter(([, ok]) => !ok);
+  failures += bad.length + errors.length;
+  console.log(
+    `persist: ${baseline} -> ${edited} -> reload ${restored.cell} (${restored.source}) -> clear ${reset.cell} (${reset.source})` +
+      (errors.length ? `  ERRORS: ${errors.join(" | ")}` : "") +
+      (bad.length ? `  FAILED: ${bad.map(([n]) => n).join(", ")}` : "  ok"),
+  );
+  await ctx.close();
+}
+await runPersistence();
+
 await browser.close();
 if (failures > 0) {
   console.error(`FAILED with ${failures} issue(s)`);
